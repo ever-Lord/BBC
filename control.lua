@@ -1,7 +1,7 @@
 require 'utils.data_stages'
 _LIFECYCLE = _STAGE.control -- Control stage
-_DEBUG = false
-_DUMP_ENV = false
+_DEBUG = false		--EVL (false)
+_DUMP_ENV = false		--EVL (false)
 
 require 'utils.server'
 require 'utils.server_commands'
@@ -10,24 +10,27 @@ require 'utils.table'
 require 'utils.freeplay'
 --require 'utils.datastore.server_ups'
 require 'utils.datastore.color_data'
-require 'utils.datastore.session_data'
-require 'utils.datastore.jail_data'
-require 'utils.datastore.quickbar_data'
-require 'utils.datastore.message_on_join_data'
-require 'utils.datastore.player_tag_data'
-require 'chatbot'
+--
+--EVL we remove as much as possible for UPS purpose
+--
+--require 'utils.datastore.session_data' -- EVL (server will always be new)
+--require 'utils.datastore.jail_data' --EVL no need for jail
+--require 'utils.datastore.quickbar_data' --EVL no we want cleared quickbar (for equity)
+--require 'utils.datastore.message_on_join_data' --EVL useless
+--require 'utils.datastore.player_tag_data' --EVL useless we dont want to use saved tag (server will always be new)
+--require 'chatbot' -- EVL no need (but /trust and /untrust are there !!!)
 require 'commands'
-require 'antigrief'
+--require 'antigrief' --EVL not needed for BBC-->no more /trust command ?
 require 'modules.corpse_markers'
 require 'modules.floaty_chat'
-require 'modules.show_inventory'
+require 'modules.show_inventory' --EVL only admins can /inventory player (nicer than /open player)
 require 'utils.debug.command'
 
 require 'comfy_panel.main'
 require 'comfy_panel.player_list'
 require 'comfy_panel.admin'
 require 'comfy_panel.group'
-require 'comfy_panel.poll'
+--require 'comfy_panel.poll' --EVL we dont need poll
 require 'comfy_panel.score'
 require 'comfy_panel.config'
 
