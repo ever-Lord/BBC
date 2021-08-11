@@ -25,7 +25,7 @@ local function chat_with_team(message, team)
     if (team == "south" or player.force.name == "south" ) then
         game.forces.south.print(msg, color)
     end
-    Server.to_discord_player_chat(msg)
+    --Server.to_discord_player_chat(msg)
 end
 
 commands.add_command('sth', 'Chat with south. Same as /south-chat', function(cmd)

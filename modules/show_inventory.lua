@@ -98,6 +98,11 @@ local function validate_player(player)
     if not game.players[player.index] then
         return false
     end
+	--EVL Must be a miss
+	if not player.admin then 
+		player.print("Only admins can open inventory.", {r = 175, g = 0, b = 0}) 
+		return false 
+	end
     return true
 end
 
@@ -138,7 +143,7 @@ local function redraw_inventory(gui, source, target, caption, panel_type)
 
     local inventory_gui = screen.inventory_gui
 
-    inventory_gui.caption = 'Inventory of ' .. target.name
+    inventory_gui.caption = 'Inventory of ' .. target.name  .. '    [font=default-small][color=#aaaaaa](press E or ESC to close)[/color][/font]'
 
     for name, opts in pairs(panel_type) do
         local flow = items_table.add({type = 'flow'})
@@ -177,10 +182,11 @@ local function redraw_inventory(gui, source, target, caption, panel_type)
             end
         end
     end
+	-- Add close tab ?
 end
 
 local function add_inventory(panel, source, target, caption, panel_type)
-    local data = get_player_data(source)
+	 local data = get_player_data(source)
     data.panel_type = data.panel_type or {}
     local pane_name = panel.add({type = 'tab', caption = caption, name = caption})
     local scroll_pane =
@@ -202,13 +208,16 @@ local function add_inventory(panel, source, target, caption, panel_type)
     redraw_inventory(scroll_pane, source, target, caption, panel_type)
 end
 
-local function open_inventory(source, target)
-    if not validate_player(source) then
+function Public.open_inventory(source, target)
+	if global.bb_debug then game.print("Debug: Inventory of " .. target.name .. " asked by "..source.name) end
+	if not validate_player(source) then
+		if global.bb_debug then game.print("Debug: Source ("..source.name..") is not valid") end --EVL
         return
     end
 
     if not validate_player(target) then
-        return
+       if global.bb_debug then game.print("Debug: Target ("..target.name..") is not valid") end --EVL
+		return
     end
 
     local screen = source.gui.screen
@@ -250,25 +259,43 @@ local function open_inventory(source, target)
 
     data.player_opened = target
     data.last_tab = 'Main'
-
-    local main = target.get_main_inventory().get_contents()
-    local armor = target.get_inventory(defines.inventory.character_armor).get_contents()
-    local guns = target.get_inventory(defines.inventory.character_guns).get_contents()
-    local ammo = target.get_inventory(defines.inventory.character_ammo).get_contents()
-    local trash = target.get_inventory(defines.inventory.character_trash).get_contents()
+	
+	--EVL ADD TAB for Crafting queue
+	local crafting={}
+	if target.crafting_queue ~= nil then
+		for _,item in pairs(target.crafting_queue) do
+			--game.print("recipe="..item["recipe"].." qtity="..item["count"])
+			local recipe=item["recipe"]
+			local count=item["count"]
+			if not crafting[recipe] then --CONCAT SAME CRAFTS 
+				crafting[recipe] = count
+			else
+				crafting[recipe] = crafting[recipe] + count
+			end
+		end	
+	end
+	--FIN EVL
+	
+	local main = target.get_main_inventory().get_contents()
+	local armor = target.get_inventory(defines.inventory.character_armor).get_contents()
+	local guns = target.get_inventory(defines.inventory.character_guns).get_contents()
+	local ammo = target.get_inventory(defines.inventory.character_ammo).get_contents()
+	local trash = target.get_inventory(defines.inventory.character_trash).get_contents()
 
     local types = {
-        ['Main'] = main,
-        ['Armor'] = armor,
-        ['Guns'] = guns,
-        ['Ammo'] = ammo,
-        ['Trash'] = trash
+		['Crafting'] = crafting,
+		['Main'] = main,
+		['Armor'] = armor,
+		['Guns'] = guns,
+		['Ammo'] = ammo
+		--['Close'] = nil
     }
 
     for k, v in pairs(types) do
-        if v ~= nil then
+		if v ~= nil then
             add_inventory(panel, source, target, k, v)
         end
+		
     end
 end
 
@@ -323,6 +350,7 @@ local function on_gui_click(event)
         redraw_inventory(frame, player, target, name, panel_type)
     end
 end
+
 local function gui_closed(event)
     local player = game.players[event.player_index]
 
@@ -388,22 +416,24 @@ commands.add_command(
                 return
             end
             local target_player = game.players[cmd.parameter]
-
-            if target_player == player then
-                return player.print('Cannot open self.', Color.warning)
-            end
+			
+			--EVL DEBUG Remove "--" below******************************************************************
+			--Well.. why not after all :)
+		   --if target_player == player then
+            --    return player.print('Cannot open self.', Color.warning)
+            --end
 
             local valid, opened = player_opened(player)
             if valid then
                 if target_player == opened then
-                    return player.print('You are already viewing this players inventory.', Color.warning)
+                    return player.print('>>>>> You are already viewing this players inventory.', Color.warning)
                 end
             end
 
             if validate_player(target_player) then
-                open_inventory(player, target_player)
+                Public.open_inventory(player, target_player)
             else
-                player.print('Please type a name of a player who is connected.', Color.warning)
+                player.print('>>>>> Please type a name of a player who is connected.', Color.warning)
             end
         else
             return

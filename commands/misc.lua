@@ -263,7 +263,7 @@ commands.add_command(
         end
 
         game.print(player.name .. ' has activated creative-mode!', Color.warning)
-        Server.to_discord_bold(table.concat {'[Creative] ' .. player.name .. ' has activated creative-mode!'})
+        --Server.to_discord_bold(table.concat {'[Creative] ' .. player.name .. ' has activated creative-mode!'})
 
         for k, v in pairs(game.connected_players) do
             v.cheat_mode = true
@@ -351,6 +351,6 @@ commands.add_command(
 
         local message = player.name .. ' deleted ' .. count .. ' uncharted chunks!'
         game.print(message, Color.warning)
-        Server.to_discord_bold(table.concat {message})
+        --Server.to_discord_bold(table.concat {message})
     end
 )

@@ -85,7 +85,7 @@ function Public.soft_reset_map(old_surface, map_gen_settings, player_starting_it
         )
     end
     game.print(message, {r = 0.98, g = 0.66, b = 0.22})
-    Server.to_discord_embed(message)
+    --Server.to_discord_embed(message)
 
     return new_surface
 end
