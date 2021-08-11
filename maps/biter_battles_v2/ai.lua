@@ -77,23 +77,23 @@ end
 
 local function is_biter_inactive(biter, unit_number, biter_force_name)
 	if not biter.entity then
-		if global.bb_debug then print("BiterBattles: active unit " .. unit_number .. " removed, possibly died.") end
+		if global.bb_debug then print("Debug: BiterBattles: active unit " .. unit_number .. " removed, possibly died.") end
 		return true
 	end
 	if not biter.entity.valid then
-		if global.bb_debug then print("BiterBattles: active unit " .. unit_number .. " removed, biter invalid.") end
+		if global.bb_debug then print("Debug: BiterBattles: active unit " .. unit_number .. " removed, biter invalid.") end
 		return true
 	end
 	if not biter.entity.unit_group then
-		if global.bb_debug then print("BiterBattles: active unit " .. unit_number .. "  at x" .. biter.entity.position.x .. " y" .. biter.entity.position.y .. " removed, had no unit group.") end
+		if global.bb_debug then print("Debug: BiterBattles: active unit " .. unit_number .. "  at x" .. biter.entity.position.x .. " y" .. biter.entity.position.y .. " removed, had no unit group.") end
 		return true
 	end
 	if not biter.entity.unit_group.valid then
-		if global.bb_debug then print("BiterBattles: active unit " .. unit_number .. " removed, unit group invalid.") end
+		if global.bb_debug then print("Debug: BiterBattles: active unit " .. unit_number .. " removed, unit group invalid.") end
 		return true
 	end
 	if game.tick - biter.active_since > bb_config.biter_timeout then
-		if global.bb_debug then print("BiterBattles: " .. biter_force_name .. " unit " .. unit_number .. " timed out at tick age " .. game.tick - biter.active_since .. ".") end
+		if global.bb_debug then print("Debug: BiterBattles: " .. biter_force_name .. " unit " .. unit_number .. " timed out at tick age " .. game.tick - biter.active_since .. ".") end
 		biter.entity.destroy()
 		return true
 	end
@@ -225,7 +225,7 @@ local function select_units_around_spawner(spawner, force_name, side_target)
 		end
 	end
 
-	if global.bb_debug then game.print(get_active_biter_count(biter_force_name) .. " active units for " .. biter_force_name) end
+	if global.bb_debug then game.print("Debug: "..get_active_biter_count(biter_force_name) .. " active units for " .. biter_force_name) end
 
 	return valid_biters
 end
@@ -288,7 +288,7 @@ local function get_unit_group_position(spawner)
 	end
 	p = spawner.surface.find_non_colliding_position("electric-furnace", p, 512, 1)
 	if not p then
-		if global.bb_debug then game.print("No unit_group_position found for team " .. spawner.force.name) end
+		if global.bb_debug then game.print("Debug: No unit_group_position found for team " .. spawner.force.name) end
 		return
 	end
 	return p
@@ -328,12 +328,13 @@ local function get_nearby_biter_nest(target_entity)
 end
 
 local function create_attack_group(surface, force_name, biter_force_name)
+	if global.freeze_players then game.print("BUG create_attack_group called while freezed") return end
 	local threat = global.bb_threat[biter_force_name]
 	if get_active_threat(biter_force_name) > threat * 1.20 then return end
 	if threat <= 0 then return false end
 
 	if bb_config.max_active_biters - get_active_biter_count(biter_force_name) < bb_config.max_group_size then
-		if global.bb_debug then game.print("Not enough slots for biters for team " .. force_name .. ". Available slots: " .. bb_config.max_active_biters - get_active_biter_count(biter_force_name)) end
+		if global.bb_debug then game.print("Debug: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. bb_config.max_active_biters - get_active_biter_count(biter_force_name)) end
 		return false
 	end
 
@@ -366,12 +367,15 @@ end
 Public.pre_main_attack = function()
 	local surface = game.surfaces[global.bb_surface_name]
 	local force_name = global.next_attack
-
+	if global.main_attack_wave_amount > 0 then --EVL we still have waves to send
+		if global.bb_debug then game.print("Debug: pre_main_attack called while amount>O (groups still have to be sent, this alert caused by freeze/unfreeze at ~bad~ timings") end
+		return 
+	end 
 	if not global.training_mode or (global.training_mode and #game.forces[force_name].connected_players > 0) then
 		local biter_force_name = force_name .. "_biters"
 		global.main_attack_wave_amount = math.ceil(get_threat_ratio(biter_force_name) * 7)
 
-		if global.bb_debug then game.print(global.main_attack_wave_amount .. " unit groups designated for " .. force_name .. " biters.") end
+		if global.bb_debug then game.print("Debug: "..global.main_attack_wave_amount .. " unit groups designated for " .. force_name .. " biters.") end
 	else
 		global.main_attack_wave_amount = 0
 	end
@@ -379,6 +383,7 @@ end
 
 
 Public.perform_main_attack = function()
+	if global.freeze_players then return end -- EVL we dont send groups while freezed
 	if global.main_attack_wave_amount > 0 then
 		local surface = game.surfaces[global.bb_surface_name]
 		local force_name = global.next_attack
@@ -436,14 +441,21 @@ Public.unlock_satellite = function(event)
 end
 
 Public.raise_evo = function()
-	if global.freeze_players then return end
-	if not global.training_mode and (#game.forces.north.connected_players == 0 or #game.forces.south.connected_players == 0) then return end
+	--game.print("public.raise_evo ") --EVL debug
+	if global.freeze_players then --EVL evo of evo if also frozen
+		return 
+	end
+	--EVL LINE BELOW TO UNCOMMENT AFTER TESTING **********************************************
+	--if not global.training_mode and (#game.forces.north.connected_players == 0 or #game.forces.south.connected_players == 0) then return end
+
+
+	--[[ EVL we are not babies, no more pity timer
 	if game.ticks_played < 7200 then return end
 	if global.difficulty_vote_index == 1 then
 		local x = game.ticks_played/3600 -- current length of the match in minutes
 		global.difficulty_vote_value = ((x / 470) ^ 3.7) + 0.25
 	end
-
+	]]--
 	local amount = math.ceil(global.evo_raise_counter * 0.75)
 
 	if not global.total_passive_feed_redpotion then global.total_passive_feed_redpotion = 0 end
@@ -452,10 +464,13 @@ Public.raise_evo = function()
 	local biter_teams = {["north_biters"] = "north", ["south_biters"] = "south"}
 	local a_team_has_players = false
 	for bf, pf in pairs(biter_teams) do
-		if #game.forces[pf].connected_players > 0 then
+		--EVL LINE BELOW TO UNCOMMENT AFTER TESTING*****************************************************************************************************
+		--if #game.forces[pf].connected_players > 0 then
 			set_evo_and_threat(amount, "automation-science-pack", bf)
 			a_team_has_players = true
-		end
+			global.bb_evolution[bf] = global.bb_evolution[bf] + global.evo_boost_values[bf] --EVL we boost EVO (but not threat)
+			--game.print("evo "..bf.."="..global.bb_evolution[bf]) --EVL debug
+		--end
 	end
 	if not a_team_has_players then return end
 	global.evo_raise_counter = global.evo_raise_counter + (1 * 0.50)

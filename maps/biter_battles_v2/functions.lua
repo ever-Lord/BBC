@@ -323,7 +323,7 @@ function Public.share_chat(event)
 	if a then return end
 
 	local discord_msg = player.name .. " (" .. player.force.name .. "): ".. event.message
-	Server.to_discord_player_chat(discord_msg)
+	--Server.to_discord_player_chat(discord_msg)
 
 	if player.force.name == "spectator" then
 		game.forces.north.print(player.name .. tag .. " (spectator): ".. event.message, color)
@@ -394,6 +394,20 @@ function Public.create_map_intro_button(player)
 	b.style.bottom_padding = 1
 end
 
+--EVL Top Button for Packs listing (repair pack)
+function Public.create_bbc_packs_button(player)
+	if player.gui.top["bbc_packs_button"] then return end
+	local b = player.gui.top.add({type = "sprite-button", caption = "[img=item.repair-pack]", name = "bbc_packs_button", tooltip = "Starter Packs Listing"})
+	b.style.font_color = {r=0.5, g=0.3, b=0.99}
+	b.style.font = "heading-1"
+	b.style.minimal_height = 38
+	b.style.minimal_width = 38
+	b.style.top_padding = 1
+	b.style.left_padding = 1
+	b.style.right_padding = 1
+	b.style.bottom_padding = 1
+end
+
 function Public.show_intro(player)
 	if player.gui.center["map_intro_frame"] then player.gui.center["map_intro_frame"].destroy() end
 	local frame = player.gui.center.add {type = "frame", name = "map_intro_frame", direction = "vertical"}
@@ -402,6 +416,114 @@ function Public.show_intro(player)
 	l.style.single_line = false
 	l.style.font = "heading-2"
 	l.style.font_color = {r=0.7, g=0.6, b=0.99}
+end
+
+--EVL Frame with Packs listing (repair pack)
+function Public.show_bbc_packs(player)
+	if player.gui.center["bbc_packs_frame"] then player.gui.center["bbc_packs_frame"].destroy() end
+	local frame = player.gui.center.add {type = "frame", name = "bbc_packs_frame", caption = "STARTER PACKS   (clic to expand)", direction = "vertical"}
+	local t = frame.add({type = "table", name = "bbc_packs_root_table", column_count = Tables.packs_total_nb})
+	local _pack_score={} -- EVL the score of total items (sum of qtity * item_value)
+	
+	for _, pack_elem in pairs(Tables.packs_list) do
+		local pack_name=pack_elem.name
+
+		--EVL THE TITLE (button) & SEPARATOR
+		local tt= t.add({type = "table", name = "bbc_c_"..pack_name, column_count = 2}) --bbc_c for column
+		local button = tt.add({
+			type = "button",
+			name = "bbc_b_"..pack_name, -- bbc_b for button
+			caption = pack_elem.caption,
+			tooltip = pack_elem.tooltip
+		})
+		button.style.font = "heading-1" --or "heading-3"
+		if pack_name==global.bbc_pack_details then
+			button.style.font_color = {r = 0, g = 125, b = 0}
+		end
+		tt.add({type = "label", caption = "       "}) 
+		
+		--EVL CONCAT THE CHESTS and get the score/value of the pack		
+		local pack_tot_content = {}
+		local chest_pos = {
+			["left"] = "left",
+			["center"] = "center",
+			["right"] = "right"
+		}
+		_pack_score[pack_name]=0
+		for _,_chest in pairs(chest_pos) do
+			--game.print("pack:"..pack_name.." chest : ".._chest)
+			for _item,_qty in pairs(Tables.packs_contents[pack_name][_chest]) do
+				if not pack_tot_content[_item] then  
+					pack_tot_content[_item] = _qty
+				else
+					pack_tot_content[_item] = pack_tot_content[_item] + _qty
+				end
+				--EVL Add the quantity*value of the item to total score of the pack
+				if not Tables.packs_item_value[_item] then
+					game.print("Bug pack:"..pack_name.."  chest:".._chest.."  item : "..__item.." unknown")
+				else
+					_pack_score[pack_name]=_pack_score[pack_name] + _qty * Tables.packs_item_value[_item]
+				end
+
+			end
+		end
+
+		-- EVL SHOW THE SCORE/VALUE OF THE PACK
+		local ttt= tt.add({type = "table", name = "bbc_c_"..pack_name, column_count = 2}) -- bbc_c for column
+		--ttt.style.vertical_align="top" ??????????????????????
+		local i = ttt.add({type = "label", caption = "Score:"}) 
+		i.style.font = "count-font"
+		local q = ttt.add({type = "label", caption = math.floor(_pack_score[pack_name])}) 		
+		q.style.font = "count-font"
+		--THE LIST
+		if global.bbc_pack_details==pack_name then --WE SHOW DETAILS
+			for _item,_qty in pairs(pack_tot_content) do
+				local img="[img=item.".._item.."]"
+				local i = ttt.add({type = "label", caption = img}) 
+				local d=_qty.." (" --d for details
+				--game.print("left:"..Tables.packs_contents[pack_name]["left"][_item])
+				if Tables.packs_contents[pack_name]["left"][_item] then
+					d=d..Tables.packs_contents[pack_name]["left"][_item]
+					--game.print("left:"..Tables.packs_contents[pack_name]["left"]._item)
+				else
+					d=d.."-"
+				end
+				d=d.." , "
+				if Tables.packs_contents[pack_name]["center"][_item] then
+					d=d..Tables.packs_contents[pack_name]["center"][_item]
+				else
+					d=d.."-"
+				end
+				d=d.." , "
+				if Tables.packs_contents[pack_name]["right"][_item] then
+					d=d..Tables.packs_contents[pack_name]["right"][_item]
+				else
+					d=d.."-"
+				end
+				d=d..")"
+				local q = ttt.add({type = "label", caption = d})
+			end
+		else 
+			for _item,_qty in pairs(pack_tot_content) do
+				local img="[img=item.".._item.."]"
+				local i = ttt.add({type = "label", caption = img}) 
+				--local qty=_qty.."->".._qty * Tables.packs_item_value[_item]
+				local q = ttt.add({type = "label", caption = _qty})
+				
+			end
+		end
+	end
+	frame.add { type = "line", caption = "this line", direction = "horizontal" }	
+	local ttttt= frame.add({type = "table", name = "bbc_bottom", column_count = 2})
+	local _info=ttttt.add({type = "label", caption = "Items will be distributed into 3 chests (left,mid,right) according to details above                                               "}) 
+	local button = ttttt.add({
+			type = "button",
+			name = "bbc_close_packs_frame",
+			caption = "Close"
+	})
+	button.style.font = "heading-1"
+	button.style.font_color = {r = 200, g = 32, b = 32}
+	--game.print("gui choosen:".. global.bbc_pack_choosen)
 end
 
 function Public.map_intro_click(player, element)
@@ -417,6 +539,36 @@ function Public.map_intro_click(player, element)
 		end
 	end	
 end
+
+--EVL Show/Hide Packs listing (repair pack button)
+function Public.bbc_packs_click(player, element)
+	local _elem = element.name
+	if _elem == "bbc_close_packs_frame" then player.gui.center["bbc_packs_frame"].destroy() return true end
+	--ACTIVE DETAILS FOR THIS PACK
+	local _isPack=string.sub(_elem,7,13)
+	for _,_pack in pairs(Tables.packs_list) do
+		if _pack.name==_isPack then
+			if global.bbc_pack_details==_isPack then 
+				global.bbc_pack_details = ""
+			else
+				global.bbc_pack_details=_isPack
+			end
+			Public.show_bbc_packs(player)
+			return true
+		end
+	end
+	if _elem == "bbc_packs_button" then --EVL click on the repair pack
+		if player.gui.center["bbc_packs_frame"] then
+			player.gui.center["bbc_packs_frame"].destroy()
+			return true
+		else
+			Public.show_bbc_packs(player)
+			return true
+		end
+	end	
+
+end
+
 
 function get_ammo_modifier(ammo_category)
 	local result = 0

@@ -7,6 +7,7 @@ local event = require 'utils.event'
 local Functions = require "maps.biter_battles_v2.functions"
 local feed_the_biters = require "maps.biter_battles_v2.feeding"
 local Tables = require "maps.biter_battles_v2.tables"
+local show_inventory = require 'modules.show_inventory'
 
 local wait_messages = Tables.wait_messages
 local food_names = Tables.gui_foods
@@ -25,6 +26,24 @@ local gui_values = {
 		t2 = "Threat causes biters to attack. Reduces when biters are slain.", color1 = {r = 0.99, g = 0.33, b = 0.33}, color2 = {r = 0.99, g = 0.44, b = 0.44},
 		tech_spy = "spy-south-tech", prod_spy = "spy-south-prod"}
 	}
+--EVL ticks into "h m s" (didnt find the way to put that in functions.lua)
+local function get_human_time(ttick)
+	local secondes = math.floor(ttick / 60)
+	secondes=secondes%60
+	local minutes = ttick % 216000
+	local hours = ttick - minutes
+	minutes = math.floor(minutes / 3600)
+	hours = math.floor(hours / 216000)
+	local humantime = ""
+	if hours > 0 then
+		humantime = hours .. "h"
+	end
+	if secondes < 10 then secondes=" "..secondes end
+	if minutes < 10 then minutes=" "..minutes end
+	
+	humantime = humantime .. minutes .."m" .. secondes .. "s"
+	return humantime
+end
 
 local function create_sprite_button(player)
 	if player.gui.top["bb_toggle_button"] then return end
@@ -117,7 +136,50 @@ function Public.create_main_gui(player)
 	end
 
 	local frame = player.gui.left.add { type = "frame", name = "bb_main_gui", direction = "vertical" }
-
+	--EVL We add a timer
+		local ttime = frame.add { type = "table", name = "biter_battle_time", column_count = 3 }
+		local tttime = ttime.add {
+			type = "sprite",
+			name = "tttime-editor",
+			sprite = "quantity-time",
+		}
+		tttime.style.font_color = {r = 127, g = 180, b = 200}
+		local time_played = game.ticks_played - global.freezed_time
+		local htime_gui = "Game has not started "
+		local htime_tooltip = "Game will enter in BOOST mode after ".. math.floor(global.evo_boost_tick/3600) .." minutes !"
+		if global.freezed_start == 999999999 then -- we are unfreezed
+			
+			if global.match_running then 
+				 htime_gui = get_human_time(time_played).." "
+			--else
+			-- Match is not running -> 	 htime_gui = "Game has not started "
+			end
+		else --EVL we are freezed since tick=global.freezed_start
+			time_paused = game.ticks_played - global.freezed_start
+			local real_time_played = time_played - time_paused
+			
+			if global.match_running then 
+				htime_gui = get_human_time(real_time_played) .. "   (".. math.floor(time_paused/60) .."s paused) "
+			--else
+			-- Match is not running -> 	 htime_gui = "Game has not started "
+			end
+		end
+		
+		if global.bb_debug then htime_tooltip =  htime_tooltip .. "\n debug : global.freezed_time=" .. math.floor(global.freezed_time/60) .. "\n debug : global.freezed_start=" .. math.floor(global.freezed_start/60) end
+		local tttime = ttime.add({type = "label", caption = htime_gui, tooltip = htime_tooltip } )
+		tttime.style.font = "default-large-bold"
+		tttime.style.font_color = {r = 127, g = 127, b = 255}
+		
+		local tttimee = ttime.add {
+			type = "sprite",
+			name = "tttimee-editor",
+			sprite = "quantity-time",
+		}
+		tttimee.style.font_color = {r = 127, g = 180, b = 200}
+	--EVL line separator
+	frame.add { type = "line", caption = "this line", direction = "horizontal" }
+	--EVL FIN
+	
 	-- Science sending GUI
 	if not is_spec then
 		frame.add { type = "table", name = "biter_battle_table", column_count = 4 }
@@ -173,7 +235,8 @@ function Public.create_main_gui(player)
 		if global.bb_view_players[player.name] == true then
 			local t = frame.add  { type = "table", column_count = 4 }
 			for _, p in pairs(game.forces[gui_value.force].connected_players) do
-				local l = t.add  { type = "label", caption = p.name }
+				--game.print("index:"..p.index.."  name:"..p.name) --EVL DEBUG
+				local l = t.add  { type = "label", name="plist_"..p.index ,caption = p.name } --EVL Add .index for inventory purpose
 				l.style.font_color = {r = p.color.r * 0.6 + 0.4, g = p.color.g * 0.6 + 0.4, b = p.color.b * 0.6 + 0.4, a = 1}
 			end
 		end
@@ -308,7 +371,7 @@ function join_team(player, force_name, forced_join)
 		game.permissions.get_group("Default").add_player(player)
 		local msg = table.concat({"Team ", player.force.name, " player ", player.name, " is no longer spectating."})
 		game.print(msg, {r = 0.98, g = 0.66, b = 0.22})
-		Server.to_discord_bold(msg)
+		--Server.to_discord_bold(msg)
         global.spectator_rejoin_delay[player.name] = game.tick
 		player.spectator = false
 		return
@@ -324,10 +387,11 @@ function join_team(player, force_name, forced_join)
 		if global.tm_custom_name[player.force.name] then c = global.tm_custom_name[player.force.name] end
 		local message = table.concat({player.name, " has joined team ", c, "!"})
 		game.print(message, {r = 0.98, g = 0.66, b = 0.22})
-		Server.to_discord_bold(message)
+		--Server.to_discord_bold(message)
 	end
 	local i = player.get_inventory(defines.inventory.character_main)
 	i.clear()
+	--[[ EVL WE GO ON FIELD EMPTY, USE STARTER PACKS
 	player.insert {name = 'pistol', count = 1}
 	player.insert {name = 'raw-fish', count = 3}
 	player.insert {name = 'firearm-magazine', count = 32}
@@ -335,6 +399,7 @@ function join_team(player, force_name, forced_join)
 	player.insert {name = 'iron-plate', count = 16}
 	player.insert {name = 'burner-mining-drill', count = 10}
 	player.insert {name = 'wood', count = 2}
+	]]--
 	global.chosen_team[player.name] = force_name
     global.spectator_rejoin_delay[player.name] = game.tick
 	player.spectator = false
@@ -352,7 +417,7 @@ function spectate(player, forced_join)
 	if not forced_join then
 		local msg = player.name .. " is spectating."
 		game.print(msg, {r = 0.98, g = 0.66, b = 0.22})
-		Server.to_discord_bold(msg)
+		--Server.to_discord_bold(msg)
 	end
 	game.permissions.get_group("spectator").add_player(player)
 	global.spectator_rejoin_delay[player.name] = game.tick
@@ -417,7 +482,7 @@ local function on_gui_click(event)
 
 	if food_names[name] then feed_the_biters(player, name) return end
 
-	if name == "bb_leave_spectate" then join_team(player, global.chosen_team[player.name])	end
+	if name == "bb_leave_spectate" then join_team(player, global.chosen_team[player.name])	return end
 
 	if name == "bb_spectate" then
 		if player.position.y ^ 2 + player.position.x ^ 2 < 12000 then
@@ -431,11 +496,39 @@ local function on_gui_click(event)
 	if name == "bb_hide_players" then
 		global.bb_view_players[player.name] = false
 		Public.create_main_gui(player)
+		return
 	end
 	if name == "bb_view_players" then
 		global.bb_view_players[player.name] = true
 		Public.create_main_gui(player)
+		return
 	end
+	--EVL Click on player from LeftGUI.playerlist (need to click button playerlist first)
+	--EVL only available for admins that are spectating
+	local _name=string.sub(name,0,6)
+	if _name=="plist_" then
+		--if player.admin and player.force.name == "spectator" then
+		if true then -- TO REMOVE AFTER DEBUG **********************************
+			local _target_index=tonumber(string.sub(name,7))
+			local isInteger=(type(_target_index) == "number") and (math.floor(_target_index) == _target_index)
+			if not isInteger then
+				if global.bb_debug then game.print("Debug: Player index (".._target_index..") is not valid in gui.lua/playerlist") end
+				return
+			end
+			if not game.players[_target_index] then
+				if global.bb_debug then game.print("Debug: Player index (".._target_index..") does not exist in gui.lua/playerlist") end
+				return
+			end
+			local _target = game.players[_target_index]
+			show_inventory.open_inventory(player, _target) --EVL player=source, _target=target
+			return
+		else
+			player.print(">>>>> Only admins as spectators can view inventory and craft list.", {r = 175, g = 0, b = 0})
+			return
+		end
+	end
+	
+	
 end
 
 local function on_player_joined_game(event)

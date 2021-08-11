@@ -294,9 +294,9 @@ local size_of_scrap_vectors = #scrap_vectors
 
 local function generate_extra_worm_turrets(surface, left_top)
 	local chunk_distance_to_center = math_sqrt(left_top.x ^ 2 + left_top.y ^ 2)
-	if bb_config.bitera_area_distance > chunk_distance_to_center then return end
+	if bb_config.bitera_area_distance > chunk_distance_to_center * 2 then return end -- EVL worms are closer (*2)
 	
-	local amount = (chunk_distance_to_center - bb_config.bitera_area_distance) * 0.0005
+	local amount = (chunk_distance_to_center * 2 - bb_config.bitera_area_distance) * 0.0005 -- EVL worms are closer (*2)
 	if amount < 0 then return end
 	local floor_amount = math_floor(amount)
 	local r = math.round(amount - floor_amount, 3) * 1000
@@ -457,7 +457,7 @@ function Public.draw_spawn_circle(surface)
 	
 	for i = 1, #tiles, 1 do
 		if tiles[i].name == "deepwater" then
-			if math_random(1, 48) == 1 then 
+			if math_random(1, 48) == 1 then --EVL we want want to change this value
 				local e = surface.create_entity({name = "fish", position = tiles[i].position})
 			end
 		end
@@ -465,7 +465,7 @@ function Public.draw_spawn_circle(surface)
 end
 
 function Public.draw_spawn_area(surface)
-	local chunk_r = 4
+	local chunk_r = 5 --EVL was 4
 	local r = chunk_r * 32	
 	
 	for x = r * -1, r, 1 do
@@ -582,11 +582,14 @@ function Public.generate_silo(surface)
 			entity.destroy()
 		end
 	end
-	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
+	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
 	turret1.insert({name = "firearm-magazine", count = 10})
-	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x+2, y=pos.y-5}, force = "north"})
+	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
 	turret2.insert({name = "firearm-magazine", count = 10})
+	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
+	turret3.insert({name = "firearm-magazine", count = 10})
 end
+
 --[[
 function Public.generate_spawn_goodies(surface)
 	local tiles = surface.find_tiles_filtered({name = "stone-path"})
@@ -628,12 +631,12 @@ function Public.minable_wrecks(event)
 	
 	local surface = entity.surface
 	local player = game.players[event.player_index]
-	
+	--[[ EVL NO MORE RANDOM IN SCRAPS
 	local loot_worth = math_floor(math_abs(entity.position.x * 0.02)) + math_random(16, 32)	
 	local blacklist = LootRaffle.get_tech_blacklist(math_abs(entity.position.x * 0.0001) + 0.10)
 	for k, _ in pairs(loot_blacklist) do blacklist[k] = true end
 	local item_stacks = LootRaffle.roll(loot_worth, math_random(1, 3), blacklist)
-		
+
 	for k, stack in pairs(item_stacks) do	
 		local amount = stack.count
 		local name = stack.name
@@ -650,6 +653,32 @@ function Public.minable_wrecks(event)
 			text = "+" .. amount .. " [img=item/" .. name .. "]",
 			color = {r=0.98, g=0.66, b=0.22}
 		})	
+	end
+	]]--
+	local item_stacks = {
+		['iron-plate'] = 5,
+		['copper-plate'] = 1,
+		['steel-plate'] = 1,
+		['coal'] = 5,
+		['stone'] = 5,
+		['electronic-circuit'] = 1,
+		['transport-belt'] = 2,
+		['inserter'] = 1
+	}
+	local k=1
+	for _item,_qty in pairs(item_stacks) do	
+		local inserted_count = player.insert({name = _item, count = _qty})	
+		if inserted_count ~= _qty then
+			local amount_to_spill = _qty - inserted_count			
+			surface.spill_item_stack(entity.position, {name = _item, count = amount_to_spill}, true)
+		end
+		surface.create_entity({
+			name = "flying-text",
+			position = {entity.position.x, entity.position.y - 0.5 * k},
+			text = "+" .. _qty .. " [img=item/" .. _item .. "]",
+			color = {r=0.98, g=0.66, b=0.22}
+		})
+		k=k+1
 	end
 end
 
@@ -688,6 +717,48 @@ function Public.deny_construction_bots(event)
 	event.robot.surface.create_entity({name = "explosion", position = event.created_entity.position})
 	game.print("Team " .. event.robot.force.name .. "'s construction drone had an accident.", {r = 200, g = 50, b = 100})
 	event.created_entity.destroy()
+end
+
+function Public.fill_starter_chests(surface)
+	if global.pack_choosen=="" then game.print("BUG, no pack found, cant fill the chests",{r = 255, g = 10, b = 10}) return end
+	if global.match_running then game.print("BUG, game has started, cant fill the chests",{r = 255, g = 10, b = 10}) return end
+	local _pack_nb=string.sub(global.pack_choosen,6,8)
+	local _pack_name=tables.packs_list[global.pack_choosen]["caption"]
+	game.print(">>>>> Filling up chests for STARTER PACK#".._pack_nb.. " : " .._pack_name .." ",{r = 197, g = 197, b = 17})
+
+	--EVL CHESTS--
+	local _posX = 00
+	local _posY = 40
+	-- LEFT
+	if global.packchest1N then global.packchest1N.destroy() end
+	if global.packchest1S then global.packchest1S.destroy() end
+	global.packchest1N = surface.create_entity({name = "steel-chest", position = {x=_posX-2, y=-_posY}, force = "north"})
+	global.packchest1S = surface.create_entity({name = "steel-chest", position = {x=_posX-2, y=_posY-1}, force = "south"})
+	for _item,_qty in pairs(tables.packs_contents[global.pack_choosen]["left"]) do
+		global.packchest1N.insert({name=_item, count=_qty})
+		global.packchest1S.insert({name=_item, count=_qty})
+	end
+	-- CENTER
+	if global.packchest2N then global.packchest2N.destroy() end
+	if global.packchest2S then global.packchest2S.destroy() end
+	global.packchest2N = surface.create_entity({name = "steel-chest", position = {x=_posX, y=-_posY}, force = "north"})
+	global.packchest2S = surface.create_entity({name = "steel-chest", position = {x=_posX, y=_posY-1}, force = "south"})
+	for _item,_qty in pairs(tables.packs_contents[global.pack_choosen]["center"]) do
+		global.packchest2N.insert({name=_item, count=_qty})
+		global.packchest2S.insert({name=_item, count=_qty})
+	end
+	-- RIGHT
+	if global.packchest3N then global.packchest3N.destroy() end
+	if global.packchest3S then global.packchest3S.destroy() end
+	global.packchest3N = surface.create_entity({name = "steel-chest", position = {x=_posX+2, y=-_posY}, force = "north"})
+	global.packchest3S = surface.create_entity({name = "steel-chest", position = {x=_posX+2, y=_posY-1}, force = "south"})
+	for _item,_qty in pairs(tables.packs_contents[global.pack_choosen]["right"]) do
+		global.packchest3N.insert({name=_item, count=_qty})
+		global.packchest3S.insert({name=_item, count=_qty})
+	end
+	
+	global.fill_starter_chests = false
+	global.starter_chests_are_filled = true
 end
 
 return Public

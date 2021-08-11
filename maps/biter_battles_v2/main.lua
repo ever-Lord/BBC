@@ -5,17 +5,23 @@ local Functions = require "maps.biter_battles_v2.functions"
 local Game_over = require "maps.biter_battles_v2.game_over"
 local Gui = require "maps.biter_battles_v2.gui"
 local Init = require "maps.biter_battles_v2.init"
+
 local Mirror_terrain = require "maps.biter_battles_v2.mirror_terrain"
 require 'modules.simple_tags'
 local Team_manager = require "maps.biter_battles_v2.team_manager"
+	
 local Terrain = require "maps.biter_battles_v2.terrain"
 local Session = require 'utils.datastore.session_data'
 local Color = require 'utils.color_presets'
 local diff_vote = require "maps.biter_battles_v2.difficulty_vote"
 
+
+
 require "maps.biter_battles_v2.sciencelogs_tab"
-require 'maps.biter_battles_v2.commands'
+-- require 'maps.biter_battles_v2.commands' --EVL no need (other way to restart : use /force_map_reset instead)
 require "modules.spawners_contain_biters"
+
+require 'spectator_zoom' -- EVL Zoom for spectators 
 
 local function on_player_joined_game(event)
 	local surface = game.surfaces[global.bb_surface_name]
@@ -24,7 +30,11 @@ local function on_player_joined_game(event)
 		Functions.init_player(player)
 	end
 	Functions.create_map_intro_button(player)
+	Functions.create_bbc_packs_button(player)
 	Team_manager.draw_top_toggle_button(player)
+	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
+	if global.freeze_players then msg_freeze="frozen" end
+	player.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open TEAM MANAGER",{r = 00, g = 225, b = 00})
 end
 
 local function on_gui_click(event)
@@ -33,7 +43,12 @@ local function on_gui_click(event)
 	if not element then return end
 	if not element.valid then return end
 
-	if Functions.map_intro_click(player, element) then return end
+	if Functions.map_intro_click(player, element) then 
+		return 
+	end
+	if Functions.bbc_packs_click(player, element) then 
+		return 
+	end	
 	Team_manager.gui_click(event)
 end
 
@@ -86,29 +101,127 @@ local tick_minute_functions = {
 
 local function on_tick()
 	local tick = game.tick
+	--if not global.freeze_players and not global.bb_game_won_by_team then --EVL patch ?
+		Ai.reanimate_units()
+	--end
 
-	Ai.reanimate_units()
-
-	if tick % 60 == 0 then 
+	if not global.freeze_players and tick % 60 == 0 then --evl
 		global.bb_threat["north_biters"] = global.bb_threat["north_biters"] + global.bb_threat_income["north_biters"]
 		global.bb_threat["south_biters"] = global.bb_threat["south_biters"] + global.bb_threat_income["south_biters"]
 	end
 
-	if tick % 180 == 0 then
-		Gui.refresh()
+	--if tick % 300 == 0 then -- EVL WAS 180
+	--	Gui.refresh()
+	--	diff_vote.difficulty_gui()
+	--end
+
+	
+	if tick % 300 == 0 then --EVL is called at the same tick as tick_minute_functions, could be changed to : if (tick+8) % 300 == 0
+		--EVL we clear corpses every 2 minutes
+		if tick%7200 == 0 then clear_corpses_auto() end
+		Gui.refresh() --EVL from above
 		diff_vote.difficulty_gui()
-	end
-
-	if tick % 300 == 0 then
+		
 		Gui.spy_fish()
-
-		if global.bb_game_won_by_team then
-			Game_over.reveal_map()
+		
+		if global.reveal_init_map and (game.ticks_played > 600) then  --EVL we reveal 100x100 for reroll purpose (up to 10s delay)
+			Game_over.reveal_init_map(100)
+			global.reveal_init_map=false 
+		end	
+		
+		if global.fill_starter_chests then -- EVL Fill the chests (when clicked in team manager)
+			local surface = game.surfaces[global.bb_surface_name] -- is this the right way  ?
+			Terrain.fill_starter_chests(surface) -- in terrain.lua
+			global.fill_starter_chests = false
+		end
+		if global.reroll_do_it then -- EVL Reroll the map (twice MAX)
+			if global.reroll_left<1 then 
+				game.print(">>>>>>  BUG TOO MUCH REROLL - REROLL CANCELLED") 
+			else 
+				--game.print("GO FOR REROLL") 
+				global.server_restart_timer = 5 --EVL Trick to instant reroll
+				--Game_over.reveal_map()
+				Game_over.server_restart()
+				global.reroll_left=global.reroll_left-1
+				global.pack_choosen = "" -- EVL Reinit Starter pack
+				global.reroll_do_it=false
+			end
+		end
+		
+		--EVL but we keep possibility to reset for exceptionnal reasons 
+		if global.force_map_reset_exceptional then		 
+			--game.print("main-forcemapreset=true")
+			if not global.server_restart_timer then 
+				global.server_restart_timer=20 
+			end
+			Game_over.reveal_map() --EVL must be repeated
 			Game_over.server_restart()
+			global.reroll_left=2 --EVL Reinit #Nb reroll
+			global.pack_choosen = "" --EVL Reinit Starter pack
 			return
 		end
-	end
+		
+		--EVL We dont reset after match ends (trick : global.server_restart_timer=999999)
+		if global.bb_game_won_by_team then		 --EVL no restart (debrief, save etc...) 
+			Game_over.reveal_map()
+			Game_over.server_restart() --WILL NEVER HAPPEN (global.server_restart_timer=999999)
+			return
+		end
 
+
+		if tick % 1200 == 0 then --EVL monitoring game times every 20s for ELO BOOST
+			if global.freezed_start == 999999999 then -- players are unfreezed
+				if not global.evo_boost_active then -- EVO BOOST AFTER 2H (global.tick_evo_boost=60*60*60*2)
+					local real_played_time = game.ticks_played - global.freezed_time
+					if real_played_time >= global.evo_boost_tick then
+						-- EVL FOR TESTING/DEBUG, TO BE REMOVED***********************************************
+						global.bb_evolution["north_biters"] = global.bb_evolution["north_biters"] + 0.10
+						global.bb_evolution["south_biters"] = global.bb_evolution["south_biters"] + 0.15
+
+						--Set boost for north and south
+					
+						local evo_north = global.bb_evolution["north_biters"]
+						if evo_north<0.00001 then evo_north=0.00001 end --!DIV0
+						local evo_south = global.bb_evolution["south_biters"]
+						if evo_south<0.00001 then evo_south=0.0001 end --!DIV0
+						
+						if evo_north < evo_south then
+							-- WE WANT NORTH TO GO UP TO 90% UNTIL 2H30 (PLUS NATURAL AND SENDINGS)
+							local boost_north = (0.9-evo_north) / 30
+							if boost_north < 0.01 then boost_north = 0.01 end -- MINIMUM SET AT 1% per MIN
+							local evo_ratio = evo_south / evo_north -- NORTH KEEPS ADVANTAGE
+							local evo_corr = (evo_south-evo_north)/(evo_south+evo_north) --ARBITRARY
+							--game.print(">>>>>> EVO_NORTH=".. evo_north .. "BOOST=" .. boost_north .. " RATIO="..evo_ratio)
+							--game.print(">>>>>> EVO_SOUTH=".. evo_south .. "BOOST=xxxxx" .. " CORR="..evo_corr)							
+							local boost_south = boost_north * evo_ratio * (1 - evo_corr)
+							global.evo_boost_values["north_biters"] = boost_north
+							global.evo_boost_values["south_biters"] = boost_south
+						else
+							-- WE WANT SOUTH TO GO UP TO 90% UNTIL 2H30 (PLUS NATURAL AND SENDINGS)
+							local boost_south = (0.9-evo_south) / 30
+							if boost_south < 0.01 then boost_south = 0.01 end -- MINIMUM SET AT 1% per MIN
+							local evo_ratio = evo_north / evo_south -- SOUTH KEEPS ADVANTAGE
+							local evo_corr = (evo_north-evo_south)/(evo_south+evo_north) --ARBITRARY CORRECTION
+							--game.print(">>>>>> EVO_NORTH=".. evo_north .. "BOOST=xxxxx" .. " RATIO="..evo_ratio)
+							--game.print(">>>>>> EVO_SOUTH=".. evo_south .. "BOOST=" .. boost_south.. " CORR="..evo_corr)
+							local boost_north = boost_south * evo_ratio * (1 - evo_corr)
+							global.evo_boost_values["north_biters"] = boost_north
+							global.evo_boost_values["south_biters"] = boost_south
+						end
+						global.evo_boost_active = true --We wont come here again
+						local _b_north=math.floor(global.evo_boost_values["north_biters"]*10000)/100
+						local _b_south=math.floor(global.evo_boost_values["south_biters"]*10000)/100
+						game.print(">>>>> TIME HAS PASSED !!! EVOLUTION IS NOW BOOSTED !!! (%north=".._b_north.."  | %south=".._b_south..")", {r = 255, g = 77, b = 77})
+					end
+				end
+				--game.print("UNFREEZ : ticks="..tick.." | played="..game.ticks_played.." (freezed="..global.freezed_time.." & FS="..global.freezed_start..")") 
+			
+			else -- players are freezed since global.freezed_start, and we dont care about EVO BOOST
+				--game.print("FREEZED : ticks="..tick.." | played="..game.ticks_played.." (freezed="..global.freezed_time.."+"..(game.ticks_played-global.freezed_start).." & FS="..global.freezed_start..")") 
+			end
+		end
+	end
+	-- EVL NO EVO/THREAT OR GROUPS WHEN FREEZE
 	if tick % 30 == 0 then	
 		local key = tick % 3600
 		if tick_minute_functions[key] then tick_minute_functions[key]() end
@@ -125,10 +238,10 @@ local function on_player_built_tile(event)
 	Terrain.restrict_landfill(player.surface, player, event.tiles)
 end
 
-local function on_player_built_tile(event)
-	local player = game.players[event.player_index]
-	Terrain.restrict_landfill(player.surface, player, event.tiles)
-end
+--local function on_player_built_tile(event) --EVL why is this function double copied?
+--	local player = game.players[event.player_index]
+--	Terrain.restrict_landfill(player.surface, player, event.tiles)
+--end
 
 local function on_player_mined_entity(event)
 	Terrain.minable_wrecks(event)
@@ -203,21 +316,22 @@ local function on_area_cloned(event)
 	end
 end
 
-local function clear_corpses(cmd)
+local function clear_corpses(cmd) -- EVL After command /clear-corpses radius
 	local player = game.player
-        local trusted = Session.get_trusted_table()
+       -- EVL not needed for BBC tournament, trust parameter is never used
+		--local trusted = Session.get_trusted_table()
         local param = tonumber(cmd.parameter)
 
         if not player or not player.valid then
             return
         end
         local p = player.print
-        if not trusted[player.name] then
-            if not player.admin then
-                p('[ERROR] Only admins and trusted weebs are allowed to run this command!', Color.fail)
-                return
-            end
-        end
+        --if not trusted[player.name] then
+        --    if not player.admin then
+        --        p('[ERROR] Only admins and trusted weebs are allowed to run this command!', Color.fail)
+        --        return
+        --    end
+        --end
         if param == nil then
             player.print('[ERROR] Must specify radius!', Color.fail)
             return
@@ -248,10 +362,30 @@ local function clear_corpses(cmd)
         player.print('Cleared biter-corpses.', Color.success)
 end
 
+local function clear_corpses_auto() -- Automatic clear corpses called every 2 min
+	if not Ai.empty_reanim_scheduler() then
+		if global.bb_debug then game.print("Debug: Some corpses are waiting to be reanimated... Skipping this turn of clear_corpses") end
+		return
+	end
+        local _param=500
+		 local radius = {{x = (0 + -_param), y = (0 + -_param)}, {x = (0 + _param), y = (0 + _param)}}
+        for _, entity in pairs(player.surface.find_entities_filtered {area = radius, type = 'corpse'}) do
+            if entity.corpse_expires then
+                entity.destroy()
+            end
+        end
+	if global.bb_debug then game.print("Debug: Cleared biter-corpses.", Color.success) end
+end
+
+
+
+
 local function on_init()
 	Init.tables()
 	Init.initial_setup()
-	Init.playground_surface()
+	Init.playground_surface() -- EVL We have a problem first math.random for seed of map gives always same value (since tick=0) ???
+	-- EVL patch : ???
+	
 	Init.forces()
 	Init.draw_structures()
 	Init.load_spawn()

@@ -2,21 +2,57 @@ local Terrain = require "maps.biter_battles_v2.terrain"
 local Score = require "comfy_panel.score"
 local Tables = require "maps.biter_battles_v2.tables"
 local fifo = require "maps.biter_battles_v2.fifo"
+local team_manager = require "maps.biter_battles_v2.team_manager"
 
 local Public = {}
+--[[ finally Removed
+function freeze_players_init() -- EVL From team_manager.lua, NOT exact copy of "local function freeze_players()" [could be global function (..) ?}
+								 -- Here we dont care of biter freezing (must be a better way to do that)
+	if not global.freeze_players then return end
+	global.team_manager_default_permissions = {}
+	local p = game.permissions.get_group("Default")	
+	for action_name, _ in pairs(defines.input_action) do
+		global.team_manager_default_permissions[action_name] = p.allows_action(defines.input_action[action_name])
+		p.set_allows_action(defines.input_action[action_name], false)
+	end	
+	local defs = {
+		defines.input_action.write_to_console,
+		defines.input_action.gui_click,
+		defines.input_action.gui_selection_state_changed,
+		defines.input_action.gui_checked_state_changed	,
+		defines.input_action.gui_elem_changed,
+		defines.input_action.gui_text_changed,
+		defines.input_action.gui_value_changed,
+		defines.input_action.edit_permission_group,
+	}	
+	for _, d in pairs(defs) do p.set_allows_action(d, true) end
+end
+]]--
 
-function Public.initial_setup()
+function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.enemy_evolution.time_factor = 0
 	game.map_settings.enemy_evolution.destroy_factor = 0
 	game.map_settings.enemy_evolution.pollution_factor = 0
 	game.map_settings.pollution.enabled = false
 	game.map_settings.enemy_expansion.enabled = false
 
-	game.create_force("north")
-	game.create_force("south")
-	game.create_force("north_biters")
-	game.create_force("south_biters")
-	game.create_force("spectator")
+	global.bb_debug = true --EVL BE CAREFUL, OTHER *SETTINGS ARE SET TO DEBUG MODE (search for ****************)
+	
+	-- EVL change for map restart (/force-map-reset)
+	local _first_init=true --EVL for disabling nauvis (below)
+	if not game.forces["north"] then 
+		game.create_force("north")
+		game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open TEAM MANAGER <<<<<",{r = 00, g = 175, b = 00}) --EVL double message?
+	else
+		if global.bb_debug then game.print("Debug : Executing initial setup (again)",{r = 00, g = 175, b = 00}) end
+		game.print(">>>>> You may need to refresh TEAM MANAGER GUI manually",{r = 127, g = 127, b = 127})
+		_first_init=false
+	end
+	if not game.forces["south"] then game.create_force("south") end
+	if not game.forces["north_biters"] then game.create_force("north_biters") end
+	if not game.forces["south_biters"] then game.create_force("south_biters") end
+	if not game.forces["spectator"] then game.create_force("spectator") end
+
 
 	game.forces.spectator.research_all_technologies()
 
@@ -59,38 +95,67 @@ function Public.initial_setup()
 
 	global.gui_refresh_delay = 0
 	global.game_lobby_active = true
-	global.bb_debug = false
+	
 	global.bb_settings = {
 		--TEAM SETTINGS--
-		["team_balancing"] = true,			--Should players only be able to join a team that has less or equal members than the opposing team?
-		["only_admins_vote"] = false,		--Are only admins able to vote on the global difficulty?
+		["team_balancing"] = true,	--EVL dont care	--Should players only be able to join a team that has less or equal members than the opposing team?
+		["only_admins_vote"] = true, --EVL YES			--Are only admins able to vote on the global difficulty? --EVL YES
 	}
 
-	--Disable Nauvis
-	local surface = game.surfaces[1]
-	local map_gen_settings = surface.map_gen_settings
-	map_gen_settings.height = 3
-	map_gen_settings.width = 3
-	surface.map_gen_settings = map_gen_settings
-	for chunk in surface.get_chunks() do
-		surface.delete_chunk({chunk.x, chunk.y})
+	
+	--Disable Nauvis during first init only
+	if _first_init then
+		local surface = game.surfaces[1]
+		local map_gen_settings = surface.map_gen_settings
+		map_gen_settings.height = 3
+		map_gen_settings.width = 3
+		surface.map_gen_settings = map_gen_settings
+		for chunk in surface.get_chunks() do
+			surface.delete_chunk({chunk.x, chunk.y})
+		end
 	end
+	--game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open TEAM MANAGER",{r = 00, g = 175, b = 00}) --EVL
+	global.tournament_mode = true -- EVL (none)
+	
+	
+	--global.freezed_start = 999999999 --EVL will be set to actual ticks_played game.ticks_played
+	--global.freeze_players = true -- EVL (none)
+	--team_manager.freeze_players() -- EVL (none) do we care about biters ?
+	
+	if global.freeze_players then --We are already frozen
+		global.freezed_time=0 --EVL (none)
+		--EVL we save tick when players started to be frozen (none)
+		global.freezed_start=game.ticks_played
+		--do nothing
+		if global.bb_debug then game.print("Debug : Initial setup, players are already frozen",{r = 00, g = 175, b = 00}) end		
+	else
+		global.freezed_time=0
+		global.freezed_start=999999999 -- EVL Will be set to game.ticks_played
+		global.freeze_players = true -- EVL (none)
+		team_manager.freeze_players() -- EVL (none) do we care about biters ?
+		if global.bb_debug then game.print("Debug : Initial setup, players are set to frozen",{r = 00, g = 175, b = 00}) end		
+	end	
+	
 end
 
 --Terrain Playground Surface
 function Public.playground_surface()
 	local map_gen_settings = {}
 	local int_max = 2 ^ 31
-	map_gen_settings.seed = math.random(1, int_max)
+	map_gen_settings.seed = math.random(1, int_max) --EVL first math.random send always same value (since tick=0) ???
 	map_gen_settings.water = math.random(15, 65) * 0.01
 	map_gen_settings.starting_area = 2.5
 	map_gen_settings.terrain_segmentation = math.random(30, 40) * 0.1
 	map_gen_settings.cliff_settings = {cliff_elevation_interval = 0, cliff_elevation_0 = 0}
 	map_gen_settings.autoplace_controls = {
-		["coal"] = {frequency = 6.5, size = 0.34, richness = 0.24},
-		["stone"] = {frequency = 6, size = 0.35, richness = 0.25},
-		["copper-ore"] = {frequency = 7, size = 0.32, richness = 0.35},
-		["iron-ore"] = {frequency = 8.5, size = 0.8, richness = 0.23},
+		["coal"] = {frequency = 6.5, size = 0.4, richness = 0.40},
+		["stone"] = {frequency = 6, size = 0.4, richness = 0.35},
+		["copper-ore"] = {frequency = 7, size = 0.5, richness = 0.45},
+		["iron-ore"] = {frequency = 8.5, size = 0.7, richness = 0.50}, 
+		--["coal"] = {frequency = 6.5, size = 0.34, richness = 0.24}, --Values from Mewmew
+		--["stone"] = {frequency = 6, size = 0.35, richness = 0.25},
+		--["copper-ore"] = {frequency = 7, size = 0.32, richness = 0.35},
+		--["iron-ore"] = {frequency = 8.5, size = 0.8, richness = 0.23}, 		
 		["uranium-ore"] = {frequency = 2, size = 1, richness = 1},
 		["crude-oil"] = {frequency = 8, size = 1.4, richness = 0.45},
 		["trees"] = {frequency = math.random(8, 28) * 0.1, size = math.random(6, 14) * 0.1, richness = math.random(2, 4) * 0.1},
@@ -104,8 +169,8 @@ end
 function Public.draw_structures()
 	local surface = game.surfaces[global.bb_surface_name]
 	Terrain.draw_spawn_area(surface)
-	Terrain.clear_ore_in_main(surface)
-	Terrain.generate_spawn_ore(surface)
+	--Terrain.clear_ore_in_main(surface) --EVL test
+	--Terrain.generate_spawn_ore(surface)
 	Terrain.generate_additional_rocks(surface)
 	Terrain.generate_silo(surface)
 	Terrain.draw_spawn_circle(surface)
@@ -159,7 +224,7 @@ function Public.tables()
 	global.difficulty_vote_value = 1
 	global.difficulty_vote_index = 4
 
-	global.difficulty_votes_timeout = 36000
+	global.difficulty_votes_timeout = 72000
 
 	-- A FIFO that holds dead unit positions. It is used by unit
 	-- reanimation logic. This container is to be accessed by force index.
@@ -194,9 +259,34 @@ function Public.tables()
 	global.reanim_chance = {}
 
 	fifo.init()
-
+	game.reset_time_played()
+	
 	global.next_attack = "north"
 	if math.random(1,2) == 1 then global.next_attack = "south" end
+	
+	global.pack_choosen = ""	--EVL (none)
+	global.match_running = false  --EVL (none)
+	global.fill_starter_chests = false  --EVL (none)
+	global.starter_chests_are_filled = false  --EVL (none)
+	global.reroll_left=3 --EVL (none) *************************
+	--global.reroll_left=20 --EVL TO be removed *************************
+	global.reroll_do_it=false --EVL (none)
+	--global.last_restart_tick=0 --EVl (none) We'll need this if reroll/restart
+	global.freezed_time=0 --EVL (none)
+	global.freezed_start=game.ticks_played --EVL we save tick when players started to be frozen (none)
+	global.reveal_init_map=true --EVL (none)
+	--global.evo_boost_tick=2*60*60*60 --EVL We boost evo starting at 2h=120m **********************************
+	global.evo_boost_tick=2*60*60 --EVL We boost evo starting at 2h=120m
+	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
+	global.evo_boost_values={ 	-- EVL
+		["north_biters"]=0.00,
+		["south_biters"]=0.00
+	}	
+	global.bbc_pack_details = "" -- EVL USED IN functions.lua FOR listing of packs
+	global.force_map_reset_exceptional=false
+	--global.server_restart_timer = 20 -- EVL see main.lua
+		
+	
 end
 
 function Public.load_spawn()

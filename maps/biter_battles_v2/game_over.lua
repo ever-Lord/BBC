@@ -30,6 +30,15 @@ function Public.reveal_map()
     end
 end
 
+function Public.reveal_init_map(radius) --EVL We show a bit more for rerolling purpose
+    for _, f in pairs({"north", "south", "player", "spectator"}) do
+        local r = radius
+        game.forces[f].chart(game.surfaces[global.bb_surface_name],
+                             {{r * -1, r * -1}, {r, r}})
+    end
+end
+
+
 local function create_victory_gui(player)
     local values = gui_values[global.bb_game_won_by_team]
     local c = values.c1
@@ -201,8 +210,7 @@ local function show_mvps(player)
             local result = {}
             table.insert(result, 'NORTH: \\n')
             table.insert(result, 'MVP Defender: \\n')
-            table.insert(result, mvp.killscore.name .. " with a score of " ..
-                             mvp.killscore.score .. "\\n")
+            table.insert(result, mvp.killscore.name .. " with a score of " .. mvp.killscore.score .. "\\n")
             table.insert(result, '\\n')
             table.insert(result, 'MVP Builder: \\n')
             table.insert(result,
@@ -214,7 +222,7 @@ local function show_mvps(player)
                          mvp.deaths.name .. " died " .. mvp.deaths.score ..
                              " times")
             local message = table.concat(result)
-            Server.to_discord_embed(message)
+            --Server.to_discord_embed(message)
             global.results_sent_north = true
         end
     end
@@ -276,25 +284,30 @@ local function show_mvps(player)
                          mvp.deaths.name .. " died " .. mvp.deaths.score ..
                              " times")
             local message = table.concat(result)
-            Server.to_discord_embed(message)
+            --Server.to_discord_embed(message)
             global.results_sent_south = true
         end
     end
 end
 
+
+
 local enemy_team_of = {["north"] = "south", ["south"] = "north"}
 
 function Public.server_restart()
-    if not global.server_restart_timer then return end
-    global.server_restart_timer = global.server_restart_timer - 5
+    
+	if not global.server_restart_timer then  game.print("BUG asking for server_restart without server_restart_timer") return end --EVL debug
+	if global.bb_debug then game.print("Debug: server_restart : timer="..global.server_restart_timer) end -- EVL debug
+	global.server_restart_timer = global.server_restart_timer - 5
 
     if global.server_restart_timer == 0 then
-        if global.restart then
+        --EVL Removed, not used in BBC
+		--[[if global.restart then
             if not global.announced_message then
                 local message =
                     'Soft-reset is disabled! Server will restart from scenario to load new changes.'
                 game.print(message, {r = 0.22, g = 0.88, b = 0.22})
-                Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
+                --Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
                 Server.start_scenario('Biter_Battles')
                 global.announced_message = true
                 return
@@ -305,48 +318,60 @@ function Public.server_restart()
                 local message =
                     'Soft-reset is disabled! Server will shutdown. Most likely because of updates.'
                 game.print(message, {r = 0.22, g = 0.88, b = 0.22})
-                Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
+                --Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
                 Server.stop_scenario()
                 global.announced_message = true
                 return
             end
         end
-        game.print("Map is restarting!", {r = 0.22, g = 0.88, b = 0.22})
+		]]--
+        
+		game.print(">>>>> Map is restarting !  (10s before reveal)", {r = 0.22, g = 0.88, b = 0.22}) --EVL BBC has a reveal of 100x100 for reroll purpose
         local message = 'Map is restarting! '
-        Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
+        --Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
 
-	local prev_surface = global.bb_surface_name
-        Init.tables()
-	Init.playground_surface()
-	Init.forces()
-	Init.draw_structures()
-        Init.load_spawn()
+		local prev_surface = global.bb_surface_name
 
-        for _, player in pairs(game.players) do
+       --EVL SAVE DATAS BEFORE REROLL (global.freeze_players, global.reroll_left)
+		local freeze_players = global.freeze_players --if player are freezed then dont freeze them again
+		local reroll_left = global.reroll_left --EVL need to remember how many rolls we did
+
+		--EVL REWORK INIT PROCEDURE
+		Init.tables()
+		global.freeze_players = freeze_players
+		global.reroll_left = reroll_left
+		global.server_restart_timer = nil
+		
+		Init.initial_setup() -- EVL (none)
+		Init.playground_surface()
+		Init.forces()
+		Init.draw_structures()
+       Init.load_spawn()
+
+		for _, player in pairs(game.players) do
             Functions.init_player(player)
             for _, e in pairs(player.gui.left.children) do
                 e.destroy()
             end
             Gui.create_main_gui(player)
-        end
-        game.reset_time_played()
-        global.server_restart_timer = nil
-        game.speed = 1
-	game.delete_surface(prev_surface)
-        return
+		end
+		--game.reset_time_played() -- EVL moved to init.lua
+       game.speed = 1
+		game.delete_surface(prev_surface)
+		return
     end
-    if global.server_restart_timer % 30 == 0 then
-        game.print("Map will restart in " .. global.server_restart_timer ..
-                       " seconds!", {r = 0.22, g = 0.88, b = 0.22})
-        if global.server_restart_timer / 30 == 1 then
-            game.print("Good luck with your next match!", {r=0.98, g=0.66, b=0.22})
-        end
+    if global.server_restart_timer % 15 == 0 then --EVL was 30
+        game.print(">>>>> Map will exceptionally restart in " .. global.server_restart_timer ..
+                       " seconds !", {r = 0.22, g = 0.88, b = 0.22})
+        --if global.server_restart_timer / 15 == 1 then --EVL was 30 NOT NEEDED
+        ---   game.print("Good luck with your next match!", {r=0.98, g=0.66, b=0.22})
+        --end
     end
 end
 
 local function set_victory_time()
     local tick = game.ticks_played
-    local minutes = tick % 216000
+	--[[local minutes = tick % 216000
     local hours = tick - minutes
     minutes = math.floor(minutes / 3600)
     hours = math.floor(hours / 216000)
@@ -358,6 +383,17 @@ local function set_victory_time()
     global.victory_time = "Time - " .. hours
     global.victory_time = global.victory_time .. minutes
     global.victory_time = global.victory_time .. " minutes"
+	--]]
+	--EVL SUBSTRACT FREEZED TIME TO TIME PLAYED
+	local _freezed_time = global.freezed_time
+	tick=tick-_freezed_time
+	local minutes = tick % 216000
+	local hours = tick - minutes
+	minutes = math.floor(minutes / 3600)
+	hours = math.floor(hours / 216000)
+	if minutes<10 then minutes="0"..minutes end
+	global.victory_time = "in " .. hours .. "h" .. minutes	.. "m"
+	global.victory_time = global.victory_time.."  (plus "..math.floor(_freezed_time/3600).."m paused)"
 end
 
 local function freeze_all_biters(surface)
@@ -367,7 +403,11 @@ local function freeze_all_biters(surface)
     for _, e in pairs(surface.find_entities_filtered({force = "south_biters"})) do
         e.active = false
     end
+	if global.bb_debug then game.print("Debug: Biters are frozen (Game_over.lua).") end
 end
+
+
+
 
 local function biter_killed_the_silo(event)
 	local force = event.force
@@ -381,6 +421,7 @@ local function biter_killed_the_silo(event)
 	end
 
 	log("Could not determine what destroyed the silo")
+	if global.bb_debug then game.print("Debug: Could not determine what destroyed the silo") end
 	return false
 end
 
@@ -413,61 +454,60 @@ function Public.silo_death(event)
     if global.bb_game_won_by_team then return end
     if entity == global.rocket_silo.south or entity == global.rocket_silo.north then
 
-        -- Respawn Silo in case of friendly fire
-	if not biter_killed_the_silo(event) then
-	    respawn_silo(event)
-            return
-        end
-
-        global.bb_game_won_by_team = enemy_team_of[entity.force.name]
-
-        set_victory_time()
+		-- Respawn Silo in case of friendly fire
+		if not biter_killed_the_silo(event) then
+			respawn_silo(event)
+			return
+		end
+		
+		global.bb_game_won_by_team = enemy_team_of[entity.force.name]
+		set_victory_time()
 		north_players = "NORTH PLAYERS: \\n"
 		south_players = "SOUTH PLAYERS: \\n"
-		
-        for _, player in pairs(game.connected_players) do
-            player.play_sound {path = "utility/game_won", volume_modifier = 1}
-            if player.gui.left["bb_main_gui"] then
-                player.gui.left["bb_main_gui"].visible = false
-            end
-            create_victory_gui(player)
+			
+		for _, player in pairs(game.connected_players) do
+			player.play_sound {path = "utility/game_won", volume_modifier = 1}
+			if player.gui.left["bb_main_gui"] then
+				player.gui.left["bb_main_gui"].visible = false
+			end
+			create_victory_gui(player)
 			show_mvps(player)
 			if (player.force.name == "south") then
 				south_players = south_players .. player.name .. "   "
 			elseif (player.force.name == "north") then
 				north_players = north_players .. player.name .. "   "
 			end
-        end
-
-        global.spy_fish_timeout["north"] = game.tick + 999999
-        global.spy_fish_timeout["south"] = game.tick + 999999
-        global.server_restart_timer = 150
-
-        local c = gui_values[global.bb_game_won_by_team].c1
-        if global.tm_custom_name[global.bb_game_won_by_team] then
-            c = global.tm_custom_name[global.bb_game_won_by_team]
 		end
-		
-        north_evo = math.floor(1000 * global.bb_evolution["north_biters"]) * 0.1
-        north_threat = math.floor(global.bb_threat["north_biters"])
-        south_evo = math.floor(1000 * global.bb_evolution["south_biters"]) * 0.1
-        south_threat = math.floor(global.bb_threat["south_biters"])
+
+		global.spy_fish_timeout["north"] = game.tick + 999999
+		global.spy_fish_timeout["south"] = game.tick + 999999
+		global.server_restart_timer = 999999 --EVL see main.lua
+
+		local c = gui_values[global.bb_game_won_by_team].c1
+		if global.tm_custom_name[global.bb_game_won_by_team] then
+			c = global.tm_custom_name[global.bb_game_won_by_team]
+		end
+			
+		north_evo = math.floor(1000 * global.bb_evolution["north_biters"]) * 0.1
+		north_threat = math.floor(global.bb_threat["north_biters"])
+		south_evo = math.floor(1000 * global.bb_evolution["south_biters"]) * 0.1
+		south_threat = math.floor(global.bb_threat["south_biters"])
 
 		discord_message = "*** Team " .. global.bb_game_won_by_team .. " has won! ***" .. "\\n" ..
-							global.victory_time .. "\\n\\n" .. 
-							"North Evo: " .. north_evo .. "%\\n" ..
-                            "North Threat: " .. north_threat .. "\\n\\n" ..
-                            "South Evo: " .. south_evo .. "%\\n" ..
-                            "South Threat: " .. south_threat .. "\\n\\n" ..
-                            north_players .. "\\n\\n" .. south_players
+								global.victory_time .. "\\n\\n" .. 
+								"North Evo: " .. north_evo .. "%\\n" ..
+								"North Threat: " .. north_threat .. "\\n\\n" ..
+								"South Evo: " .. south_evo .. "%\\n" ..
+								"South Threat: " .. south_threat .. "\\n\\n" ..
+								north_players .. "\\n\\n" .. south_players
 
-        Server.to_discord_embed(discord_message)
+		--Server.to_discord_embed(discord_message)
 
-        global.results_sent_south = false
-        global.results_sent_north = false
-        silo_kaboom(entity)
+		global.results_sent_south = false
+		global.results_sent_north = false
+		silo_kaboom(entity)
 
-        freeze_all_biters(entity.surface)
+		freeze_all_biters(entity.surface)
     end
 end
 
