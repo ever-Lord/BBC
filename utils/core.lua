@@ -237,7 +237,7 @@ function Public.action_warning(warning_prefix, msg)
     game.print(prefix .. msg, Color.yellow)
     msg = format('%s %s', warning_prefix, msg)
     print(msg)
-    --Server.to_discord_bold(msg)
+    Server.to_discord_bold(msg)
 end
 
 --- Takes msg and prints it to all players. Also prints to the log and discord
@@ -256,7 +256,7 @@ end
 function Public.action_to_discord(warning_prefix, msg)
     msg = format('%s %s', warning_prefix, msg)
     print(msg)
-    --Server.to_discord_bold(msg)
+    Server.to_discord_bold(msg)
 end
 
 --- Takes msg and prints it to all players except provided player. Also prints to the log and discord
@@ -267,7 +267,7 @@ function Public.silent_action_warning(warning_prefix, msg, player)
     Public.print_except(prefix .. msg, player, Color.yellow)
     msg = format('%s %s', warning_prefix, msg)
     print(msg)
-    --Server.to_discord_bold(msg)
+    Server.to_discord_bold(msg)
 end
 
 --- Takes msg and logs it.

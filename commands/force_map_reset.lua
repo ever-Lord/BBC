@@ -26,7 +26,7 @@ local function force_map_reset(reason)
 				--EVL game has ended, we can even so ask for reset (but what for : rematch ? training ?)
 				msg =">>>>> Admin/Referee " .. player.name .. " initiated exceptional map reset (after end). Reason: " .. reason --EVL shouldnt be used in BBC
 				game.print(msg, Color.fail)
-				--Server.to_discord_embed(msg)
+				Server.to_discord_embed(msg)
 				global.force_map_reset_exceptional=true
 				global.confirm_map_reset_exceptional=false
 				global.server_restart_timer=nil --EVL see main.lua (will be set to 20)
@@ -35,7 +35,7 @@ local function force_map_reset(reason)
 			--EVL game has not ended, we can even so ask for reset (but what for ?)
 			msg =">>>>> Admin/Referee " .. player.name .. " initiated exceptional map reset (before end). Reason: " .. reason --EVL shouldnt be used in BBC
 			game.print(msg, Color.fail)
-			--Server.to_discord_embed(msg)
+			Server.to_discord_embed(msg)
 			--local p = global.rocket_silo["north"].position
 			--global.rocket_silo["north"].die("south_biters")
 			global.force_map_reset_exceptional=true

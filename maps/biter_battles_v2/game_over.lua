@@ -222,7 +222,7 @@ local function show_mvps(player)
                          mvp.deaths.name .. " died " .. mvp.deaths.score ..
                              " times")
             local message = table.concat(result)
-            --Server.to_discord_embed(message)
+            Server.to_discord_embed(message)
             global.results_sent_north = true
         end
     end
@@ -284,7 +284,7 @@ local function show_mvps(player)
                          mvp.deaths.name .. " died " .. mvp.deaths.score ..
                              " times")
             local message = table.concat(result)
-            --Server.to_discord_embed(message)
+            Server.to_discord_embed(message)
             global.results_sent_south = true
         end
     end
@@ -307,7 +307,7 @@ function Public.server_restart()
                 local message =
                     'Soft-reset is disabled! Server will restart from scenario to load new changes.'
                 game.print(message, {r = 0.22, g = 0.88, b = 0.22})
-                --Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
+                Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
                 Server.start_scenario('Biter_Battles')
                 global.announced_message = true
                 return
@@ -318,7 +318,7 @@ function Public.server_restart()
                 local message =
                     'Soft-reset is disabled! Server will shutdown. Most likely because of updates.'
                 game.print(message, {r = 0.22, g = 0.88, b = 0.22})
-                --Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
+                Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
                 Server.stop_scenario()
                 global.announced_message = true
                 return
@@ -328,7 +328,7 @@ function Public.server_restart()
         
 		game.print(">>>>> Map is restarting !  (10s before reveal)", {r = 0.22, g = 0.88, b = 0.22}) --EVL BBC has a reveal of 100x100 for reroll purpose
         local message = 'Map is restarting! '
-        --Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
+        Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
 
 		local prev_surface = global.bb_surface_name
 
@@ -501,7 +501,7 @@ function Public.silo_death(event)
 								"South Threat: " .. south_threat .. "\\n\\n" ..
 								north_players .. "\\n\\n" .. south_players
 
-		--Server.to_discord_embed(discord_message)
+		Server.to_discord_embed(discord_message)
 
 		global.results_sent_south = false
 		global.results_sent_north = false

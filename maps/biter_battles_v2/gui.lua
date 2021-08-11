@@ -371,8 +371,8 @@ function join_team(player, force_name, forced_join)
 		game.permissions.get_group("Default").add_player(player)
 		local msg = table.concat({"Team ", player.force.name, " player ", player.name, " is no longer spectating."})
 		game.print(msg, {r = 0.98, g = 0.66, b = 0.22})
-		--Server.to_discord_bold(msg)
-        global.spectator_rejoin_delay[player.name] = game.tick
+		Server.to_discord_bold(msg)
+       global.spectator_rejoin_delay[player.name] = game.tick
 		player.spectator = false
 		return
 	end
@@ -387,7 +387,7 @@ function join_team(player, force_name, forced_join)
 		if global.tm_custom_name[player.force.name] then c = global.tm_custom_name[player.force.name] end
 		local message = table.concat({player.name, " has joined team ", c, "!"})
 		game.print(message, {r = 0.98, g = 0.66, b = 0.22})
-		--Server.to_discord_bold(message)
+		Server.to_discord_bold(message)
 	end
 	local i = player.get_inventory(defines.inventory.character_main)
 	i.clear()
@@ -417,7 +417,7 @@ function spectate(player, forced_join)
 	if not forced_join then
 		local msg = player.name .. " is spectating."
 		game.print(msg, {r = 0.98, g = 0.66, b = 0.22})
-		--Server.to_discord_bold(msg)
+		Server.to_discord_bold(msg)
 	end
 	game.permissions.get_group("spectator").add_player(player)
 	global.spectator_rejoin_delay[player.name] = game.tick

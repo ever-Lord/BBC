@@ -122,7 +122,7 @@ local function switch_force(player_name, force_name)
 	player.force = game.forces[force_name]
 				
 	game.print(player_name .. " has been switched into team " .. force_name .. ".", {r=0.98, g=0.66, b=0.22})
-    --Server.to_discord_bold(player_name .. " has joined team " .. force_name .. "!")
+    Server.to_discord_bold(player_name .. " has joined team " .. force_name .. "!")
 	
 	
 	

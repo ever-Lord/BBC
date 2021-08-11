@@ -323,7 +323,7 @@ function Public.share_chat(event)
 	if a then return end
 
 	local discord_msg = player.name .. " (" .. player.force.name .. "): ".. event.message
-	--Server.to_discord_player_chat(discord_msg)
+	Server.to_discord_player_chat(discord_msg)
 
 	if player.force.name == "spectator" then
 		game.forces.north.print(player.name .. tag .. " (spectator): ".. event.message, color)
