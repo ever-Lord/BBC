@@ -231,8 +231,9 @@ function Public.create_main_gui(player)
 			-- add_prod_button(t, gui_value)
 		end
 
-		-- Player list
-		if global.bb_view_players[player.name] == true then
+		-- Player list EVL Removed button, we always show the player list
+		--if global.bb_view_players[player.name] == true then --EVL always true see global.bb_view_players below
+		if true then
 			local t = frame.add  { type = "table", column_count = 4 }
 			for _, p in pairs(game.forces[gui_value.force].connected_players) do
 				--game.print("index:"..p.index.."  name:"..p.name) --EVL DEBUG
@@ -274,24 +275,27 @@ function Public.create_main_gui(player)
 	bb_diff.difficulty_gui()
 
 	-- Action frame
-	local t = frame.add  { type = "table", column_count = 2 }
+	-- EVL Finally Removed check global.bb_view_players above
+	--[[
+	local t = frame.add  { type = "table", column_count = 1 } --EVL was = 2 (spectate)
 
 	-- Spectate / Rejoin team
+	-- EVL Removed (we are always in tournament mode)
 	if is_spec then
 		local b = t.add  { type = "sprite-button", name = "bb_leave_spectate", caption = "Join Team" }
 	else
 		local b = t.add  { type = "sprite-button", name = "bb_spectate", caption = "Spectate" }
 	end
-
+	
 	-- Playerlist button
 	if global.bb_view_players[player.name] == true then
-		local b = t.add  { type = "sprite-button", name = "bb_hide_players", caption = "Playerlist" }
+		local b = t.add  { type = "sprite-button", name = "bb_hide_players", caption = "Show Playerlist", tooltip = "Click on player name to view his crafting list and inventory" }
 	else
-		local b = t.add  { type = "sprite-button", name = "bb_view_players", caption = "Playerlist" }
+		local b = t.add  { type = "sprite-button", name = "bb_view_players", caption = "Hide Playerlist", tooltip = "Click on player name to view his crafting list and inventory" }
 	end
 
 
-	local b_width = is_spec and 97 or 86
+	--local b_width = is_spec and 97 or 86
 	-- 111 when prod_spy button will be there
 	for _, b in pairs(t.children) do
 		b.style.font = "default-bold"
@@ -301,8 +305,9 @@ function Public.create_main_gui(player)
 		b.style.right_padding = 1
 		b.style.bottom_padding = 1
 		b.style.maximal_height = 30
-		b.style.width = b_width
+		b.style.width = 111 --EVL was = b_width
 	end
+	]]--
 end
 
 function Public.refresh()
@@ -492,7 +497,7 @@ local function on_gui_click(event)
 		end
 		return
 	end
-
+	--[[ EVL Removed, we always show the player list
 	if name == "bb_hide_players" then
 		global.bb_view_players[player.name] = false
 		Public.create_main_gui(player)
@@ -503,6 +508,7 @@ local function on_gui_click(event)
 		Public.create_main_gui(player)
 		return
 	end
+	]]--
 	--EVL Click on player from LeftGUI.playerlist (need to click button playerlist first)
 	--EVL only available for admins that are spectating
 	local _name=string.sub(name,0,6)
@@ -523,7 +529,7 @@ local function on_gui_click(event)
 			show_inventory.open_inventory(player, _target) --EVL player=source, _target=target
 			return
 		else
-			player.print(">>>>> Only admins as spectators can view inventory and craft list.", {r = 175, g = 0, b = 0})
+			player.print(">>>>> Only admins as spectators can view inventory and crafting-queue.", {r = 175, g = 0, b = 0})
 			return
 		end
 	end
@@ -537,7 +543,7 @@ local function on_player_joined_game(event)
 	if not global.bb_view_players then global.bb_view_players = {} end
 	if not global.chosen_team then global.chosen_team = {} end
 
-	global.bb_view_players[player.name] = false
+	global.bb_view_players[player.name] = false --EVL not used anymore
 
 	if #game.connected_players > 1 then
 		global.game_lobby_timeout = math.ceil(36000 / #game.connected_players)
