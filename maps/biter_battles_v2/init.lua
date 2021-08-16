@@ -5,29 +5,6 @@ local fifo = require "maps.biter_battles_v2.fifo"
 local team_manager = require "maps.biter_battles_v2.team_manager"
 
 local Public = {}
---[[ finally Removed
-function freeze_players_init() -- EVL From team_manager.lua, NOT exact copy of "local function freeze_players()" [could be global function (..) ?}
-								 -- Here we dont care of biter freezing (must be a better way to do that)
-	if not global.freeze_players then return end
-	global.team_manager_default_permissions = {}
-	local p = game.permissions.get_group("Default")	
-	for action_name, _ in pairs(defines.input_action) do
-		global.team_manager_default_permissions[action_name] = p.allows_action(defines.input_action[action_name])
-		p.set_allows_action(defines.input_action[action_name], false)
-	end	
-	local defs = {
-		defines.input_action.write_to_console,
-		defines.input_action.gui_click,
-		defines.input_action.gui_selection_state_changed,
-		defines.input_action.gui_checked_state_changed	,
-		defines.input_action.gui_elem_changed,
-		defines.input_action.gui_text_changed,
-		defines.input_action.gui_value_changed,
-		defines.input_action.edit_permission_group,
-	}	
-	for _, d in pairs(defs) do p.set_allows_action(d, true) end
-end
-]]--
 
 function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.enemy_evolution.time_factor = 0
@@ -36,7 +13,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.pollution.enabled = false
 	game.map_settings.enemy_expansion.enabled = false
 
-	global.bb_debug = true --EVL BE CAREFUL, OTHER *SETTINGS ARE SET TO DEBUG MODE (search for ****************)
+	global.bb_debug = true --EVL BE CAREFUL, OTHER *SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
 	
 	-- EVL change for map restart (/force-map-reset)
 	local _first_init=true --EVL for disabling nauvis (below)
@@ -169,8 +146,8 @@ end
 function Public.draw_structures()
 	local surface = game.surfaces[global.bb_surface_name]
 	Terrain.draw_spawn_area(surface)
-	--Terrain.clear_ore_in_main(surface) --EVL test
-	--Terrain.generate_spawn_ore(surface)
+	Terrain.clear_ore_in_main(surface) --EVL --CODING--
+	Terrain.generate_spawn_ore(surface)
 	Terrain.generate_additional_rocks(surface)
 	Terrain.generate_silo(surface)
 	Terrain.draw_spawn_circle(surface)
@@ -264,27 +241,29 @@ function Public.tables()
 	global.next_attack = "north"
 	if math.random(1,2) == 1 then global.next_attack = "south" end
 	
-	global.pack_choosen = ""	--EVL (none)
-	global.match_running = false  --EVL (none)
-	global.fill_starter_chests = false  --EVL (none)
-	global.starter_chests_are_filled = false  --EVL (none)
-	global.reroll_left=3 --EVL (none) *************************
-	--global.reroll_left=20 --EVL TO be removed *************************
+	global.reroll_left=3 --EVL (none) 
+	--global.reroll_left=20 --EVL TO be removed  --CODING--
 	global.reroll_do_it=false --EVL (none)
-	--global.last_restart_tick=0 --EVl (none) We'll need this if reroll/restart
+
+	global.bbc_pack_details = "" -- EVL USED IN functions.lua FOR listing of packs details
+	global.pack_choosen = ""	--EVL starter pack choosen
+	global.fill_starter_chests = false  --EVL 
+	global.starter_chests_are_filled = false  --EVL (none)
+	global.match_countdown = 10 --EVL time of the countdown in seconds before match starts (unpause will have a 3 seconds countdown)
+	global.match_running = false  --EVL determine if this is first unfreeze (start match) or nexts (pause/unpause)
+
 	global.freezed_time=0 --EVL (none)
 	global.freezed_start=game.ticks_played --EVL we save tick when players started to be frozen (none)
 	global.reveal_init_map=true --EVL (none)
-	--global.evo_boost_tick=2*60*60*60 --EVL We boost evo starting at 2h=120m **********************************
-	global.evo_boost_tick=2*60*60 --EVL We boost evo starting at 2h=120m
+	--global.evo_boost_tick=2*60*60*60 --EVL We boost evo starting at 2h=120m 
+	global.evo_boost_tick=2*60*60 --EVL  --CODING--
 	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
 	global.evo_boost_values={ 	-- EVL
 		["north_biters"]=0.00,
 		["south_biters"]=0.00
 	}	
-	global.bbc_pack_details = "" -- EVL USED IN functions.lua FOR listing of packs
 	global.force_map_reset_exceptional=false
-	--global.server_restart_timer = 20 -- EVL see main.lua
+	--global.server_restart_timer = 20 -- EVL see main.lua, need to be nil
 		
 	
 end

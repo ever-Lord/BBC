@@ -417,7 +417,7 @@ commands.add_command(
             end
             local target_player = game.players[cmd.parameter]
 			
-			--EVL DEBUG Remove "--" below******************************************************************
+			--EVL DEBUG Remove "--" below --CODING--
 			--Well.. why not after all :)
 		   --if target_player == player then
             --    return player.print('Cannot open self.', Color.warning)

@@ -191,7 +191,7 @@ function set_evo_and_threat(flask_amount, food, biter_force_name)
 end
 
 local function feed_biters(player, food)	
-		if game.ticks_played < global.difficulty_votes_timeout then
+	if game.ticks_played < global.difficulty_votes_timeout then
 		player.print("Please wait for voting to finish before feeding")
 		return
 	end

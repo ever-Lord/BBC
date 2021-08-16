@@ -445,7 +445,7 @@ Public.raise_evo = function()
 	if global.freeze_players then --EVL evo of evo if also frozen
 		return 
 	end
-	--EVL LINE BELOW TO UNCOMMENT AFTER TESTING **********************************************
+	--EVL LINE BELOW TO UNCOMMENT AFTER TESTING --CODING--
 	--if not global.training_mode and (#game.forces.north.connected_players == 0 or #game.forces.south.connected_players == 0) then return end
 
 
@@ -464,13 +464,13 @@ Public.raise_evo = function()
 	local biter_teams = {["north_biters"] = "north", ["south_biters"] = "south"}
 	local a_team_has_players = false
 	for bf, pf in pairs(biter_teams) do
-		--EVL LINE BELOW TO UNCOMMENT AFTER TESTING*****************************************************************************************************
-		--if #game.forces[pf].connected_players > 0 then
+		--EVL LINE BELOW TO UNCOMMENT AFTER TESTING  --CODING--
+		--if #game.forces[pf].connected_players > 0 then --CODING--
 			set_evo_and_threat(amount, "automation-science-pack", bf)
 			a_team_has_players = true
 			global.bb_evolution[bf] = global.bb_evolution[bf] + global.evo_boost_values[bf] --EVL we boost EVO (but not threat)
 			--game.print("evo "..bf.."="..global.bb_evolution[bf]) --EVL debug
-		--end
+		--end --CODING--
 	end
 	if not a_team_has_players then return end
 	global.evo_raise_counter = global.evo_raise_counter + (1 * 0.50)

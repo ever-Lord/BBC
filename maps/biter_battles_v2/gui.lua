@@ -486,7 +486,8 @@ local function on_gui_click(event)
 	if name == "raw-fish" then Functions.spy_fish(player, event) return end
 
 	if food_names[name] then feed_the_biters(player, name) return end
-
+	
+	--[[ EVL Removed, we always show the player list
 	if name == "bb_leave_spectate" then join_team(player, global.chosen_team[player.name])	return end
 
 	if name == "bb_spectate" then
@@ -497,7 +498,7 @@ local function on_gui_click(event)
 		end
 		return
 	end
-	--[[ EVL Removed, we always show the player list
+
 	if name == "bb_hide_players" then
 		global.bb_view_players[player.name] = false
 		Public.create_main_gui(player)
@@ -509,24 +510,20 @@ local function on_gui_click(event)
 		return
 	end
 	]]--
-	--EVL Click on player from LeftGUI.playerlist (need to click button playerlist first)
+	
+	--EVL SHOW INVENTORY & CRAFTING LIST
+	--EVL Click on player from LeftGUI.playerlist
 	--EVL only available for admins that are spectating
 	local _name=string.sub(name,0,6)
 	if _name=="plist_" then
-		--if player.admin and player.force.name == "spectator" then
-		if true then -- TO REMOVE AFTER DEBUG **********************************
-			local _target_index=tonumber(string.sub(name,7))
-			local isInteger=(type(_target_index) == "number") and (math.floor(_target_index) == _target_index)
-			if not isInteger then
-				if global.bb_debug then game.print("Debug: Player index (".._target_index..") is not valid in gui.lua/playerlist") end
+		--if player.admin and player.force.name == "spectator" then  --CODING--  Switch lines
+		if true then -- EVL  --CODING-- Switch lines 
+			local _target_name = event.element.caption
+			if not game.players[_target_name] then
+				if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist)") end
 				return
 			end
-			if not game.players[_target_index] then
-				if global.bb_debug then game.print("Debug: Player index (".._target_index..") does not exist in gui.lua/playerlist") end
-				return
-			end
-			local _target = game.players[_target_index]
-			show_inventory.open_inventory(player, _target) --EVL player=source, _target=target
+			show_inventory.open_inventory(player, game.players[_target_name]) --EVL player=source, _target=target
 			return
 		else
 			player.print(">>>>> Only admins as spectators can view inventory and crafting-queue.", {r = 175, g = 0, b = 0})

@@ -16,7 +16,7 @@ local function get_player_array(force_name)
 end
 
 function Public.freeze_players() --EVL Needed to start game already frozen
-	game.print("start of function freeze players")
+	--game.print("start of function freeze players")
 	if not global.freeze_players then --EVL global.freeze_players is not managed here
 		if global.bb_debug then game.print("Debug: Freeze_players called without global.freeze_players set to true.") end
 		return 
@@ -54,8 +54,8 @@ function Public.freeze_players() --EVL Needed to start game already frozen
 	--game.print("end of function : freezing players at ".. global.freezed_start .." ticks", {r = 111, g = 111, b = 255}) --EVL DEBUG
 end
 
-local function unfreeze_players()
-	game.print("start of function unfreeze players")
+function Public.unfreeze_players()
+	--game.print("start of function unfreeze players")
 	if global.freeze_players then --EVL global.freeze_players is not managed here
 		if global.bb_debug then game.print("Debug: Unfreeze_players called without global.freeze_players set to false.") end
 		return 
@@ -441,13 +441,14 @@ local function team_manager_gui_click(event)
 			
 			if not global.match_running then --First unfreeze meaning match is starting
 				global.match_running=true 
-				game.print(">>>>> Match is starting. Good luck !", {r = 11, g = 255, b = 11})
+				game.print(">>>>> Match is starting shortly. Good luck !", {r = 11, g = 255, b = 11})
 			end  	
 			global.reroll_left=0		-- Match has started, no more reroll
 			global.freeze_players = false
-			unfreeze_players()
+			if global.match_countdown < 0 then -- First unfreeze depends on init, then we use 3 seconds timer (after pause)
+				global.match_countdown = 3
+			end
 			draw_manager_gui(player)
-			game.print(">>>>> Players & Biters have been unfrozen !", {r = 255, g = 77, b = 77})
 			return
 		end
 		--EVL We're PAUSING the game, no change in global.match_running nor in global.pack_choosen (the game was initiated with global.freeze_players=true)

@@ -5,6 +5,7 @@ local Functions = require "maps.biter_battles_v2.functions"
 local Game_over = require "maps.biter_battles_v2.game_over"
 local Gui = require "maps.biter_battles_v2.gui"
 local Init = require "maps.biter_battles_v2.init"
+local Tables = require "maps.biter_battles_v2.tables" --EVL (none)
 
 local Mirror_terrain = require "maps.biter_battles_v2.mirror_terrain"
 require 'modules.simple_tags'
@@ -174,7 +175,7 @@ local function on_tick()
 				if not global.evo_boost_active then -- EVO BOOST AFTER 2H (global.tick_evo_boost=60*60*60*2)
 					local real_played_time = game.ticks_played - global.freezed_time
 					if real_played_time >= global.evo_boost_tick then
-						-- EVL FOR TESTING/DEBUG, TO BE REMOVED***********************************************
+						-- EVL FOR TESTING/DEBUG, TO BE REMOVED --CODING--
 						global.bb_evolution["north_biters"] = global.bb_evolution["north_biters"] + 0.10
 						global.bb_evolution["south_biters"] = global.bb_evolution["south_biters"] + 0.15
 
@@ -186,7 +187,7 @@ local function on_tick()
 						if evo_south<0.00001 then evo_south=0.0001 end --!DIV0
 						
 						if evo_north < evo_south then
-							-- WE WANT NORTH TO GO UP TO 90% UNTIL 2H30 (PLUS NATURAL AND SENDINGS)
+							-- WE WANT NORTH TO GO UP TO 90% UNTIL global.evo_boost_active+30min (PLUS NATURAL AND SENDINGS)
 							local boost_north = (0.9-evo_north) / 30
 							if boost_north < 0.01 then boost_north = 0.01 end -- MINIMUM SET AT 1% per MIN
 							local evo_ratio = evo_south / evo_north -- NORTH KEEPS ADVANTAGE
@@ -197,7 +198,7 @@ local function on_tick()
 							global.evo_boost_values["north_biters"] = boost_north
 							global.evo_boost_values["south_biters"] = boost_south
 						else
-							-- WE WANT SOUTH TO GO UP TO 90% UNTIL 2H30 (PLUS NATURAL AND SENDINGS)
+							-- WE WANT SOUTH TO GO UP TO 90% UNTIL global.evo_boost_active+30min (PLUS NATURAL AND SENDINGS)
 							local boost_south = (0.9-evo_south) / 30
 							if boost_south < 0.01 then boost_south = 0.01 end -- MINIMUM SET AT 1% per MIN
 							local evo_ratio = evo_north / evo_south -- SOUTH KEEPS ADVANTAGE
@@ -221,7 +222,31 @@ local function on_tick()
 			end
 		end
 	end
-	-- EVL NO EVO/THREAT OR GROUPS WHEN FREEZE
+	-- EVL COUNTDOWN FOR STARTING GAME
+	if global.match_countdown >=0 and global.match_running and tick % 60 == 0 then
+		for _, player in pairs(game.players) do -- EVL cdf for countdown_frame, cdb for countdown_button
+			if player.gui.center["bbc_cdf"] then player.gui.center["bbc_cdf"].destroy()	end
+			local bbc_frame = player.gui.center.add({type = "frame", name = "bbc_cdf", caption = "Starting in "})
+			local bbc_count = bbc_frame.add({type = "sprite-button", name = "bbc_cdb", caption = " "..global.match_countdown.." "})
+			bbc_count.style.font="default-large-bold"
+			bbc_count.style.font_color = {r=0.98, g=0.66, b=0.66}
+			if global.match_countdown<=3 then bbc_count.style.font_color = {r=0.98, g=0.22, b=0.22} end
+			bbc_count.style.minimal_width = 250
+			bbc_count.style.minimal_height = 250
+			--local bbc_image = bbc_frame.add({type = "sprite", name = "bbc_png", sprite = "01.png"}) --EVL WHY??? PLEASE....
+		end	
+		global.match_countdown = global.match_countdown - 1
+		if global.match_countdown < 0 then
+			for _, player in pairs(game.players) do		
+				if player.gui.center["bbc_cdf"] then	player.gui.center["bbc_cdf"].destroy() end
+			end
+			Team_manager.unfreeze_players()
+			game.print(">>>>> Players & Biters have been unfrozen !", {r = 255, g = 77, b = 77})
+		end
+	end
+
+	-- EVL NO EVO/THREAT OR GROUPS WHEN FREEZE (look inside ai.lua)
+	
 	if tick % 30 == 0 then	
 		local key = tick % 3600
 		if tick_minute_functions[key] then tick_minute_functions[key]() end
@@ -383,7 +408,7 @@ end
 local function on_init()
 	Init.tables()
 	Init.initial_setup()
-	Init.playground_surface() -- EVL We have a problem first math.random for seed of map gives always same value (since tick=0) ???
+	Init.playground_surface() -- EVL No problemo - test with removing blueprint.zip from save
 	-- EVL patch : ???
 	
 	Init.forces()
