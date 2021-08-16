@@ -98,11 +98,11 @@ local function validate_player(player)
     if not game.players[player.index] then
         return false
     end
-	--EVL Must be a miss
-	if not player.admin then 
-		player.print("Only admins can open inventory.", {r = 175, g = 0, b = 0}) 
-		return false 
-	end
+	--EVL REMOVED (target is not admin)
+	--if not player.admin then 
+	--	player.print("Only admins can open inventory.", {r = 175, g = 0, b = 0}) 
+	--	return false 
+	--end
     return true
 end
 
@@ -408,13 +408,19 @@ end
 commands.add_command(
     'inventory',
     'Opens a players inventory!',
-    function(cmd)
-        local player = game.player
+	function(cmd)
+		local player = game.player
 
-        if validate_player(player) then
-            if not cmd.parameter then
-                return
-            end
+		if validate_player(player) then
+		if not player.admin then 
+			player.print(">>>>> Only admins can open inventory.", Color.warning) 
+			return 
+		end
+			if not cmd.parameter then
+			player.print(">>>>> Please type a name of a player to open his inventory.", Color.warning)
+			return
+		end
+
             local target_player = game.players[cmd.parameter]
 			
 			--EVL DEBUG Remove "--" below --CODING--
