@@ -521,11 +521,6 @@ Public.packs_item_value = {
 	["construction-robot"]=139.3	
 	
 }		
-		
 --EVL FIN
-
-
-
-
 
 return Public

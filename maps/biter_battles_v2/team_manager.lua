@@ -8,10 +8,16 @@ local forces = {
 	{name = "spectator", color = {r = 111, g = 111, b = 111}},
 	{name = "south",	color = {r = 200, g = 0, b = 0}},
 }
+local colorAdmin="#FFBB77"
 
 local function get_player_array(force_name)
 	local a = {}	
-	for _, p in pairs(game.forces[force_name].connected_players) do a[#a + 1] = p.name end
+	for _, p in pairs(game.forces[force_name].connected_players) do 
+		local _name=p.name
+		--EVL We add admin tag to the list (so we see easily who is admin)
+		if p.admin then _name="[color="..colorAdmin.."]".._name.."[/color]:A" end
+		a[#a + 1] = _name
+	end
 	return a
 end
 
@@ -115,23 +121,33 @@ local function leave_corpse(player)
 end
 
 local function switch_force(player_name, force_name)
-	if not game.players[player_name] then game.print("Team Manager >> Player " .. player_name .. " does not exist.", {r=0.98, g=0.66, b=0.22}) return end
+	local _player_name=player_name
+	
+	--EVL We remove tag Admin before switching force (see get_player_array above)
+	if string.sub(_player_name,1,15) == "[color="..colorAdmin.."]" then
+		_player_name=string.sub(_player_name,16,#_player_name-10)
+	end
+
+	if not game.players[_player_name] then game.print("Team Manager >> Player " .. _player_name .. " does not exist.", {r=0.98, g=0.66, b=0.22}) return end
 	if not game.forces[force_name] then game.print("Team Manager >> Force " .. force_name .. " does not exist.", {r=0.98, g=0.66, b=0.22}) return end
 	
-	local player = game.players[player_name]
+	local player = game.players[_player_name]
 	player.force = game.forces[force_name]
 				
-	game.print(player_name .. " has been switched into team " .. force_name .. ".", {r=0.98, g=0.66, b=0.22})
-    Server.to_discord_bold(player_name .. " has joined team " .. force_name .. "!")
+	game.print(_player_name .. " has been switched into team " .. force_name .. ".", {r=0.98, g=0.66, b=0.22})
+    Server.to_discord_bold(_player_name .. " has joined team " .. force_name .. "!")
 	
 	
 	
 	leave_corpse(player)
 	
-	global.chosen_team[player_name] = nil	
+	global.chosen_team[_player_name] = nil	
 	if force_name == "spectator" then	
 		spectate(player, true)		
 	else
+		if player.admin then 
+			game.print(">>>>> BBC ALERT : Player " .. _player_name .. " is Admin and should not be switched in a team.", {r=0.98, g=0.77, b=0.77})
+		end
 		join_team(player, force_name, true)
 		if #game.forces[force_name].connected_players > 3 then
 			game.print(">>>>> BBC ALERT : Team " .. force_name .. " should NOT have more than 3 players !!!", {r=0.98, g=0.11, b=0.11})
@@ -139,7 +155,7 @@ local function switch_force(player_name, force_name)
 			
 	end
 	if global.bb_debug then 
-		game.print("Debug: "..#game.forces["north"].connected_players.." player(s) at north and "..#game.forces["south"].connected_players.." player(s) at south")
+		game.print("Debug: "..#game.forces["north"].connected_players.." player.s at north and "..#game.forces["south"].connected_players.." player.s at south")
 	end
 end
 
@@ -197,15 +213,29 @@ local function draw_manager_gui(player)
 			b.style.maximal_width = 38
 		end		
 	end
+	local tnote=frame.add({type = "label", caption = "Note : [color="..colorAdmin.."]Only[/color] Referee and Streamers should be admins,               >>>>> use [color=#EEEEEE]/promote and.or /demote[/color]\n"
+														.."Players, Coach/Substitute and Spectators should [color="..colorAdmin.."]NOT[/color] be admins"})
+	tnote.style.single_line = false
+	tnote.style.font = "default-small"
+	tnote.style.font_color = {r = 150, g = 150, b = 150}
+	--local tnote=frame.add({type = "label", caption = "Players, Coach/Substitute and Spectators should [color="..colorAdmin.."]NOT[/color] be admins"})
+	--tnote.style.font = "default-small"
+	--tnote.style.font_color = {r = 150, g = 150, b = 150}
 	
 	frame.add({type = "label", caption = ""})
+	
 	--EVL Button for Reroll
 		local t = frame.add({type = "table", name = "team_manager_reroll_buttons", column_count = 3})
 		
 		if global.reroll_left < 1 then 
 			local tt = t.add({type = "label", caption = "NO MORE REROLL AVAILABLE, MATCH HAS TO BE PLAYED ON THIS MAP !"})
+			tt.style.font = "heading-2"
+			tt.style.font_color = {r = 250, g = 250, b = 250}
+			
 		else
 			local tt = t.add({type = "label", caption = "CLICK TO REROLL THE MAP ("..global.reroll_left.." left) :"})
+			tt.style.font = "heading-2"
+			tt.style.font_color = {r = 200, g = 200, b = 200}
 			local button = t.add({
 				type = "button",
 				name = "team_manager_reroll",
@@ -213,8 +243,11 @@ local function draw_manager_gui(player)
 				tooltip = "No roll back !"
 			})
 			button.style.font = "heading-1"
-			button.style.font_color = {r = 00, g = 00, b = 00}
-			local tt = t.add({type = "label", caption = "  (team @home choice)"})
+			button.style.font_color = {r = 10, g = 10, b = 10}
+			local tt = t.add({type = "label", caption = "  (team ~AtHome~ choice)"})
+			tt.style.font = "heading-3"
+			tt.style.font_color = {r = 180, g = 180, b = 180}
+
 		end
 
 		

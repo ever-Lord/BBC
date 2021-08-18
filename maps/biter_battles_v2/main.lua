@@ -176,8 +176,8 @@ local function on_tick()
 					local real_played_time = game.ticks_played - global.freezed_time
 					if real_played_time >= global.evo_boost_tick then
 						-- EVL FOR TESTING/DEBUG, TO BE REMOVED --CODING--
-						global.bb_evolution["north_biters"] = global.bb_evolution["north_biters"] + 0.10
-						global.bb_evolution["south_biters"] = global.bb_evolution["south_biters"] + 0.15
+						--global.bb_evolution["north_biters"] = global.bb_evolution["north_biters"] + 0.10
+						--global.bb_evolution["south_biters"] = global.bb_evolution["south_biters"] + 0.15
 
 						--Set boost for north and south
 					
@@ -229,7 +229,8 @@ local function on_tick()
 			local bbc_frame = player.gui.center.add({type = "frame", name = "bbc_cdf", caption = "Starting in "})
 			local bbc_count = bbc_frame.add({type = "sprite-button", name = "bbc_cdb", caption = " "..global.match_countdown.." "})
 			bbc_count.style.font="default-large-bold"
-			bbc_count.style.font_color = {r=0.98, g=0.66, b=0.66}
+			bbc_count.style.font_color = {r=0.66, g=0.66, b=0.66}
+			if global.match_countdown<=6 then bbc_count.style.font_color = {r=0.78, g=0.44, b=0.44} end
 			if global.match_countdown<=3 then bbc_count.style.font_color = {r=0.98, g=0.22, b=0.22} end
 			bbc_count.style.minimal_width = 250
 			bbc_count.style.minimal_height = 250

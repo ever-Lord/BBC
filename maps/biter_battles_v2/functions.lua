@@ -412,9 +412,40 @@ function Public.show_intro(player)
 	if player.gui.center["map_intro_frame"] then player.gui.center["map_intro_frame"].destroy() end
 	local frame = player.gui.center.add {type = "frame", name = "map_intro_frame", direction = "vertical"}
 	local frame = frame.add {type = "frame"}
-	local l = frame.add {type = "label", caption = {"biter_battles.map_info"}, name = "biter_battles_map_intro"}
+	local Minfo="[font=default-large-bold][color=#FF5555]                                      --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
+	Minfo=Minfo.."                                 [color=#DDDDDD]https://www.bbchamps.org[/color] \n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default-bold][color=#FF9740]A few words about Biter Battles : [/color][/font]Your team defends your [item=rocket-silo]silo against waves of biters while defeating the other team's silo.\n"
+	Minfo=Minfo.."Feed your opponent's biters with [item=logistic-science-pack]science to increase their strength, high tier [item=utility-science-pack]science juice will yield stronger mutagenic results.\n"
+	Minfo=Minfo.."Only feeding and [img=quantity-time]time increases the power of the biters and will lead to your team's victory. There is no direct pvp combat.\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default-bold][color=#ff9740]Biter Battles Championships (BBC)[/color][/font] consist on 2 leagues where teams fight for their global ranking and the final trophy !\n"
+	Minfo=Minfo.."[font=default-bold][color=#5555FF]    [entity=big-biter] BITER[/color][/font] league is meant for ~casual~ players, with normal difficulty and where blueprints are allowed.\n"
+	Minfo=Minfo.."[font=default-bold][color=#55FF55]    [entity=behemoth-biter] BEHEMOTH[/color][/font] league is meant for ~pro~ players, with hard difficulty and where blueprints are disabled.\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default-bold][color=#ff9740]Matches[/color][/font] are 3(+1) vs 3(+1), (+1) meaning the coach/spy/substitute, one team is said [font=default-bold][color=#CCBBFF]ATHOME[/color][/font]\n"
+	Minfo=Minfo.."                and has advantages against other team said [font=default-bold][color=#BBAAFF]OUTSIDE[/color][/font] (visitors).\n"
+	Minfo=Minfo.."     At the beginning, each team gets a [item=repair-pack][font=default-bold][color=#CCBBFF]STARTER PACK[/color][/font][item=repair-pack] choosed among four, leading to a fast early game.\n"
+	Minfo=Minfo.."     Team [font=default-bold][color=#CCBBFF]ATHOME[/color][/font] chooses : 1/ Their side 2/ To reroll map (up to twice, no rollback) 3/ The starter pack 4/ Is not attacked first.\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default-bold][color=#ff9740]Be Careful : [/color][/font]Groups of biters will come from every side, there is no safe place !\n"
+	Minfo=Minfo.."          And time is running... Once reached 2h of playtime, [img=quantity-time][font=default-bold][color=#CCBBFF]BOOST[/color][/font][img=quantity-time] mode will be activated, expect Behemoths sooner than later !\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]Limitations : [/color][/font] Mines, Artillery, Atomic bomb are disabled. Robots can't build across the river that also can't be landfilled.\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]EVO-lution[/color][/font] of the biters increases when they get fed, and can rise above 100% which unlocks endgame modifiers,\n"
+	Minfo=Minfo.."                     granting biters increased damage and health. Tier of biters grows with evolution.\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]THREAT[/color][/font] causes biters to attack and reduces when biters are slain. Feeding gives permanent ~threat-income~, as well as\n"
+	Minfo=Minfo.."                creating instant threat. A high threat value causes big attacks. Values of zero or below will cause no attacks.\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default-bold][color=#ff9740]Streamers : [/color][/font]You can use ~Spec~ mode to have a larger view of the field.\n"
+	Minfo=Minfo.."                      Clicking on the name of a player will show his crafting list and his inventory.\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."Thanks for reading - Have fun with the game !"
+	Minfo=Minfo.."                                                                                    [font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"
+	local l = frame.add {type = "label", caption = Minfo, name = "biter_battles_map_intro"} --CODING--
+	--local l = frame.add {type = "label", caption = {"biter_battles.map_info"}, name = "biter_battles_map_intro"}
 	l.style.single_line = false
-	l.style.font = "heading-2"
+	l.style.font = "default"
 	l.style.font_color = {r=0.7, g=0.6, b=0.99}
 end
 
