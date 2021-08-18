@@ -413,7 +413,7 @@ function Public.show_intro(player)
 	local frame = player.gui.center.add {type = "frame", name = "map_intro_frame", direction = "vertical"}
 	local frame = frame.add {type = "frame"}
 	local Minfo="[font=default-large-bold][color=#FF5555]                                      --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
-	Minfo=Minfo.."                                 [color=#DDDDDD]https://www.bbchamps.org[/color] \n"
+	Minfo=Minfo.."                       [color=#DDDDDD]https://www.bbchamps.org[/color] \n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]A few words about Biter Battles : [/color][/font]Your team defends your [item=rocket-silo]silo against waves of biters while defeating the other team's silo.\n"
 	Minfo=Minfo.."Feed your opponent's biters with [item=logistic-science-pack]science to increase their strength, high tier [item=utility-science-pack]science juice will yield stronger mutagenic results.\n"
@@ -431,12 +431,6 @@ function Public.show_intro(player)
 	Minfo=Minfo.."[font=default-bold][color=#ff9740]Be Careful : [/color][/font]Groups of biters will come from every side, there is no safe place !\n"
 	Minfo=Minfo.."          And time is running... Once reached 2h of playtime, [img=quantity-time][font=default-bold][color=#CCBBFF]BOOST[/color][/font][img=quantity-time] mode will be activated, expect Behemoths sooner than later !\n"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]Limitations : [/color][/font] Mines, Artillery, Atomic bomb are disabled. Robots can't build across the river that also can't be landfilled.\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]EVO-lution[/color][/font] of the biters increases when they get fed, and can rise above 100% which unlocks endgame modifiers,\n"
-	Minfo=Minfo.."                     granting biters increased damage and health. Tier of biters grows with evolution.\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]THREAT[/color][/font] causes biters to attack and reduces when biters are slain. Feeding gives permanent ~threat-income~, as well as\n"
-	Minfo=Minfo.."                creating instant threat. A high threat value causes big attacks. Values of zero or below will cause no attacks.\n"
-	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#ff9740]Streamers : [/color][/font]You can use ~Spec~ mode to have a larger view of the field.\n"
 	Minfo=Minfo.."                      Clicking on the name of a player will show his crafting list and his inventory.\n"
 	Minfo=Minfo.."\n"
@@ -444,6 +438,50 @@ function Public.show_intro(player)
 	Minfo=Minfo.."                                                                                    [font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"
 	local l = frame.add {type = "label", caption = Minfo, name = "biter_battles_map_intro"} --CODING--
 	--local l = frame.add {type = "label", caption = {"biter_battles.map_info"}, name = "biter_battles_map_intro"}
+	l.style.single_line = false
+	l.style.font = "default"
+	l.style.font_color = {r=0.7, g=0.6, b=0.99}
+	local lb = frame.add ({type = "button",	name = "biter_battles_map_intro_next", caption = "►", tooltip = "Page 2 with more infos"})
+	lb.style.font_color = {r=0.1, g=0.6, b=0.1}
+	--lb.style.font_color = {r=0.00, g=0.99, b=0.00}
+	lb.style.font = "default"
+	lb.style.padding = -1
+	lb.style.width = 20
+	frame.style.vertical_align = 'bottom'
+	
+end
+
+--EVL SHOW NEXT PAGE (detailed info more optionnals)
+function Public.show_intro_next(player)
+	if player.gui.center["map_intro_frame"] then player.gui.center["map_intro_frame"].destroy() end
+	local frame = player.gui.center.add {type = "frame", name = "map_intro_frame", direction = "vertical"}
+	local frame = frame.add {type = "frame"}
+	local Minfo="[font=default-large-bold][color=#FF5555]                                      --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
+	Minfo=Minfo.."                                 [color=#DDDDDD]https://www.bbchamps.org[/color] \n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default-bold][color=#FF9740]Some more details about Biter Battles and BBC : [/color][/font]"
+	Minfo=Minfo.."\n\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]Limitations : [/color][/font] Mines, Artillery, Atomic bomb are disabled. Robots can't build across the river that also can't be landfilled.\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]EVO-lution[/color][/font] of the biters increases when they get fed, and can rise above 100% which unlocks endgame modifiers,\n"
+	Minfo=Minfo.."                     granting biters increased damage and health. Tier of biters grows with evolution.\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]THREAT[/color][/font] causes biters to attack and reduces when biters are slain. Feeding gives permanent ~threat-income~, as well as\n"
+	Minfo=Minfo.."                creating instant threat. A high threat value causes big attacks. Values of zero or below will cause no attacks.\n"
+	Minfo=Minfo.."                [font=default-small][color=#999999]Note: if you have less threat than opponents, you'll get fewer groups of biters attacking your structures.[/color][/font]\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]PAUSE : [/color][/font] teams can ask for a short pause once per hour, referee will freeze players and biters,\n"
+	Minfo=Minfo.."                 then when players are ready, referee will unfreeze and trigger a short countdown.\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]TIPS : [/color][/font] you need to be fast ! Biters are very aggressive, you need to find a good balance between 3 things :\n"
+	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Defense[/color][/font]    so you don't get overwhelmed,\n"
+	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Building[/color][/font]    so you can keep up with biter evolution,\n"
+	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Offensive[/color][/font]  so you boost opponent's biter evolution.\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]CONTACT : [/color][/font][color=#DDDDDD]bbc.factorio@gmail.com[/color]\n"
+	Minfo=Minfo.."\n"
+	Minfo=Minfo.."Thanks for reading - Have fun with the game !"
+	Minfo=Minfo.."                                                                                    [font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"
+	local l = frame.add {type = "label", caption = Minfo, name = "biter_battles_map_intro"} --CODING--
 	l.style.single_line = false
 	l.style.font = "default"
 	l.style.font_color = {r=0.7, g=0.6, b=0.99}
@@ -560,6 +598,19 @@ end
 function Public.map_intro_click(player, element)
 	if element.name == "close_map_intro_frame" then player.gui.center["map_intro_frame"].destroy() return true end	
 	if element.name == "biter_battles_map_intro" then player.gui.center["map_intro_frame"].destroy() return true end	
+	--EVL PAGE 2
+	if element.name == "biter_battles_map_intro_next" then 
+		if player.gui.center["map_intro_frame"] then
+			player.gui.center["map_intro_frame"].destroy()
+			Public.show_intro_next(player)
+			return true
+		else
+			Public.show_intro_next(player)
+			return true
+		end
+	end
+	
+	--EVL PAGE 1
 	if element.name == "map_intro_button" then
 		if player.gui.center["map_intro_frame"] then
 			player.gui.center["map_intro_frame"].destroy()

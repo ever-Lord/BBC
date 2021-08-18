@@ -582,12 +582,56 @@ function Public.generate_silo(surface)
 			entity.destroy()
 		end
 	end
+	--[[
 	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
 	turret1.insert({name = "firearm-magazine", count = 10})
 	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
 	turret2.insert({name = "firearm-magazine", count = 10})
 	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
 	turret3.insert({name = "firearm-magazine", count = 10})
+	]]--
+	--EVL SOME MORE TURRETS FOR TESTING IN SOLO
+	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
+	turret1.insert({name = "firearm-magazine", count = 200})
+	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
+	turret2.insert({name = "firearm-magazine", count = 200})
+	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
+	turret3.insert({name = "firearm-magazine", count = 200})
+
+	local turret4 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-8}, force = "north"})
+	turret4.insert({name = "firearm-magazine", count = 200})
+	local turret5 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-8}, force = "north"})
+	turret5.insert({name = "firearm-magazine", count = 200})
+	local turret6 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-8}, force = "north"})
+	turret6.insert({name = "firearm-magazine", count = 200})
+	local turret7 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-11}, force = "north"})
+	turret7.insert({name = "firearm-magazine", count = 200})
+	local turret8 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-11}, force = "north"})
+	turret8.insert({name = "firearm-magazine", count = 200})
+	local turret9 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-11}, force = "north"})
+	turret9.insert({name = "firearm-magazine", count = 200})
+
+	local turret1a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-5}, force = "north"})
+	turret1a.insert({name = "firearm-magazine", count = 200})
+	local turret2a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-5}, force = "north"})
+	turret2a.insert({name = "firearm-magazine", count = 200})
+	local turret3a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-5}, force = "north"})
+	turret3a.insert({name = "firearm-magazine", count = 200})
+
+	local turret4a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-8}, force = "north"})
+	turret4a.insert({name = "firearm-magazine", count = 200})
+	local turret5a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-8}, force = "north"})
+	turret5a.insert({name = "firearm-magazine", count = 200})
+	local turret6a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-8}, force = "north"})
+	turret6a.insert({name = "firearm-magazine", count = 200})
+	local turret7a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-11}, force = "north"})
+	turret7a.insert({name = "firearm-magazine", count = 200})
+	local turret8a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-11}, force = "north"})
+	turret8a.insert({name = "firearm-magazine", count = 200})
+	local turret9a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-11}, force = "north"})
+	turret9a.insert({name = "firearm-magazine", count = 200})
+
+	
 end
 
 --[[
@@ -719,6 +763,7 @@ function Public.deny_construction_bots(event)
 	event.created_entity.destroy()
 end
 
+--EVL WE CREATE AND FILL CHESTS ACCORDING TO global.pack_choosen
 function Public.fill_starter_chests(surface)
 	if global.pack_choosen=="" then game.print("BUG, no pack found, cant fill the chests",{r = 255, g = 10, b = 10}) return end
 	if global.match_running then game.print("BUG, game has started, cant fill the chests",{r = 255, g = 10, b = 10}) return end
@@ -756,7 +801,19 @@ function Public.fill_starter_chests(surface)
 		global.packchest3N.insert({name=_item, count=_qty})
 		global.packchest3S.insert({name=_item, count=_qty})
 	end
-	
+	--WE GIVE FREE TECHNO FOR SOME PACK
+	if global.pack_choosen == "pack_03" then --Pack Robots
+		game.forces["south"].technologies['worker-robots-speed-1'].researched=true
+		game.forces["south"].technologies['worker-robots-speed-2'].researched=true
+		game.forces["north"].technologies['worker-robots-speed-1'].researched=true
+		game.forces["north"].technologies['worker-robots-speed-2'].researched=true
+		game.print(">>>>>  Both teams have been given Worker robot speed 1 & 2 technologies (since Robot Pack has been chosen)",{r = 197, g = 197, b = 17}) 
+	else
+		game.forces["south"].technologies['worker-robots-speed-1'].researched=false
+		game.forces["south"].technologies['worker-robots-speed-2'].researched=false
+		game.forces["north"].technologies['worker-robots-speed-1'].researched=false
+		game.forces["north"].technologies['worker-robots-speed-2'].researched=false
+	end	
 	global.fill_starter_chests = false
 	global.starter_chests_are_filled = true
 end

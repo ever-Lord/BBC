@@ -173,7 +173,7 @@ Public.food_value_table_version = { Public.food_values["automation-science-pack"
 	Public.packs_list = {
 		["pack_01"] = {name = "pack_01", caption = "[img=item.iron-gear-wheel] Regular", tooltip = "Raw materials, free for crafting", item_list=nil },
 		["pack_02"] = {name = "pack_02", caption = "[img=item.lab] Science", tooltip = "Labs, red potions & power", item_list=nil },
-		["pack_03"] = {name = "pack_03", caption = "[img=item.construction-robot] Robots", tooltip = "One personal robotport", item_list=nil },
+		["pack_03"] = {name = "pack_03", caption = "[img=item.construction-robot] Robots", tooltip = "One personal robotport", item_list=nil }, -- THIS PACK HAS BONUS (bot speed) -see terrain.lua-
 		["pack_04"] = {name = "pack_04", caption = "[img=item.grenade] Combat", tooltip = "One heavy armor, fishes, grenades...", item_list=nil },
 		["pack_05"] = {name = "pack_05", caption = "[img=item.assembling-machine-2] Advanced", tooltip = "Electric miners & machines MK2", item_list=nil }
 	}
