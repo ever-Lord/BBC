@@ -57,12 +57,12 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 		defines.input_action.gui_switch_state_changed,
 		defines.input_action.gui_text_changed,
 		defines.input_action.gui_value_changed,
-		defines.input_action.open_character_gui,
+		--defines.input_action.open_character_gui,-- EVL remove possibility to open inventory
 		defines.input_action.open_kills_gui,
 		defines.input_action.quick_bar_set_selected_page,
 		defines.input_action.quick_bar_set_slot,
 		defines.input_action.rotate_entity,
-		defines.input_action.set_filter,
+		--defines.input_action.set_filter, -- EVL remove possibility to set quick bar filters (equity)
 		defines.input_action.set_player_color,
 		defines.input_action.start_walking,
 		defines.input_action.toggle_show_entity_info,
@@ -249,14 +249,14 @@ function Public.tables()
 	global.pack_choosen = ""	--EVL starter pack choosen
 	global.fill_starter_chests = false  --EVL 
 	global.starter_chests_are_filled = false  --EVL (none)
-	global.match_countdown = 10 --EVL time of the countdown in seconds before match starts (unpause will have a 3 seconds countdown)
+	global.match_countdown = 9 --EVL time of the countdown in seconds before match starts (unpause will have a 3 seconds countdown)
 	global.match_running = false  --EVL determine if this is first unfreeze (start match) or nexts (pause/unpause)
 
 	global.freezed_time=0 --EVL (none)
 	global.freezed_start=game.ticks_played --EVL we save tick when players started to be frozen (none)
 	global.reveal_init_map=true --EVL (none)
-	--global.evo_boost_tick=2*60*60*60 --EVL We boost evo starting at 2h=120m 
-	global.evo_boost_tick=2*60*60 --EVL  --CODING--
+	global.evo_boost_tick=2*60*60*60 --EVL We boost evo starting at 2h=120m 
+	--global.evo_boost_tick=2*60*60 --EVL  --CODING--
 	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
 	global.evo_boost_values={ 	-- EVL
 		["north_biters"]=0.00,
@@ -264,7 +264,7 @@ function Public.tables()
 	}	
 	global.force_map_reset_exceptional=false
 	--global.server_restart_timer = 20 -- EVL see main.lua, need to be nil
-		
+	global.god_players={} -- EVL List of players in spec_god force/mode : we have 2 kinds of specs (see spectator_zoom.lua)
 	
 end
 

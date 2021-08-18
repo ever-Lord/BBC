@@ -83,7 +83,12 @@ local function last_tab(player)
 end
 
 local function validate_player(player)
-    if not player then
+    --EVL Patch for viewing inventory from spec_god mode (see spectator_zoom.lua)
+	if player.force.name == "spec_god" then
+		return true
+	end
+	
+	if not player then
         return false
     end
     if not player.valid then
@@ -410,24 +415,34 @@ commands.add_command(
     'Opens a players inventory!',
 	function(cmd)
 		local player = game.player
-
-		if validate_player(player) then
-		if not player.admin then 
-			player.print(">>>>> Only admins can open inventory.", Color.warning) 
-			return 
-		end
-			if not cmd.parameter then
-			player.print(">>>>> Please type a name of a player to open his inventory.", Color.warning)
+		if true then
+			player.print(">>>>> Sorry, this command has been deprecated, click on a player name to open his inventory.", Color.warning) 
 			return
 		end
+		
+		if validate_player(player) then
+			if not player.admin then 
+				player.print(">>>>> Only admins can open inventory.", Color.warning) 
+				return 
+			end
+			
+			if not (player.force.name == "spectator" or player.force.name == "spec_god") then 
+				player.print(">>>>> Only spectators can open inventory.", Color.warning) 
+				return 
+			end
+			
+			if not cmd.parameter then
+				player.print(">>>>> Please type a name of a player to open his inventory.", Color.warning)
+				return
+			end
 
             local target_player = game.players[cmd.parameter]
 			
 			--EVL DEBUG Remove "--" below --CODING--
-			--Well.. why not after all :)
-		   --if target_player == player then
-            --    return player.print('Cannot open self.', Color.warning)
-            --end
+			--Needed to avoid bug when spec_god asks for himself in command /inventory
+			--if target_player == player then
+			--	return player.print('Cannot open self.', Color.warning)
+			--end
 
             local valid, opened = player_opened(player)
             if valid then
@@ -442,7 +457,8 @@ commands.add_command(
                 player.print('>>>>> Please type a name of a player who is connected.', Color.warning)
             end
         else
-            return
+           player.print('>>>>> Player is not valid.', Color.warning) 
+			return
         end
     end
 )

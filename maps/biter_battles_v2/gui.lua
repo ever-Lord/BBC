@@ -124,7 +124,11 @@ local function add_prod_button(elem, gui_value)
 end
 
 function Public.create_main_gui(player)
-	local is_spec = player.force.name == "spectator"
+	local is_spec = (player.force.name == "spectator") or (player.force.name == "spec_god") --EVL we have 2 kinds of specs (see spectator_zoom.lua)
+	-- EVL Little test 
+	if  (player.force.name == "spec_god") and not (global.god_players[player.name]) then 
+		if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") has incompatibility between his force and global.god_players") end
+	end
 	if player.gui.left["bb_main_gui"] then player.gui.left["bb_main_gui"].destroy() end
 
 	if global.bb_game_won_by_team then return end
@@ -516,8 +520,8 @@ local function on_gui_click(event)
 	--EVL only available for admins that are spectating
 	local _name=string.sub(name,0,6)
 	if _name=="plist_" then
-		--if player.admin and player.force.name == "spectator" then  --CODING--  Switch lines
-		if true then -- EVL  --CODING-- Switch lines 
+		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then  --CODING--  Switch lines
+		--if true then -- EVL  --CODING-- Switch lines 
 			local _target_name = event.element.caption
 			if not game.players[_target_name] then
 				if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist)") end
