@@ -6,6 +6,7 @@ local fifo = require "maps.biter_battles_v2.fifo"
 local math_random = math.random
 local math_abs = math.abs
 
+--[[ EVL REMOVED VECTORS
 local vector_radius = 512
 local attack_vectors = {}
 attack_vectors.north = {}
@@ -19,6 +20,27 @@ for p = 0.3, 0.71, 0.1 do
 	attack_vectors.south[#attack_vectors.south + 1] = {x, y}
 end
 local size_of_vectors = #attack_vectors.north
+]]--
+
+--EVL REPLACE VECTORS BY WAYPOINTS
+local way_point_radius = 512
+local way_points = {}
+way_points.north = {}
+way_points.south = {}
+local p=0.49
+local _step=0.05
+--EVL the waypoints are p=0.49 0.44 0.38 0.31 0.23 0.14 0.04
+-- (more chance to come vertically than horizontally)
+while p>0 do
+	local a = math.pi * p
+	local x = math.floor(way_point_radius * math.cos(a))
+	local y = math.floor(way_point_radius * math.sin(a))
+	way_points.north[#way_points.north + 1] = {x, y * -1}
+	way_points.south[#way_points.south + 1] = {x, y}
+	p=p-_step
+	_step=_step+0.01
+end
+local size_of_way_points = #way_points.north
 
 local unit_type_raffle = {"biter", "mixed", "mixed", "spitter", "spitter"}
 local size_of_unit_type_raffle = #unit_type_raffle
@@ -58,7 +80,10 @@ local function get_target_entity(force_name)
 			target_entity = e
 		end
 	end
-	if not target_entity then print("Unable to get target entity for " .. force_name .. ".") return end
+	if not target_entity then 
+		if global.bb_debug then game.print("No side target found for " .. force_name .. " (in get_target_entity.") end
+		return 
+	end
 	--print("Target entity for " .. force_name .. ": " .. target_entity.name .. " at x=" .. target_entity.position.x .. " y=" .. target_entity.position.y)
 	return target_entity
 end
@@ -237,14 +262,17 @@ local function send_group(unit_group, force_name, side_target)
 	else
 		target = get_target_entity(force_name)
 	end
-	if not target then print("No target for " .. force_name .. " biters.") return end
+	if not target then 
+		if global.bb_debug then game.print("No target for " .. force_name .. " biters (in send-group).")  end
+		return 
+	end
 
 	target = target.position
 
 	local commands = {}
+--[[ EVL VECTORS REMOVED 
 	local vector = attack_vectors[force_name][math_random(1, size_of_vectors)]
 	local distance_modifier = math_random(25, 100) * 0.01
-
 	local position = {target.x + (vector[1] * distance_modifier), target.y + (vector[2] * distance_modifier)}
 	position = unit_group.surface.find_non_colliding_position("stone-furnace", position, 96, 1)
 	if position then
@@ -257,14 +285,54 @@ local function send_group(unit_group, force_name, side_target)
 			}
 		end
 	end
+]]--
+	--EVL WE CHOOSE A POINT ON THE QUARTER RING (circles of way_point_radius 256 512)
+	local _way_point = way_points[force_name][math_random(1, size_of_way_points)]
+	local distance_modifier = math_random(50, 100) * 0.01
+	local _posX=math.floor(_way_point[1]*distance_modifier)
+	local _posY=math.floor(_way_point[2]*distance_modifier)
 
+	--EVL SEND GROUP ON THE SAME SIDE OF THE MAP THAN THE TARGET
+	local position = {}
+	if target.x <0 then
+		position = {-_posX, _posY}
+	else
+		position = { _posX, _posY}
+	end
+	-- So you build all your base on the same side of X-axis ? and never get attacked on your back ?
+	-- Nope, and this is the patch, 20% chance of reverse attack xd
+	if math_random(1,10)<=2 then
+		if target.x <0 then
+			position = { _posX, _posY}
+		else
+			position = {-_posX, _posY}
+		end
+		if global.bb_debug then game.print("DEBUG : Reverse attack detected") end
+	end
+	
+	--if global.bb_debug then game.print("target="..target.x..","..target.y.."   waypoint="..position[1]..","..position[2]) end
+	
+	-- Is there a place to be there (could be a lake)
+	position = unit_group.surface.find_non_colliding_position("stone-furnace", position, 96, 1)
+	if position then
+		--if math.abs(position.y) < math.abs(unit_group.position.y) then
+		if math.abs(position.y) >= math.abs(unit_group.position.y) then game.print("I dont know what happened here (send_group in ai.lua") end --EVL TEST/DEBUG
+			commands[#commands + 1] = {
+				type = defines.command.attack_area,
+				destination = position,
+				radius = 16,
+				distraction = defines.distraction.by_enemy
+			}
+		--end
+	end
+	-- THEN WE SEND TO TARGET
 	commands[#commands + 1] = {
 		type = defines.command.attack_area,
 		destination = target,
 		radius = 32,
 		distraction = defines.distraction.by_enemy
 	}
-
+	-- THEN WE SEND TO SILO
 	commands[#commands + 1] = {
 		type = defines.command.attack,
 		target = global.rocket_silo[force_name],
@@ -276,6 +344,7 @@ local function send_group(unit_group, force_name, side_target)
 		structure_type = defines.compound_command.logical_and,
 		commands = commands
 	})
+	if global.bb_debug then game.print("DEBUG : target="..target.x..","..target.y.."   waypoint="..position.x..","..position.y.."   sent !") end
 	return true
 end
 
@@ -340,13 +409,13 @@ local function create_attack_group(surface, force_name, biter_force_name)
 
 	local side_target = get_target_entity(force_name)
 	if not side_target then
-		print("No side target found for " .. force_name .. ".")
+		if global.bb_debug then game.print("No side target found for " .. force_name .. " (in create_attack_group.") end
 		return
 	end
 
 	local spawner = get_nearby_biter_nest(side_target)
 	if not spawner then
-		print("No spawner found for " .. force_name .. ".")
+		if global.bb_debug then game.print("No spawner found for " .. force_name .. ".") end
 		return
 	end
 
