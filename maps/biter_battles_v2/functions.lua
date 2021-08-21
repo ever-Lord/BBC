@@ -412,7 +412,8 @@ function Public.show_intro(player)
 	if player.gui.center["map_intro_frame"] then player.gui.center["map_intro_frame"].destroy() end
 	local frame = player.gui.center.add {type = "frame", name = "map_intro_frame", direction = "vertical"}
 	local frame = frame.add {type = "frame"}
-	local Minfo="[font=default-large-bold][color=#FF5555]                                      --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
+	local Minfo=""
+	Minfo=Minfo.."[font=default-large-bold][color=#FF5555]                                      --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS [/color][/font]"
 	Minfo=Minfo.."                       [color=#DDDDDD]https://www.bbchamps.org[/color] \n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]A few words about Biter Battles : [/color][/font]Your team defends your [item=rocket-silo]silo against waves of biters while defeating the other team's silo.\n"
@@ -423,30 +424,33 @@ function Public.show_intro(player)
 	Minfo=Minfo.."[font=default-bold][color=#5555FF]    [entity=big-biter] BITER[/color][/font] league is meant for ~casual~ players, with normal difficulty and where blueprints are allowed.\n"
 	Minfo=Minfo.."[font=default-bold][color=#55FF55]    [entity=behemoth-biter] BEHEMOTH[/color][/font] league is meant for ~pro~ players, with hard difficulty and where blueprints are disabled.\n"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default-bold][color=#ff9740]Matches[/color][/font] are 3(+1) vs 3(+1), (+1) meaning the coach/spy/substitute, one team is said [font=default-bold][color=#CCBBFF]ATHOME[/color][/font]\n"
+	Minfo=Minfo.."[font=default-bold][color=#ff9740]Matches[/color][/font] are 3[font=default-small](+1)[/font] vs 3[font=default-small](+1)[/font], the [font=default-small-bold][color=#CCBBFF](+1)[/color][/font] "
+	Minfo=Minfo.."meaning the coach/spy/substitute. One team is said [font=default-bold][color=#CCBBFF]ATHOME[/color][/font]\n"
 	Minfo=Minfo.."                and has advantages against other team said [font=default-bold][color=#BBAAFF]OUTSIDE[/color][/font] (visitors).\n"
 	Minfo=Minfo.."     At the beginning, each team gets a [item=repair-pack][font=default-bold][color=#CCBBFF]STARTER PACK[/color][/font][item=repair-pack] choosed among four, leading to a fast early game.\n"
 	Minfo=Minfo.."     Team [font=default-bold][color=#CCBBFF]ATHOME[/color][/font] chooses : 1/ Their side 2/ To reroll map (up to twice, no rollback) 3/ The starter pack 4/ Is not attacked first.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#ff9740]Be Careful : [/color][/font]Groups of biters will come from every side, there is no safe place !\n"
-	Minfo=Minfo.."          And time is running... Once reached 2h of playtime, [img=quantity-time][font=default-bold][color=#CCBBFF]BOOST[/color][/font][img=quantity-time] mode will be activated, expect Behemoths sooner than later !\n"
+	Minfo=Minfo.."          And time is running... Once reached 2h of playtime, [img=quantity-time][font=default-bold][color=#CCBBFF]ARMAGEDDON[/color][/font][img=quantity-time] mode will be activated, expect Behemoths sooner than later !\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#ff9740]Streamers : [/color][/font]You can use ~Spec~ mode to have a larger view of the field.\n"
 	Minfo=Minfo.."                      Clicking on the name of a player will show his crafting list and his inventory.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."Thanks for reading - Have fun with the game !"
 	Minfo=Minfo.."                                                                                    [font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"
-	local l = frame.add {type = "label", caption = Minfo, name = "biter_battles_map_intro"} --CODING--
-	--local l = frame.add {type = "label", caption = {"biter_battles.map_info"}, name = "biter_battles_map_intro"}
+	local l = frame.add {type = "label", caption = Minfo, name = "biter_battles_map_intro"} 
+	--local l = frame.add {type = "label", caption = {"biter_battles.map_info"}, name = "biter_battles_map_intro"} --CODING--
 	l.style.single_line = false
 	l.style.font = "default"
 	l.style.font_color = {r=0.7, g=0.6, b=0.99}
+	 --CODING--
 	local lb = frame.add ({type = "button",	name = "biter_battles_map_intro_next", caption = "►", tooltip = "Page 2 with more infos"})
 	lb.style.font_color = {r=0.1, g=0.6, b=0.1}
 	--lb.style.font_color = {r=0.00, g=0.99, b=0.00}
 	lb.style.font = "default"
 	lb.style.padding = -1
 	lb.style.width = 20
+	
 	frame.style.vertical_align = 'bottom'
 	
 end
@@ -455,12 +459,14 @@ end
 function Public.show_intro_next(player)
 	if player.gui.center["map_intro_frame"] then player.gui.center["map_intro_frame"].destroy() end
 	local frame = player.gui.center.add {type = "frame", name = "map_intro_frame", direction = "vertical"}
-	local frame = frame.add {type = "frame"}
-	local Minfo="[font=default-large-bold][color=#FF5555]                                      --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
+	local frame = frame.add {type = "frame", direction = "vertical"}
+
+	local Minfo=""
+	Minfo=Minfo.."[font=default-large-bold][color=#FF5555]                                      --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
 	Minfo=Minfo.."                                 [color=#DDDDDD]https://www.bbchamps.org[/color] \n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Some more details about Biter Battles and BBC : [/color][/font]"
-	Minfo=Minfo.."\n\n"
+	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default][color=#ff9740]Limitations : [/color][/font] Mines, Artillery, Atomic bomb are disabled. Robots can't build across the river that also can't be landfilled.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default][color=#ff9740]EVO-lution[/color][/font] of the biters increases when they get fed, and can rise above 100% which unlocks endgame modifiers,\n"
@@ -471,17 +477,22 @@ function Public.show_intro_next(player)
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default][color=#ff9740]PAUSE : [/color][/font] teams can ask for a short pause once per hour, referee will freeze players and biters,\n"
 	Minfo=Minfo.."                 then when players are ready, referee will unfreeze and trigger a short countdown.\n"
+	Minfo=Minfo.."                [font=default-small][color=#999999]Note: referee can force unfreezing players after 180s (if players are not responding).[/color][/font]\n"	
+	Minfo=Minfo.."[font=default][color=#ff9740]SPEED : [/color][/font] if both teams agree, referee can reduce of speed of the game with this chat command [color=#DDDDDD]/c game.speed=0.8[/color]\n"
+	Minfo=Minfo.."                  [font=default-small][color=#999999](only in case some players can't keep up with the game and have jumps).[/color][/font]\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]CLEAR-CORPSES [/color][/font] is called every 5 min, clearing biter corpses and ghosts of killed entities.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default][color=#ff9740]TIPS : [/color][/font] you need to be fast ! Biters are very aggressive, you need to find a good balance between 3 things :\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Defense[/color][/font]    so you don't get overwhelmed,\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Building[/color][/font]    so you can keep up with biter evolution,\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Offensive[/color][/font]  so you boost opponent's biter evolution.\n"
+	--Game is intense, dynamic
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]CONTACT : [/color][/font][color=#DDDDDD]bbc.factorio@gmail.com[/color]\n"
+	Minfo=Minfo.."[font=default][color=#ff9740]CONTACT : [/color][/font][color=#DDDDDD]bbc.factorio@gmail.com     Twitter: @BiterBattles[/color]\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."Thanks for reading - Have fun with the game !"
 	Minfo=Minfo.."                                                                                    [font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"
-	local l = frame.add {type = "label", caption = Minfo, name = "biter_battles_map_intro"} --CODING--
+	local l = frame.add {type = "label", caption = Minfo, name = "biter_battles_map_intro"}
 	l.style.single_line = false
 	l.style.font = "default"
 	l.style.font_color = {r=0.7, g=0.6, b=0.99}
@@ -584,14 +595,19 @@ function Public.show_bbc_packs(player)
 	end
 	frame.add { type = "line", caption = "this line", direction = "horizontal" }	
 	local ttttt= frame.add({type = "table", name = "bbc_bottom", column_count = 2})
-	local _info=ttttt.add({type = "label", caption = "Items will be distributed into 3 chests (left,mid,right) according to details above                                               "}) 
+	_info_caption="Items will be distributed into 3 chests (left,mid,right) according to details above.                                                             \n"
+	_info_caption=_info_caption.."[font=default-small][color=#999999]Note: Starter Pack ~ROBOTS~ will grant both teams 2 levels of Worker robot speed.[/color][/font]"
+	local _info=ttttt.add({type = "label", caption = _info_caption}) 
+	_info.style.single_line = false
+	_info.style.font = "default"
+	_info.style.font_color = {r=0.7, g=0.6, b=0.99}
 	local button = ttttt.add({
 			type = "button",
 			name = "bbc_close_packs_frame",
 			caption = "Close"
 	})
 	button.style.font = "heading-1"
-	button.style.font_color = {r = 200, g = 32, b = 32}
+	button.style.font_color = {r = 172, g = 32, b = 32}
 	--game.print("gui choosen:".. global.bbc_pack_choosen)
 end
 

@@ -40,6 +40,17 @@ while p>0 do
 	p=p-_step
 	_step=_step+0.01
 end
+--ADD one vertical waypoint at p=0.47
+if true then
+	p=0.47
+	local a = math.pi * p
+	local x = math.floor(way_point_radius * math.cos(a))
+	local y = math.floor(way_point_radius * math.sin(a))
+	way_points.north[#way_points.north + 1] = {x, y * -1}
+	way_points.south[#way_points.south + 1] = {x, y}
+end
+
+
 local size_of_way_points = #way_points.north
 
 local unit_type_raffle = {"biter", "mixed", "mixed", "spitter", "spitter"}
@@ -73,7 +84,7 @@ end
 local function get_target_entity(force_name)
 	local force_index = game.forces[force_name].index
 	local target_entity = Functions.get_random_target_entity(force_index)
-	if not target_entity then print("Unable to get target entity for " .. force_name .. ".") return end
+	if not target_entity then print("Unable to get target entity for " .. force_name .. " (in get_target_entity).") return end
 	for _ = 1, 2, 1 do
 		local e = Functions.get_random_target_entity(force_index)
 		if math_abs(e.position.x) < math_abs(target_entity.position.x) then
@@ -81,7 +92,7 @@ local function get_target_entity(force_name)
 		end
 	end
 	if not target_entity then 
-		if global.bb_debug then game.print("No side target found for " .. force_name .. " (in get_target_entity.") end
+		if global.bb_biters_debug then game.print("No side target found for " .. force_name .. " (in get_target_entity).") end
 		return 
 	end
 	--print("Target entity for " .. force_name .. ": " .. target_entity.name .. " at x=" .. target_entity.position.x .. " y=" .. target_entity.position.y)
@@ -102,23 +113,23 @@ end
 
 local function is_biter_inactive(biter, unit_number, biter_force_name)
 	if not biter.entity then
-		if global.bb_debug then print("Debug: BiterBattles: active unit " .. unit_number .. " removed, possibly died.") end
+		if global.bb_biters_debug then print("Debug: BiterBattles: active unit " .. unit_number .. " removed, possibly died.") end
 		return true
 	end
 	if not biter.entity.valid then
-		if global.bb_debug then print("Debug: BiterBattles: active unit " .. unit_number .. " removed, biter invalid.") end
+		if global.bb_biters_debug then print("Debug: BiterBattles: active unit " .. unit_number .. " removed, biter invalid.") end
 		return true
 	end
 	if not biter.entity.unit_group then
-		if global.bb_debug then print("Debug: BiterBattles: active unit " .. unit_number .. "  at x" .. biter.entity.position.x .. " y" .. biter.entity.position.y .. " removed, had no unit group.") end
+		if global.bb_biters_debug then print("Debug: BiterBattles: active unit " .. unit_number .. "  at x" .. biter.entity.position.x .. " y" .. biter.entity.position.y .. " removed, had no unit group.") end
 		return true
 	end
 	if not biter.entity.unit_group.valid then
-		if global.bb_debug then print("Debug: BiterBattles: active unit " .. unit_number .. " removed, unit group invalid.") end
+		if global.bb_biters_debug then print("Debug: BiterBattles: active unit " .. unit_number .. " removed, unit group invalid.") end
 		return true
 	end
 	if game.tick - biter.active_since > bb_config.biter_timeout then
-		if global.bb_debug then print("Debug: BiterBattles: " .. biter_force_name .. " unit " .. unit_number .. " timed out at tick age " .. game.tick - biter.active_since .. ".") end
+		if global.bb_biters_debug then print("Debug: BiterBattles: " .. biter_force_name .. " unit " .. unit_number .. " timed out at tick age " .. game.tick - biter.active_since .. ".") end
 		biter.entity.destroy()
 		return true
 	end
@@ -144,6 +155,7 @@ Public.destroy_inactive_biters = function()
 
 	for unit_number, biter in pairs(global.active_biters[biter_force_name]) do
 		if is_biter_inactive(biter, unit_number, biter_force_name) then
+			game.print("destroy_inactive_biters : "..unit_number) --EVL
 			global.active_biters[biter_force_name][unit_number] = nil
 		end
 	end
@@ -202,13 +214,15 @@ local function select_units_around_spawner(spawner, force_name, side_target)
 
 	local threat = global.bb_threat[biter_force_name] * math_random(8, 32) * 0.01
 
+	--[[ EVL removed for BBC (dont even know what that means)
 	--threat modifier for outposts
 	local m = math_abs(side_target.position.x) - 512
 	if m < 0 then m = 0 end
 	m = 1 - m * 0.001
 	if m < 0.5 then m = 0.5 end
 	threat = threat * m
-
+	]]--
+	
 	local unit_count = 0
 	local max_unit_count = math.floor(global.bb_threat[biter_force_name] * 0.25) + math_random(6,12)
 	if max_unit_count > bb_config.max_group_size then max_unit_count = bb_config.max_group_size end
@@ -237,7 +251,10 @@ local function select_units_around_spawner(spawner, force_name, side_target)
 		if threat < 0 then break end
 		local unit_name = BiterRaffle.roll(roll_type, global.bb_evolution[biter_force_name])
 		local position = spawner.surface.find_non_colliding_position(unit_name, spawner.position, 128, 2)
-		if not position then break end
+		if not position then 
+			if global.bb_biters_debug then game.print("DEBUGS: No room for spawning a biter (in select_units_around_spawner)",{200, 20, 20}) end 
+			break 
+		end
 		local biter = spawner.surface.create_entity({name = unit_name, force = biter_force_name, position = position})
 		threat = threat - threat_values[biter.name]
 		i = i + 1
@@ -245,17 +262,17 @@ local function select_units_around_spawner(spawner, force_name, side_target)
 		global.active_biters[biter.force.name][biter.unit_number] = {entity = biter, active_since = game.tick}
 		--Announce New Spawn
 		if(global.biter_spawn_unseen[force_name][unit_name]) then
-			game.print("A " .. unit_name:gsub("-", " ") .. " was spotted far away on team " .. force_name .. "...")
+			game.print("A " .. unit_name:gsub("-", " ") .. " was spotted far away on team " .. force_name .. "...",{200, 20, 20})
 			global.biter_spawn_unseen[force_name][unit_name] = false
 		end
 	end
 
-	if global.bb_debug then game.print("Debug: "..get_active_biter_count(biter_force_name) .. " active units for " .. biter_force_name) end
+	--if global.bb_biters_debug then game.print("DEBUGS: "..get_active_biter_count(biter_force_name) .. " active units for " .. biter_force_name,{20, 20, 20}) end --CODING--
 
 	return valid_biters
 end
 
-local function send_group(unit_group, force_name, side_target)
+local function send_group(unit_group, force_name, side_target, group_numero)
 	local target
 	if side_target then
 		target = side_target
@@ -263,7 +280,7 @@ local function send_group(unit_group, force_name, side_target)
 		target = get_target_entity(force_name)
 	end
 	if not target then 
-		if global.bb_debug then game.print("No target for " .. force_name .. " biters (in send-group).")  end
+		if global.bb_biters_debug then game.print("  DEBUGS: No target for " .. force_name .. " biters (in send-group)  group #"..group_numero..".", {r = 77, g = 77, b = 77})  end
 		return 
 	end
 
@@ -301,22 +318,21 @@ local function send_group(unit_group, force_name, side_target)
 	end
 	-- So you build all your base on the same side of X-axis ? and never get attacked on your back ?
 	-- Nope, and this is the patch, 20% chance of reverse attack xd
+	local _reverse = ""
 	if math_random(1,10)<=2 then
 		if target.x <0 then
 			position = { _posX, _posY}
 		else
 			position = {-_posX, _posY}
 		end
-		if global.bb_debug then game.print("DEBUG : Reverse attack detected") end
+		_reverse = "(reversed)"
 	end
-	
-	--if global.bb_debug then game.print("target="..target.x..","..target.y.."   waypoint="..position[1]..","..position[2]) end
-	
+
 	-- Is there a place to be there (could be a lake)
 	position = unit_group.surface.find_non_colliding_position("stone-furnace", position, 96, 1)
 	if position then
+		if math.abs(position.y) >= math.abs(unit_group.position.y) then game.print("  DEBUGS: I dont know what happened here (send_group in ai.lua)  group #"..group_numero..".", {r = 255, g = 77, b = 77}) end --EVL TEST/DEBUG
 		--if math.abs(position.y) < math.abs(unit_group.position.y) then
-		if math.abs(position.y) >= math.abs(unit_group.position.y) then game.print("I dont know what happened here (send_group in ai.lua") end --EVL TEST/DEBUG
 			commands[#commands + 1] = {
 				type = defines.command.attack_area,
 				destination = position,
@@ -324,6 +340,8 @@ local function send_group(unit_group, force_name, side_target)
 				distraction = defines.distraction.by_enemy
 			}
 		--end
+	else
+		if global.bb_biters_debug then game.print("  DEBUGS: failed to get position (in send_group)  group #"..group_numero..".", {r = 77, g = 77, b = 77}) end
 	end
 	-- THEN WE SEND TO TARGET
 	commands[#commands + 1] = {
@@ -344,7 +362,7 @@ local function send_group(unit_group, force_name, side_target)
 		structure_type = defines.compound_command.logical_and,
 		commands = commands
 	})
-	if global.bb_debug then game.print("DEBUG : target="..target.x..","..target.y.."   waypoint="..position.x..","..position.y.."   sent !") end
+	if global.bb_biters_debug then game.print("  DEBUGS : target="..target.x..","..target.y.."   waypoint="..position.x..","..position.y.."   sent ".._reverse.." ! ["..force_name.."]  group #"..group_numero..".", {r = 77, g = 77, b = 77}) end
 	return true
 end
 
@@ -357,7 +375,7 @@ local function get_unit_group_position(spawner)
 	end
 	p = spawner.surface.find_non_colliding_position("electric-furnace", p, 512, 1)
 	if not p then
-		if global.bb_debug then game.print("Debug: No unit_group_position found for team " .. spawner.force.name) end
+		if global.bb_biters_debug then game.print("Debug: No unit_group_position found for team " .. spawner.force.name) end
 		return
 	end
 	return p
@@ -396,40 +414,47 @@ local function get_nearby_biter_nest(target_entity)
 	return spawner
 end
 
-local function create_attack_group(surface, force_name, biter_force_name)
-	if global.freeze_players then game.print("BUG create_attack_group called while freezed") return end
+local function create_attack_group(surface, force_name, biter_force_name, group_numero)
+	
+	if global.freeze_players then game.print("  DEBUGS: create_attack_group called while freezed") return end --EVL not supposed to happen
 	local threat = global.bb_threat[biter_force_name]
-	if get_active_threat(biter_force_name) > threat * 1.20 then return end
-	if threat <= 0 then return false end
-
+	if get_active_threat(biter_force_name) > threat * 1.20 then 
+		if global.bb_biters_debug then game.print("  DEBUGS: Enough threat ("..get_active_threat(biter_force_name)..") on " .. force_name .." side > Skipping group #"..group_numero.."["..force_name.."]", {r = 77, g = 77, b = 77}) end
+		return
+	end
+	if threat <= 0 then 
+		if global.bb_biters_debug then game.print("  DEBUGS: Threat is negative > Skipping group #"..group_numero.."["..force_name.."]", {r = 77, g = 77, b = 77}) end
+		return false 
+	end
 	if bb_config.max_active_biters - get_active_biter_count(biter_force_name) < bb_config.max_group_size then
-		if global.bb_debug then game.print("Debug: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. bb_config.max_active_biters - get_active_biter_count(biter_force_name)) end
+		if global.bb_biters_debug then game.print("  DEBUGS: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. bb_config.max_active_biters - get_active_biter_count(biter_force_name).." group #"..group_numero.."["..force_name.."]", {r = 77, g = 77, b = 77}) end
 		return false
 	end
-
 	local side_target = get_target_entity(force_name)
 	if not side_target then
-		if global.bb_debug then game.print("No side target found for " .. force_name .. " (in create_attack_group.") end
+		if global.bb_biters_debug then game.print("  DEBUGS: No side target found for " .. force_name .. " (in create_attack_group)  group #"..group_numero..".", {r = 77, g = 77, b = 77}) end
 		return
 	end
-
 	local spawner = get_nearby_biter_nest(side_target)
 	if not spawner then
-		if global.bb_debug then game.print("No spawner found for " .. force_name .. ".") end
+		if global.bb_biters_debug then game.print("  DEBUGS: No spawner found for " .. force_name .. " (in create_attack_group)  group #"..group_numero..".", {r = 77, g = 77, b = 77}) end
 		return
 	end
-
 	local unit_group_position = get_unit_group_position(spawner)
-	if not unit_group_position then return end
-
+	if not unit_group_position then 
+		if global.bb_biters_debug then game.print("  DEBUGS: failed to get unit_group_position (in create_attack_group)  group #"..group_numero.." ["..force_name.."].", {r = 77, g = 77, b = 77}) end
+		return 
+	end
 	local units = select_units_around_spawner(spawner, force_name, side_target)
-	if not units then return end
-
+	if not units then 
+		if global.bb_biters_debug then game.print("  DEBUGS: failed to get units (in create_attack_group)   group #"..group_numero.."["..force_name.."].", {r = 77, g = 77, b = 77}) end
+		return 
+	end
 	local unit_group = surface.create_unit_group({position = unit_group_position, force = biter_force_name})
 	for _, unit in pairs(units) do unit_group.add_member(unit) end
-
-	send_group(unit_group, force_name, side_target)
-
+	--if global.bb_biters_debug then game.print("  DEBUGS: sending group #"..group_numero.."["..force_name.."].", {r = 77, g = 77, b = 77}) end --SEEMS OK each time we come here, send_group write a debug message
+	--game.print("#Units="..table_size(units).."  #unit_group"..table_size(units))--CODING--
+	send_group(unit_group, force_name, side_target,group_numero)
 	global.unit_groups[unit_group.group_number] = unit_group
 end
 
@@ -437,29 +462,33 @@ Public.pre_main_attack = function()
 	local surface = game.surfaces[global.bb_surface_name]
 	local force_name = global.next_attack
 	if global.main_attack_wave_amount > 0 then --EVL we still have waves to send
-		if global.bb_debug then game.print("Debug: pre_main_attack called while amount>O (groups still have to be sent, this alert caused by freeze/unfreeze at ~bad~ timings") end
+		if global.bb_biters_debug then game.print("DEBUGS: pre_main_attack called while amount>O (groups still have to be sent, this alert caused by freeze/unfreeze at ~bad~ timings", {r = 192, g = 77, b = 77}) end --EVL
 		return 
 	end 
 	if not global.training_mode or (global.training_mode and #game.forces[force_name].connected_players > 0) then
 		local biter_force_name = force_name .. "_biters"
 		global.main_attack_wave_amount = math.ceil(get_threat_ratio(biter_force_name) * 7)
-
-		if global.bb_debug then game.print("Debug: "..global.main_attack_wave_amount .. " unit groups designated for " .. force_name .. " biters.") end
+		--CHANGE THIS TO SHOW ADMINS ONLY ? (probably no)
+		if global.bb_biters_debug then game.print("DEBUGS: UP TO "..global.main_attack_wave_amount .. " unit groups designated for " .. force_name .. " biters.", {r = 192, g = 77, b = 77}) end --EVL
 	else
 		global.main_attack_wave_amount = 0
 	end
+	
 end
 
 
 Public.perform_main_attack = function()
 	if global.freeze_players then return end -- EVL we dont send groups while freezed
+	local number = (game.tick % 900)/60
+	--if global.bb_biters_debug then game.print("DEBUGS: "..number.." group#"..global.main_attack_wave_amount.." nextatt="..global.next_attack, {r = 127, g = 127, b = 127}) end --CODING--
 	if global.main_attack_wave_amount > 0 then
 		local surface = game.surfaces[global.bb_surface_name]
 		local force_name = global.next_attack
 		local biter_force_name = force_name .. "_biters"
-
-		create_attack_group(surface, force_name, biter_force_name)
-		global.main_attack_wave_amount = global.main_attack_wave_amount - 1
+		--if global.bb_biters_debug then game.print("DEBUGS: group#"..global.main_attack_wave_amount.." sent to create_attack_group ["..force_name.."]", {r = 77, g = 77, b = 77}) end --CODING--
+		create_attack_group(surface, force_name, biter_force_name, global.main_attack_wave_amount) --EVL DOES THIS FUNCTION BUG ? -> called but does whatever and skip next line (amount=amount-1)
+		global.main_attack_wave_amount = global.main_attack_wave_amount - 1 -- EVL tried to switch 2 lines above (even worse)
+		
 	end
 end
 
@@ -486,7 +515,7 @@ Public.wake_up_sleepy_groups = function()
 					if unit_group.valid then
 						if unit_group.state == defines.group_state.finished then
 							send_group(unit_group, force_name)
-							--print("BiterBattles: Woke up Unit Group at x" .. unit_group.position.x .. " y" .. unit_group.position.y .. ".")
+							if global.bb_biters_debug then game.print("  DEBUGS : Woke up Unit Group at x" .. unit_group.position.x .. " y" .. unit_group.position.y .. " ("..force_name..").", {r = 192, g = 77, b = 77}) end
 							return
 						end
 					end

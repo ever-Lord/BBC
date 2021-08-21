@@ -582,15 +582,16 @@ function Public.generate_silo(surface)
 			entity.destroy()
 		end
 	end
-	--[[
+	--EVL we put 3 turrets next to silo
 	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
-	turret1.insert({name = "firearm-magazine", count = 10})
+	turret1.insert({name = "firearm-magazine", count = 12})
 	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
-	turret2.insert({name = "firearm-magazine", count = 10})
+	turret2.insert({name = "firearm-magazine", count = 12})
 	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
-	turret3.insert({name = "firearm-magazine", count = 10})
-	]]--
+	turret3.insert({name = "firearm-magazine", count = 12})
+	
 	--EVL SOME MORE TURRETS FOR TESTING IN SOLO
+	--[[
 	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
 	turret1.insert({name = "firearm-magazine", count = 200})
 	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
@@ -630,7 +631,7 @@ function Public.generate_silo(surface)
 	turret8a.insert({name = "firearm-magazine", count = 200})
 	local turret9a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-11}, force = "north"})
 	turret9a.insert({name = "firearm-magazine", count = 200})
-
+	]]--
 	
 end
 
@@ -769,7 +770,7 @@ function Public.fill_starter_chests(surface)
 	if global.match_running then game.print("BUG, game has started, cant fill the chests",{r = 255, g = 10, b = 10}) return end
 	local _pack_nb=string.sub(global.pack_choosen,6,8)
 	local _pack_name=tables.packs_list[global.pack_choosen]["caption"]
-	game.print(">>>>> Filling up chests for STARTER PACK#".._pack_nb.. " : " .._pack_name .." ",{r = 197, g = 197, b = 17})
+	game.print(">>>>> Filling up chests for STARTER PACK#".._pack_nb.. " : " .._pack_name .." .",{r = 197, g = 197, b = 17})
 
 	--EVL CHESTS--
 	local _posX = 00
@@ -807,12 +808,15 @@ function Public.fill_starter_chests(surface)
 		game.forces["south"].technologies['worker-robots-speed-2'].researched=true
 		game.forces["north"].technologies['worker-robots-speed-1'].researched=true
 		game.forces["north"].technologies['worker-robots-speed-2'].researched=true
-		game.print(">>>>>  Both teams have been given Worker robot speed 1 & 2 technologies (since Robot Pack has been chosen)",{r = 197, g = 197, b = 17}) 
+		game.print(">>>>> Both teams have been granted Worker robot speed 1 & 2 technologies (since Robots Pack has been chosen).",{r = 197, g = 197, b = 17}) 
 	else
-		game.forces["south"].technologies['worker-robots-speed-1'].researched=false
-		game.forces["south"].technologies['worker-robots-speed-2'].researched=false
-		game.forces["north"].technologies['worker-robots-speed-1'].researched=false
-		game.forces["north"].technologies['worker-robots-speed-2'].researched=false
+		if game.forces["south"].technologies['worker-robots-speed-1'].researched then
+			game.forces["south"].technologies['worker-robots-speed-1'].researched=false
+			game.forces["south"].technologies['worker-robots-speed-2'].researched=false
+			game.forces["north"].technologies['worker-robots-speed-1'].researched=false
+			game.forces["north"].technologies['worker-robots-speed-2'].researched=false
+			game.print(">>>>> Worker robot speed 1 & 2 technologies have been removed.",{r = 197, g = 197, b = 17}) 
+		end
 	end	
 	global.fill_starter_chests = false
 	global.starter_chests_are_filled = true

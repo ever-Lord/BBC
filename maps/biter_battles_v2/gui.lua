@@ -140,46 +140,35 @@ function Public.create_main_gui(player)
 	end
 
 	local frame = player.gui.left.add { type = "frame", name = "bb_main_gui", direction = "vertical" }
-	--EVL We add a timer
-		local ttime = frame.add { type = "table", name = "biter_battle_time", column_count = 3 }
-		local tttime = ttime.add {
-			type = "sprite",
-			name = "tttime-editor",
-			sprite = "quantity-time",
-		}
-		tttime.style.font_color = {r = 127, g = 180, b = 200}
-		local time_played = game.ticks_played - global.freezed_time
-		local htime_gui = "Game has not started "
-		local htime_tooltip = "Game will enter in BOOST mode after ".. math.floor(global.evo_boost_tick/3600) .." minutes !"
-		if global.freezed_start == 999999999 then -- we are unfreezed
-			
-			if global.match_running then 
-				 htime_gui = get_human_time(time_played).." "
-			--else
-			-- Match is not running -> 	 htime_gui = "Game has not started "
-			end
-		else --EVL we are freezed since tick=global.freezed_start
-			time_paused = game.ticks_played - global.freezed_start
-			local real_time_played = time_played - time_paused
-			
-			if global.match_running then 
-				htime_gui = get_human_time(real_time_played) .. "   (".. math.floor(time_paused/60) .."s paused) "
-			--else
-			-- Match is not running -> 	 htime_gui = "Game has not started "
-			end
+	
+	--EVL Add a timer (with pause when frozen)
+	local ttime = frame.add { type = "table", name = "biter_battle_time", column_count = 3 }
+
+	local tttime = ttime.add {	type = "sprite", name = "tttime-editor", sprite = "quantity-time"}
+	local time_played = game.ticks_played - global.freezed_time
+	local htime_gui = "Game has not started "
+	local htime_tooltip = "Game will enter in ARMAGEDDON mode after ".. math.floor(global.evo_boost_tick/3600) .." minutes !"
+	if global.freezed_start == 999999999 then -- we are unfreezed
+		if global.match_running then 
+			 htime_gui = get_human_time(time_played).." "
+		--else
+		-- Match is not running -> 	 htime_gui = "Game has not started "
 		end
-		
-		if global.bb_debug then htime_tooltip =  htime_tooltip .. "\n debug : global.freezed_time=" .. math.floor(global.freezed_time/60) .. "\n debug : global.freezed_start=" .. math.floor(global.freezed_start/60) end
-		local tttime = ttime.add({type = "label", caption = htime_gui, tooltip = htime_tooltip } )
-		tttime.style.font = "default-large-bold"
-		tttime.style.font_color = {r = 127, g = 127, b = 255}
-		
-		local tttimee = ttime.add {
-			type = "sprite",
-			name = "tttimee-editor",
-			sprite = "quantity-time",
-		}
-		tttimee.style.font_color = {r = 127, g = 180, b = 200}
+	else --EVL we are freezed since tick=global.freezed_start
+		time_paused = game.ticks_played - global.freezed_start
+		local real_time_played = time_played - time_paused
+		if global.match_running then 
+			htime_gui = get_human_time(real_time_played) .. "   (pause ".. math.floor(time_paused/60) .."s) "
+		--else
+		-- Match is not running -> 	 htime_gui = "Game has not started "
+		end
+	end
+	if global.bb_debug then htime_tooltip =  htime_tooltip .. "\n debug : global.freezed_time=" .. math.floor(global.freezed_time/60) .. "\n debug : global.freezed_start=" .. math.floor(global.freezed_start/60) end
+	local tttime = ttime.add({type = "label", caption = htime_gui, tooltip = htime_tooltip } )
+	tttime.style.font = "default-large-bold"
+	tttime.style.font_color = {r = 192, g = 192, b = 255}
+	local tttimee = ttime.add {type = "sprite", name = "tttimee-editor", sprite = "quantity-time"}
+
 	--EVL line separator
 	frame.add { type = "line", caption = "this line", direction = "horizontal" }
 	--EVL FIN

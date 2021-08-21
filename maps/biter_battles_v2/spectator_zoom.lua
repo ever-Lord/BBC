@@ -2,11 +2,11 @@
 --Limited to Admins (referees) that are in spectator force (on the island)
 
 local Event = require 'utils.event'
---local God_Players={} -- EVL List of players in god mode
+
 local function draw_top_gui(player)
 	if player.gui.top.spec_zoom_spec then return end
 	--if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then --EVL We only show buttons if admin+spectator (but this menu is static)
-		local button = player.gui.top.add({type = "sprite-button", name = "spec_zoom_spec", caption = "Spec", tooltip = "Only admins in spectator-list can fly over the map \n Click to switch between REAL and GOD modes"})
+		local button = player.gui.top.add({type = "sprite-button", name = "spec_zoom_spec", caption = "Spec", tooltip = "Only admins as spectators can fly over the map,\n Click to switch between REAL and GOD modes."})
 		button.style.font = "heading-2"
 		button.style.font_color = {112, 112, 255}
 		button.style.minimal_height = 38
@@ -61,6 +61,7 @@ local function on_gui_click(event)
 				player.character = nil
 				global.god_players[player.name] = true
 				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches to God mode") end
+				--game.print("##"..table_size(global.god_players))
 			elseif player.force.name == "spec_god" then
 				player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
 				player.create_character()
@@ -70,7 +71,7 @@ local function on_gui_click(event)
 				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches back to real mode") end
 			
 			else
-				game.print(">>>>> Only spectators are not allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
+				game.print(">>>>> Only spectators are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
 			end
 		else
 			player.print(">>>>> Only admins are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})

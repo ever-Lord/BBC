@@ -146,7 +146,7 @@ local function switch_force(player_name, force_name)
 		spectate(player, true)		
 	else
 		if player.admin then 
-			game.print(">>>>> BBC ALERT : Player " .. _player_name .. " is Admin and should not be switched in a team.", {r=0.98, g=0.77, b=0.77})
+			game.print(">>>>> BBC ALERT : Player " .. _player_name .. " is Admin and should not be switched into a team.", {r=0.98, g=0.77, b=0.77})
 		end
 		join_team(player, force_name, true)
 		if #game.forces[force_name].connected_players > 3 then
@@ -175,7 +175,7 @@ end
 local function draw_manager_gui(player)
 	if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
 	
-	local frame = player.gui.center.add({type = "frame", name = "team_manager_gui", caption = "Manage Teams", direction = "vertical"})
+	local frame = player.gui.center.add({type = "frame", name = "team_manager_gui", caption = "Manage Teams    [font=default-small][color=#999999]Please don't spam me[/color][/font]", direction = "vertical"})
 
 	local t = frame.add({type = "table", name = "team_manager_root_table", column_count = 5})
 	
@@ -227,7 +227,7 @@ local function draw_manager_gui(player)
 	--EVL Button for Reroll
 		local t = frame.add({type = "table", name = "team_manager_reroll_buttons", column_count = 3})
 		
-		if global.reroll_left < 1 then 
+		if global.match_running or global.reroll_left < 1 then 
 			local tt = t.add({type = "label", caption = "NO MORE REROLL AVAILABLE, MATCH HAS TO BE PLAYED ON THIS MAP !"})
 			tt.style.font = "heading-2"
 			tt.style.font_color = {r = 250, g = 250, b = 250}
@@ -476,7 +476,7 @@ local function team_manager_gui_click(event)
 				global.match_running=true 
 				game.print(">>>>> Match is starting shortly. Good luck !", {r = 11, g = 255, b = 11})
 			end  	
-			global.reroll_left=0		-- Match has started, no more reroll
+			--global.reroll_left=0		-- Match has started, no more reroll -> changed via match_running (so wee save #rerolls for export stats)
 			global.freeze_players = false
 			if global.match_countdown < 0 then -- First unfreeze depends on init, then we use 3 seconds timer (after pause)
 				global.match_countdown = 3

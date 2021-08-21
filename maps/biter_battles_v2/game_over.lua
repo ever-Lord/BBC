@@ -297,7 +297,7 @@ local enemy_team_of = {["north"] = "south", ["south"] = "north"}
 function Public.server_restart()
     
 	if not global.server_restart_timer then  game.print("BUG asking for server_restart without server_restart_timer") return end --EVL debug
-	if global.bb_debug then game.print("Debug: server_restart : timer="..global.server_restart_timer) end -- EVL debug
+	--if global.bb_debug then game.print("Debug: server_restart : timer="..global.server_restart_timer) end -- EVL debug
 	global.server_restart_timer = global.server_restart_timer - 5
 
     if global.server_restart_timer == 0 then
@@ -325,7 +325,24 @@ function Public.server_restart()
             end
         end
 		]]--
-        
+       --[[ EVL THIS IS NOT WORKING AND I DONT GET WHY....
+		--EVL spec_god players have to be back on ground
+		game.print("spec to real"..table_size(global.god_players))
+		for _player,_bool in pairs(global.god_players) do
+			game.print(">".._player.." ".._bool)
+			if _bool then
+				local player = game.players[_player]
+				game.print(player.name.."/".._player)
+				player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
+				player.create_character()
+				player.force = game.forces["spectator"]
+				player.zoom=0.30
+				global.god_players[_player] = false
+				if global.bb_debug then game.print("DEBUG: reset incoming -> player:" .._player.."/".. player.name .." ("..player.force.name..") switches back to real mode") end
+			end
+		end
+		]]--
+		--EVL Starting reset
 		game.print(">>>>> Map is restarting !  (10s before reveal)", {r = 0.22, g = 0.88, b = 0.22}) --EVL BBC has a reveal of 100x100 for reroll purpose
         local message = 'Map is restarting! '
         Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
@@ -333,13 +350,14 @@ function Public.server_restart()
 		local prev_surface = global.bb_surface_name
 
        --EVL SAVE DATAS BEFORE REROLL (global.freeze_players, global.reroll_left)
-		local freeze_players = global.freeze_players --if player are freezed then dont freeze them again
-		local reroll_left = global.reroll_left --EVL need to remember how many rolls we did
-
+		local _freeze_players = global.freeze_players --if player are freezed then dont freeze them again
+		local _reroll_left = global.reroll_left --EVL need to remember how many rolls we did
+		local _force_map_reset_export_reason=global.force_map_reset_export_reason --EVL used in export stats
 		--EVL REWORK INIT PROCEDURE
 		Init.tables()
-		global.freeze_players = freeze_players
-		global.reroll_left = reroll_left
+		global.freeze_players = _freeze_players
+		global.reroll_left = _reroll_left
+		global.force_map_reset_export_reason=_force_map_reset_export_reason
 		global.server_restart_timer = nil
 		
 		Init.initial_setup() -- EVL (none)
@@ -347,6 +365,12 @@ function Public.server_restart()
 		Init.forces()
 		Init.draw_structures()
        Init.load_spawn()
+		--EVL Looking why always south gets attacked first
+		local whoisattackedfirst=math.random(1,2)
+		if whoisattackedfirst == 1 then global.next_attack = "south" end
+		if global.bb_debug then game.print("DEBUG: first wave will attack "..global.next_attack.." (after reroll)") end 
+	
+
 
 		for _, player in pairs(game.players) do
             Functions.init_player(player)
@@ -361,7 +385,7 @@ function Public.server_restart()
 		return
     end
     if global.server_restart_timer % 15 == 0 then --EVL was 30
-        game.print(">>>>> Map will exceptionally restart in " .. global.server_restart_timer ..
+        game.print(">>>>> Map will exceptionally restart after " .. global.server_restart_timer ..
                        " seconds !", {r = 0.22, g = 0.88, b = 0.22})
         --if global.server_restart_timer / 15 == 1 then --EVL was 30 NOT NEEDED
         ---   game.print("Good luck with your next match!", {r=0.98, g=0.66, b=0.22})
@@ -393,7 +417,9 @@ local function set_victory_time()
 	hours = math.floor(hours / 216000)
 	if minutes<10 then minutes="0"..minutes end
 	global.victory_time = "in " .. hours .. "h" .. minutes	.. "m"
-	global.victory_time = global.victory_time.."  (plus "..math.floor(_freezed_time/3600).."m paused)"
+	local _freeze_tps=math.floor(_freezed_time/3600)
+	if _freeze_tps == 0 then _freeze_tps=math.floor(_freezed_time/60).."s" else _freeze_tps=_freeze_tps.."m" end
+	global.victory_time = global.victory_time.."  (plus ".._freeze_tps.." paused)"
 end
 
 local function freeze_all_biters(surface)
@@ -478,7 +504,7 @@ function Public.silo_death(event)
 				north_players = north_players .. player.name .. "   "
 			end
 		end
-
+		game.print(">>>>> GG ! Don't forget to re-allocate permissions as they were (use [color=#DDDDDD]/promote[/color] or [color=#DDDDDD]/demote[/color]).",{r = 197, g = 197, b = 17}) 
 		global.spy_fish_timeout["north"] = game.tick + 999999
 		global.spy_fish_timeout["south"] = game.tick + 999999
 		global.server_restart_timer = 999999 --EVL see main.lua

@@ -24,6 +24,167 @@ require "modules.spawners_contain_biters"
 
 require 'spectator_zoom' -- EVL Zoom for spectators 
 
+
+--EVL BUILDING THE EXPORTS (Results & statistics) FRAME (for all players) & FILE (.json)
+local function export_results()
+	--entity_build_count_statistics for _, player in pairs(game.players)
+	local biters = {'small-biter','medium-biter','big-biter','behemoth-biter','small-spitter','medium-spitter','big-spitter','behemoth-spitter'}
+	local worms =  {'small-worm','medium-worm','big-worm','behemoth-worm'}
+	local spawners = {}
+	
+	--CONSTRUCTION
+	_export={}
+	--Add line
+	_gui=""
+	--CODING--
+	_gui=_gui.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
+	_gui=_gui.."  see all results at [color=#DDDDDD]https://www.bbchamps.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
+	_gui=_gui.."[font=default-small][color=#999999]Note: Referee/Admins need to re-allocate permissions as they were before this game.[/color][/font]\n"
+	_gui=_gui.."\n"
+	_gui=_gui.."[font=default-large-bold][color=#FF5555]                                    --- [color=#5555FF]RESULTS[/color] and [color=#55FF55]STATISTICS[/color]  ---[/color][/font]\n"
+	_gui=_gui.."\n"
+	_gui=_gui.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
+	_gui=_gui.."  GAME_ID=".."tbd".."\n"
+	_gui=_gui.."  DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
+	_gui=_gui.."  DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
+	local _bb_game_won_by_team=global.bb_game_won_by_team
+	--local _bb_game_loss_by_team="south"
+	--if _bb_game_won_by_team == "south" then _bb_game_loss_by_team= "north" end --EVL should use Tables.enemy_team_of 
+	local _bb_game_loss_by_team = Tables.enemy_team_of[_bb_game_won_by_team]
+	_gui=_gui.."  WINNER=".._bb_game_won_by_team.." | LOOSER=".._bb_game_loss_by_team.."\n"
+	_gui=_gui.."  TEAM_ATHOME=".."tbd".."\n"
+	_gui=_gui.."  REROLL="..(global.reroll_max-global.reroll_left).."\n"
+	_gui=_gui.."\n"
+	--NORTH SIDE
+	_gui=_gui.."[font=default-bold][color=#FF9740]>>NORTH STATS>>[/color][/font]\n"
+	local north_name = "Team North"
+	if global.tm_custom_name["north"] then north_name = global.tm_custom_name["north"]	end
+	_gui=_gui.."     TEAM_NAME="..north_name.."\n"
+	local north_evo = math.floor(1000 * global.bb_evolution["north_biters"]) * 0.1
+	local north_threat = math.floor(global.bb_threat["north_biters"])
+	_gui=_gui.."     EVOLUTION="..north_evo.." | THREAT="..north_threat.."\n"
+	local _c = 0
+	for _, biter in pairs(biters) do _c = _c + game.forces["north"].kill_count_statistics.get_input_count(biter) end
+	_gui=_gui.."     DEAD_BITERS=".._c.."\n"
+	if global.science_logs_total_north then
+		local _science=""
+		local total_science_of_north_force  = global.science_logs_total_north
+		for i = 1, 7 do _science=_science.." | [item="..Tables.food_long_and_short[i].long_name.."]".."="..global.science_logs_total_north[i] end
+		_gui=_gui.."     SCIENCE_SENT".._science.."\n"
+	else
+		_gui=_gui.."     SCIENCE_SENT | NONE".."\n"
+	end
+	_gui=_gui.."\n"
+	--SOUTH SIDE
+	_gui=_gui.."[font=default-bold][color=#FF9740]>>SOUTH STATS>>[/color][/font]\n"
+	local south_name = "Team South"
+	if global.tm_custom_name["south"] then south_name = global.tm_custom_name["south"]	end
+	_gui=_gui.."     TEAM_NAME="..south_name.."\n"
+	local south_evo = math.floor(1000 * global.bb_evolution["south_biters"]) * 0.1
+	local south_threat = math.floor(global.bb_threat["south_biters"])				
+	_gui=_gui.."     EVOLUTION="..south_evo.." | THREAT="..south_threat.."\n"
+	local _d = 0
+	for _, biter in pairs(biters) do _d = _d + game.forces["south"].kill_count_statistics.get_input_count(biter) end
+	_gui=_gui.."     DEAD_BITERS=".._d.."\n"
+	if global.science_logs_total_south then
+		local _science=""
+		local total_science_of_south_force  = global.science_logs_total_south
+		for i = 1, 7 do _science=_science.." | [item="..Tables.food_long_and_short[i].long_name.."]".."="..global.science_logs_total_south[i] end
+		_gui=_gui.."     SCIENCE_SENT".._science.."\n"
+	else
+		_gui=_gui.."     SCIENCE_SENT | NONE".."\n"
+	end
+	_gui=_gui.."\n"
+	--OTHER DATAS
+	_gui=_gui.."[font=default-bold][color=#FF9740]>>FORCE MAP RESETS>>[/color][/font]\n"
+	for _index,_msg in pairs(global.force_map_reset_export_reason) do
+		_gui=_gui.."     ".._index.." : ".._msg.."\n"
+	end
+	_gui=_gui.."\n"
+	_gui=_gui.."[font=default-bold][color=#FF9740]<<END OF EXPORTS<<[/color][/font]\n"				
+	
+	
+	--EXPORTING INTO FRAME
+	for _, player in pairs(game.players) do
+		if player.gui.center["bb_export_frame"] then player.gui.center["bb_export_frame"].destroy() end
+		local frame = player.gui.center.add {type = "frame", name = "bb_export_frame", direction = "vertical"}
+		local frame = frame.add {type = "frame"}
+		local l = frame.add {type = "label", caption = _gui, name = "biter_battles_export"}
+		l.style.single_line = false
+		l.style.font = "default"
+		l.style.font_color = {r=0.7, g=0.6, b=0.99}
+	end
+	--EXPORTING TO FILE JSON
+end
+--LITTLE THING TO CLOSE EXPORT GUI (above)
+local function frame_export_click(player, element)
+	if element.name == "biter_battles_export" then player.gui.center["bb_export_frame"].destroy() return true end	
+end
+
+--EVL MANUAL CLEAR CORPSES
+local function clear_corpses(cmd) -- EVL After command /clear-corpses radius
+	local player = game.player
+       -- EVL not needed for BBC tournament, trust parameter is never used
+		--local trusted = Session.get_trusted_table()
+        local param = tonumber(cmd.parameter)
+
+        if not player or not player.valid then
+            return
+        end
+        local p = player.print
+        --if not trusted[player.name] then
+        --    if not player.admin then
+        --        p('[ERROR] Only admins and trusted weebs are allowed to run this command!', Color.fail)
+        --        return
+        --    end
+        --end
+        if param == nil then
+            player.print('[ERROR] Must specify radius!', Color.fail)
+            return
+        end
+        if param < 0 then
+            player.print('[ERROR] Value is too low.', Color.fail)
+            return
+        end
+        if param > 500 then
+            player.print('[ERROR] Value is too big.', Color.fail)
+            return
+        end
+
+	if not Ai.empty_reanim_scheduler() then
+		player.print("[ERROR] Some corpses are waiting to be reanimated...")
+		player.print(" => Try again in short moment")
+		return
+	end
+
+        local pos = player.position
+
+        local radius = {{x = (pos.x + -param), y = (pos.y + -param)}, {x = (pos.x + param), y = (pos.y + param)}}
+        for _, entity in pairs(player.surface.find_entities_filtered {area = radius, type = 'corpse'}) do
+            if entity.corpse_expires then
+                entity.destroy()
+            end
+        end
+        player.print('Cleared biter-corpses.', Color.success)
+end
+--EVL AUTO CLEAR CORPSES
+local function clear_corpses_auto(radius) -- EVL - Automatic clear corpses called every 5 min
+	if not Ai.empty_reanim_scheduler() then
+		if global.bb_debug then game.print("Debug: Some corpses are waiting to be reanimated... Skipping this turn of clear_corpses") end
+		return
+	end
+	local _param = tonumber(radius)
+	local _radius = {{x = (0 + -_param), y = (0 + -_param)}, {x = (0 + _param), y = (0 + _param)}}
+	local _surface = game.surfaces[global.bb_surface_name]
+	for _, entity in pairs(_surface.find_entities_filtered {area = _radius, type = 'corpse'}) do
+		if entity.corpse_expires then
+			entity.destroy()
+		end
+	end
+	if global.bb_debug then game.print("Debug: Cleared corpses (dead biters and destroyed entities).", Color.success) 
+	else game.print("Cleared corpses.", Color.success) end
+end
+
 local function on_player_joined_game(event)
 	local surface = game.surfaces[global.bb_surface_name]
 	local player = game.players[event.player_index]
@@ -43,7 +204,10 @@ local function on_gui_click(event)
 	local element = event.element
 	if not element then return end
 	if not element.valid then return end
-
+	if element.name == "biter_battles_export" then 
+		frame_export_click(player, element)
+		return
+	end	
 	if Functions.map_intro_click(player, element) then 
 		return 
 	end
@@ -83,7 +247,8 @@ local function on_entity_died(event)
 	if Functions.biters_landfill(entity) then return end
 	Game_over.silo_death(event)
 end
-
+--EVL Trying to slowdown sending groups (easier for potatoes to keep up)
+--[[
 local tick_minute_functions = {
 	[300 * 1] = Ai.raise_evo,
 	[300 * 2] = Ai.destroy_inactive_biters,
@@ -99,9 +264,27 @@ local tick_minute_functions = {
 	[300 * 4] = Ai.send_near_biters_to_silo,
 	[300 * 5] = Ai.wake_up_sleepy_groups,
 }
+]]--
+local tick_minute_functions = {
+	[300 * 1] = Ai.raise_evo,
+	[300 * 2] = Ai.destroy_inactive_biters,
+	[300 * 3 + 60 * 0] = Ai.pre_main_attack,		-- setup for main_attack
+	[300 * 3 + 60 * 1] = Ai.perform_main_attack,	-- call perform_main_attack 7 times on different ticks
+	[300 * 3 + 60 * 2] = Ai.perform_main_attack,	-- some of these might do nothing (if there are no wave left)
+	[300 * 3 + 60 * 3] = Ai.perform_main_attack,
+	[300 * 3 + 60 * 4] = Ai.perform_main_attack,
+	[300 * 3 + 60 * 5] = Ai.perform_main_attack,
+	[300 * 3 + 60 * 6] = Ai.perform_main_attack,
+	[300 * 3 + 60 * 7] = Ai.perform_main_attack,
+	[300 * 3 + 60 * 8] = Ai.post_main_attack,
+	[300 * 8] = Ai.send_near_biters_to_silo,
+	[300 * 9] = Ai.wake_up_sleepy_groups,
+}
+
 
 local function on_tick()
 	local tick = game.tick
+	
 	--if not global.freeze_players and not global.bb_game_won_by_team then --EVL patch ?
 		Ai.reanimate_units()
 	--end
@@ -117,16 +300,21 @@ local function on_tick()
 	--end
 
 	
-	if tick % 300 == 0 then --EVL is called at the same tick as tick_minute_functions, could be changed to : if (tick+8) % 300 == 0
-		--EVL we clear corpses every 2 minutes
-		if tick%7200 == 0 then clear_corpses_auto() end
+	if tick % 300 == 0 then --EVL this is called at the same tick as tick_minute_functions, could be changed to : if (tick+8) % 300 == 0
+
 		Gui.refresh() --EVL from above
-		diff_vote.difficulty_gui()
+		--EVL Do not update ~Vote~ button once game has started
+		if not global.match_running then 
+			diff_vote.difficulty_gui()	
+		else
+			if tick % 18000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 5 minutes
+		end
 		
-		Gui.spy_fish()
 		
-		if global.reveal_init_map and (game.ticks_played > 600) then  --EVL we reveal 100x100 for reroll purpose (up to 10s delay)
-			Game_over.reveal_init_map(100)
+		Gui.spy_fish() -- EVL check the time of reveal, should be perfect (new chart just when last chart fade out)
+		
+		if global.reveal_init_map and (game.ticks_played > 600) then  --EVL we reveal 127*127 for reroll purpose (up to 10s delay)
+			Game_over.reveal_init_map(127)
 			global.reveal_init_map=false 
 		end	
 		
@@ -151,36 +339,42 @@ local function on_tick()
 		
 		--EVL but we keep possibility to reset for exceptionnal reasons 
 		if global.force_map_reset_exceptional then		 
-			--game.print("main-forcemapreset=true")
 			if not global.server_restart_timer then 
-				global.server_restart_timer=20 
+				global.server_restart_timer=20
 			end
 			Game_over.reveal_map() --EVL must be repeated
 			Game_over.server_restart()
-			global.reroll_left=2 --EVL Reinit #Nb reroll
+			global.reroll_left=global.reroll_max --EVL Reinit #Nb reroll
 			global.pack_choosen = "" --EVL Reinit Starter pack
 			return
 		end
 		
 		--EVL We dont reset after match ends (trick : global.server_restart_timer=999999)
 		if global.bb_game_won_by_team then		 --EVL no restart (debrief, save etc...) 
-			Game_over.reveal_map()
-			Game_over.server_restart() --WILL NEVER HAPPEN (global.server_restart_timer=999999)
+			-- EVL Threat keep growing up even if match is over xd TODO ?
+			
+			--EVL EXPORTING RESULTS AND STATS
+			if not global.export_stats_done then
+				game.print(">>>>> MATCH IS OVER ! Exporting results and statistics ...", {r = 77, g = 192, b = 77})
+				export_results()
+				global.export_stats_done=true
+			end
+			Game_over.reveal_map() --EVL timing seems perfect
+			Game_over.server_restart() -- EVL WILL NEVER HAPPEN (global.server_restart_timer=999999)
 			return
 		end
 
 
-		if tick % 1200 == 0 then --EVL monitoring game times every 20s for ELO BOOST
+		if tick % 1200 == 0 then --EVL monitoring game times every 20s for EVO BOOST/ARMAGEDDON
 			if global.freezed_start == 999999999 then -- players are unfreezed
 				if not global.evo_boost_active then -- EVO BOOST AFTER 2H (global.tick_evo_boost=60*60*60*2)
 					local real_played_time = game.ticks_played - global.freezed_time
 					if real_played_time >= global.evo_boost_tick then
 						-- EVL FOR TESTING/DEBUG, TO BE REMOVED --CODING--
-						--global.bb_evolution["north_biters"] = global.bb_evolution["north_biters"] + 0.10
-						--global.bb_evolution["south_biters"] = global.bb_evolution["south_biters"] + 0.15
+						--global.bb_evolution["north_biters"] = global.bb_evolution["north_biters"] + 0.25
+						--global.bb_evolution["south_biters"] = global.bb_evolution["south_biters"] + 0.20
 
-						--Set boost for north and south
-					
+						--EVL Set boosts for north and south
 						local evo_north = global.bb_evolution["north_biters"]
 						if evo_north<0.00001 then evo_north=0.00001 end --!DIV0
 						local evo_south = global.bb_evolution["south_biters"]
@@ -212,7 +406,7 @@ local function on_tick()
 						global.evo_boost_active = true --We wont come here again
 						local _b_north=math.floor(global.evo_boost_values["north_biters"]*10000)/100
 						local _b_south=math.floor(global.evo_boost_values["south_biters"]*10000)/100
-						game.print(">>>>> TIME HAS PASSED !!! EVOLUTION IS NOW BOOSTED !!! (%north=".._b_north.."  | %south=".._b_south..")", {r = 255, g = 77, b = 77})
+						game.print(">>>>> TIME HAS PASSED !!! EVOLUTION IS NOW BOOSTED !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] IS PROCLAIMED !!! (%n=".._b_north.."  | %s=".._b_south..")", {r = 192, g = 77, b = 77})
 					end
 				end
 				--game.print("UNFREEZ : ticks="..tick.." | played="..game.ticks_played.." (freezed="..global.freezed_time.." & FS="..global.freezed_start..")") 
@@ -222,7 +416,7 @@ local function on_tick()
 			end
 		end
 	end
-	-- EVL COUNTDOWN FOR STARTING GAME
+	-- EVL COUNTDOWN FOR STARTING GAME (UNFREEZE AND SOME INITS)
 	if global.match_countdown >=0 and global.match_running and tick % 60 == 0 then
 		for _, player in pairs(game.players) do -- EVL cdf for countdown_frame, cdb for countdown_button
 			if player.gui.center["bbc_cdf"] then player.gui.center["bbc_cdf"].destroy()	end
@@ -241,6 +435,7 @@ local function on_tick()
 			for _, player in pairs(game.players) do		
 				if player.gui.center["bbc_cdf"] then	player.gui.center["bbc_cdf"].destroy() end
 			end
+			-- EVL SET global.next_attack = "north" / "south" and global.main_attack_wave_amount=0
 			Team_manager.unfreeze_players()
 			game.print(">>>>> Players & Biters have been unfrozen !", {r = 255, g = 77, b = 77})
 		end
@@ -248,9 +443,12 @@ local function on_tick()
 
 	-- EVL NO EVO/THREAT OR GROUPS WHEN FREEZE (look inside ai.lua)
 	
-	if tick % 30 == 0 then	
+	if global.match_running and tick % 30 == 0 then	
 		local key = tick % 3600
-		if tick_minute_functions[key] then tick_minute_functions[key]() end
+		if tick_minute_functions[key] then 
+			--if global.bb_biters_debug then game.print("calling function : "..key) end
+			tick_minute_functions[key]() 
+		end
 	end
 end
 
@@ -342,79 +540,20 @@ local function on_area_cloned(event)
 	end
 end
 
-local function clear_corpses(cmd) -- EVL After command /clear-corpses radius
-	local player = game.player
-       -- EVL not needed for BBC tournament, trust parameter is never used
-		--local trusted = Session.get_trusted_table()
-        local param = tonumber(cmd.parameter)
-
-        if not player or not player.valid then
-            return
-        end
-        local p = player.print
-        --if not trusted[player.name] then
-        --    if not player.admin then
-        --        p('[ERROR] Only admins and trusted weebs are allowed to run this command!', Color.fail)
-        --        return
-        --    end
-        --end
-        if param == nil then
-            player.print('[ERROR] Must specify radius!', Color.fail)
-            return
-        end
-        if param < 0 then
-            player.print('[ERROR] Value is too low.', Color.fail)
-            return
-        end
-        if param > 500 then
-            player.print('[ERROR] Value is too big.', Color.fail)
-            return
-        end
-
-	if not Ai.empty_reanim_scheduler() then
-		player.print("[ERROR] Some corpses are waiting to be reanimated...")
-		player.print(" => Try again in short moment")
-		return
-	end
-
-        local pos = player.position
-
-        local radius = {{x = (pos.x + -param), y = (pos.y + -param)}, {x = (pos.x + param), y = (pos.y + param)}}
-        for _, entity in pairs(player.surface.find_entities_filtered {area = radius, type = 'corpse'}) do
-            if entity.corpse_expires then
-                entity.destroy()
-            end
-        end
-        player.print('Cleared biter-corpses.', Color.success)
-end
-
-local function clear_corpses_auto() -- Automatic clear corpses called every 2 min
-	if not Ai.empty_reanim_scheduler() then
-		if global.bb_debug then game.print("Debug: Some corpses are waiting to be reanimated... Skipping this turn of clear_corpses") end
-		return
-	end
-        local _param=500
-		 local radius = {{x = (0 + -_param), y = (0 + -_param)}, {x = (0 + _param), y = (0 + _param)}}
-        for _, entity in pairs(player.surface.find_entities_filtered {area = radius, type = 'corpse'}) do
-            if entity.corpse_expires then
-                entity.destroy()
-            end
-        end
-	if global.bb_debug then game.print("Debug: Cleared biter-corpses.", Color.success) end
-end
-
-
-
-
 local function on_init()
 	Init.tables()
 	Init.initial_setup()
-	Init.playground_surface() -- EVL No problemo - test with removing blueprint.zip from save
+	Init.playground_surface()
 	-- EVL patch : ???
 	
 	Init.forces()
 	Init.draw_structures()
 	Init.load_spawn()
+	--EVL Looking why always south gets attacked first
+	local whoisattackedfirst=math.random(1,2)
+	--if global.bb_debug then game.print("DEBUG: wiaf="..whoisattackedfirst.."  before "..global.next_attack) end 
+	if whoisattackedfirst == 1 then global.next_attack = "south" end
+	--if global.bb_debug then game.print("DEBUG: wiaf="..whoisattackedfirst.."  after "..global.next_attack) end 
 end
 
 local Event = require 'utils.event'

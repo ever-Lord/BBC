@@ -112,7 +112,7 @@ local function add_science_logs(player, element)
 	end
 	
 	--EVL BOOST mode infos
-	local t_boost_info = "   Note : BOOST mode (after ".. math.floor(global.evo_boost_tick/3600) .." minutes) do not appear here (TODO)"
+	local t_boost_info = "   Note : BOOST mode (after ".. math.floor(global.evo_boost_tick/3600) .." minutes) does not appear here (TODO)"
 	local t_boost = science_scrollpanel.add {type = "label", name = "science_logs_boost_info", caption = t_boost_info }
 	t_boost.style.font_color = { r=0.66, g=0.66, b=0.66 }
 	science_scrollpanel.add({type = "line"})

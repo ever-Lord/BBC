@@ -3,24 +3,31 @@ local ai = require "maps.biter_battles_v2.ai"
 local event = require 'utils.event'
 local Server = require 'utils.server'
 
+--CODING-- EVL Changing difficulties for BBC 
 local difficulties = {
 	
 	[1] = {name = "I'm Too Young to Die", str = "25%", value = 0.25, color = {r=0.00, g=0.45, b=0.00}, print_color = {r=0.00, g=0.9, b=0.00}},
 	[2] = {name = "Piece of Cake", str = "50%", value = 0.5, color = {r=0.00, g=0.35, b=0.00}, print_color = {r=0.00, g=0.7, b=0.00}},
 	[3] = {name = "Easy", str = "75%", value = 0.75, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.00, g=0.5, b=0.00}},
 	[4] = {name = "Normal", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.0, g=0.0, b=0.7}},
-	--[4] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.0, g=0.0, b=0.7}},
 	[5] = {name = "Hard", str = "150%", value = 1.5, color = {r=0.25, g=0.00, b=0.00}, print_color = {r=0.5, g=0.0, b=0.00}},
-	--[5] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.25, g=0.00, b=0.00}, print_color = {r=0.5, g=0.0, b=0.00}},
 	[6] = {name = "Nightmare", str = "300%", value = 3, color = {r=0.35, g=0.00, b=0.00}, print_color = {r=0.7, g=0.0, b=0.00}},
 	[7] = {name = "Fun and Fast", str = "500%", value = 5, color = {r=0.55, g=0.00, b=0.00}, print_color = {r=0.9, g=0.0, b=0.00}}
 }
+
+--CODING-- EVL BBC LEAGUES
+--[[ 
+local difficulties = {
+	[1] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.0, g=0.0, b=0.7}},
+	[2] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.0, g=0.7, b=0.0}},
+}
+]]--
 
 local function difficulty_gui()
 	local value = math.floor(global.difficulty_vote_value*100)
 	for _, player in pairs(game.connected_players) do
 		if player.gui.top["difficulty_gui"] then player.gui.top["difficulty_gui"].destroy() end
-		local str = table.concat({"Global map difficulty is ", difficulties[global.difficulty_vote_index].name, ". Mutagen has ", value, "% effectiveness."})
+		local str = table.concat({"Global map difficulty is ", difficulties[global.difficulty_vote_index].name, ".\nMutagen has ", value, "% effectiveness."})
 		local b = player.gui.top.add { type = "sprite-button", caption = difficulties[global.difficulty_vote_index].name, tooltip = str, name = "difficulty_gui" }
 		b.style.font = "heading-2"
 		b.style.font_color = difficulties[global.difficulty_vote_index].print_color
@@ -33,7 +40,14 @@ local function poll_difficulty(player)
 	if player.gui.center["difficulty_poll"] then player.gui.center["difficulty_poll"].destroy() return end
 	
 	if global.bb_settings.only_admins_vote or global.tournament_mode then
-		if not player.admin then return end
+		if not player.admin then 
+			player.print("Only admins can change difficulty (tournament mode)." ,{r = 0.78, g = 0.22, b = 0.22})
+			return 
+		end
+	end
+	if global.match_running then --EVL Do not change difficulty after match has started
+		player.print("Difficulty cannot be changed after match has started." ,{r = 0.78, g = 0.22, b = 0.22})
+		return
 	end
 	
 	local tick = game.ticks_played
@@ -48,6 +62,7 @@ local function poll_difficulty(player)
 		end
 		return 
 	end
+	
 	
 	local frame = player.gui.center.add { type = "frame", caption = "Vote global difficulty:", name = "difficulty_poll", direction = "vertical" }
 	for key, _ in pairs(difficulties) do
@@ -128,7 +143,10 @@ local function on_gui_click(event)
 	if event.element.name == "close" then event.element.parent.destroy() return end
 	if game.ticks_played > global.difficulty_votes_timeout then event.element.parent.destroy() return end
 	local i = tonumber(event.element.name)
-	
+	if global.match_running then --EVL Do not change difficulty after match has started
+		game.print("Difficulty cannot be changed after match has started ! ("..player.name .. " asked for " .. difficulties[i].name .. ")" ,{r = 0.78, g = 0.22, b = 0.22})
+		return
+	end
 	if global.bb_settings.only_admins_vote or global.tournament_mode then
 		if player.admin then
 			game.print(player.name .. " has voted for " .. difficulties[i].name .. " difficulty!", difficulties[i].print_color)

@@ -13,8 +13,8 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.pollution.enabled = false
 	game.map_settings.enemy_expansion.enabled = false
 
-	global.bb_debug = true --EVL BE CAREFUL, OTHER *SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
-	
+	global.bb_debug = true --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
+	global.bb_biters_debug = true --EVL ADD MUCH VERBOSE TO BITERS AI
 	-- EVL change for map restart (/force-map-reset)
 	local _first_init=true --EVL for disabling nauvis (below)
 	if not game.forces["north"] then 
@@ -178,8 +178,7 @@ function Public.tables()
 	global.difficulty_player_votes = {}
 	global.evo_raise_counter = 1
 	global.force_area = {}
-	global.main_attack_wave_amount = 0
-	global.map_pregen_message_counter = {}
+	global.map_pregen_message_counter = {} --EVL never used ?
 	global.rocket_silo = {}
 	global.spectator_rejoin_delay = {}
 	global.spy_fish_timeout = {}
@@ -199,7 +198,7 @@ function Public.tables()
 		}
 	}
 	global.difficulty_vote_value = 1
-	global.difficulty_vote_index = 4
+	global.difficulty_vote_index = 2 --EVL We set to behemoth_league by default
 
 	global.difficulty_votes_timeout = 72000
 
@@ -238,31 +237,38 @@ function Public.tables()
 	fifo.init()
 	game.reset_time_played()
 	
-	global.next_attack = "north"
-	if math.random(1,2) == 1 then global.next_attack = "south" end
+	global.main_attack_wave_amount = 0
+	global.next_attack = "north" --EVL Coinflip moved to main.lua (and game_over.lua after reroll) 
+	--EVL Need a patch so first attack goes to team OUTSIDE (give an advantage top team ATHOME) not sure its an advantage though
+	--EVL well, not even working since waves (with no group in them) are built during lobby time 
+	--We need to set global.next_attack when match starts
 	
-	global.reroll_left=3 --EVL (none) 
-	--global.reroll_left=20 --EVL TO be removed  --CODING--
+	global.reroll_max=3 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
+	--global.reroll_max=20 --EVL TO be removed  --CODING--
+	global.reroll_left=global.reroll_max --EVL = global.reroll_max as we init (will be set to real value after a reroll has been asked)
 	global.reroll_do_it=false --EVL (none)
 
 	global.bbc_pack_details = "" -- EVL USED IN functions.lua FOR listing of packs details
 	global.pack_choosen = ""	--EVL starter pack choosen
 	global.fill_starter_chests = false  --EVL 
 	global.starter_chests_are_filled = false  --EVL (none)
-	global.match_countdown = 9 --EVL time of the countdown in seconds before match starts (unpause will have a 3 seconds countdown)
+	--global.match_countdown = 9 --EVL time of the countdown in seconds before match starts (unpause will have a 3 seconds countdown)
+	global.match_countdown = 2 --CODING--
 	global.match_running = false  --EVL determine if this is first unfreeze (start match) or nexts (pause/unpause)
 
 	global.freezed_time=0 --EVL (none)
 	global.freezed_start=game.ticks_played --EVL we save tick when players started to be frozen (none)
 	global.reveal_init_map=true --EVL (none)
-	global.evo_boost_tick=2*60*60*60 --EVL We boost evo starting at 2h=120m 
-	--global.evo_boost_tick=2*60*60 --EVL  --CODING--
+	--global.evo_boost_tick=2.5*60*60*60 --EVL We boost evo starting at 2h=120m 
+	global.evo_boost_tick=3*60*60 --EVL  --CODING--
 	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
-	global.evo_boost_values={ 	-- EVL
-		["north_biters"]=0.00,
+	global.evo_boost_values={ 	-- EVL set to boost values after global.evo_boost_tick (1%=0.01)
+		["north_biters"]=0.02, --CODING--
 		["south_biters"]=0.00
 	}	
-	global.force_map_reset_exceptional=false
+	global.force_map_reset_exceptional=false -- set to true if a map reset is called via chat command
+	global.force_map_reset_export_reason={} -- we save infos about force-map-resets
+	global.export_stats_done=nil -- Set to true after match is over and stats are exported
 	--global.server_restart_timer = 20 -- EVL see main.lua, need to be nil
 	global.god_players={} -- EVL List of players in spec_god force/mode : we have 2 kinds of specs (see spectator_zoom.lua)
 	

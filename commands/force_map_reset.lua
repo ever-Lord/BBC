@@ -30,6 +30,8 @@ local function force_map_reset(reason)
 				global.force_map_reset_exceptional=true
 				global.confirm_map_reset_exceptional=false
 				global.server_restart_timer=nil --EVL see main.lua (will be set to 20)
+				--EVL WE ADD TO EXPORT DATAS THAT A FORCE-MAP-RESET HAS BEEN CALLED (after match ends so its fine, we just write it down)
+				global.force_map_reset_export_reason[#global.force_map_reset_export_reason + 1] = msg .. " (at tick="..game.tick..")"
 				return
 			end
 			--EVL game has not ended, we can even so ask for reset (but what for ?)
@@ -41,10 +43,12 @@ local function force_map_reset(reason)
 			global.force_map_reset_exceptional=true
 			global.confirm_map_reset_exceptional=false
 			global.server_restart_timer=nil --EVL see main.lua (will be set to 20)
+			--EVL WE ADD TO EXPORT DATAS THAT A FORCE-MAP-RESET HAS BEEN CALLED (before or during match ... this match should be cancelled?)
+			global.force_map_reset_export_reason[#global.force_map_reset_export_reason + 1] = msg .. " (at tick="..game.tick..")"
         end
     end
 end
 
 commands.add_command('force-map-reset',
-                     'force map reset by killing north silo: /force-map-reset <reason> ',
+                     '/force-map-reset <reason> (should never be used)',
                      function(cmd) force_map_reset(cmd.parameter); end)
