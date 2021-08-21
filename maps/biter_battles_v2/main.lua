@@ -44,16 +44,16 @@ local function export_results()
 	_gui=_gui.."[font=default-large-bold][color=#FF5555]                                    --- [color=#5555FF]RESULTS[/color] and [color=#55FF55]STATISTICS[/color]  ---[/color][/font]\n"
 	_gui=_gui.."\n"
 	_gui=_gui.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
-	_gui=_gui.."  GAME_ID=".."tbd".."\n"
-	_gui=_gui.."  DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
-	_gui=_gui.."  DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
+	_gui=_gui.."     GAME_ID=".."tbd".."\n"
+	_gui=_gui.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
+	_gui=_gui.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
 	local _bb_game_won_by_team=global.bb_game_won_by_team
 	--local _bb_game_loss_by_team="south"
 	--if _bb_game_won_by_team == "south" then _bb_game_loss_by_team= "north" end --EVL should use Tables.enemy_team_of 
 	local _bb_game_loss_by_team = Tables.enemy_team_of[_bb_game_won_by_team]
-	_gui=_gui.."  WINNER=".._bb_game_won_by_team.." | LOOSER=".._bb_game_loss_by_team.."\n"
-	_gui=_gui.."  TEAM_ATHOME=".."tbd".."\n"
-	_gui=_gui.."  REROLL="..(global.reroll_max-global.reroll_left).."\n"
+	_gui=_gui.."     WINNER=".._bb_game_won_by_team.." | LOOSER=".._bb_game_loss_by_team.."\n"
+	_gui=_gui.."     TEAM_ATHOME=".."tbd".."\n"
+	_gui=_gui.."     REROLL="..(global.reroll_max-global.reroll_left).."\n"
 	_gui=_gui.."\n"
 	--NORTH SIDE
 	_gui=_gui.."[font=default-bold][color=#FF9740]>>NORTH STATS>>[/color][/font]\n"
@@ -273,10 +273,11 @@ local tick_minute_functions = {
 	[300 * 3 + 60 * 2] = Ai.perform_main_attack,	-- some of these might do nothing (if there are no wave left)
 	[300 * 3 + 60 * 3] = Ai.perform_main_attack,
 	[300 * 3 + 60 * 4] = Ai.perform_main_attack,
-	[300 * 3 + 60 * 5] = Ai.perform_main_attack,
+	--[300 * 3 + 60 * 5] = Ai.perform_main_attack, --EVL %tick=1200 we save it for --EVL monitoring (below)
 	[300 * 3 + 60 * 6] = Ai.perform_main_attack,
 	[300 * 3 + 60 * 7] = Ai.perform_main_attack,
-	[300 * 3 + 60 * 8] = Ai.post_main_attack,
+	[300 * 3 + 60 * 8] = Ai.perform_main_attack, -- SO we add this one
+	[300 * 3 + 60 * 9] = Ai.post_main_attack,
 	[300 * 8] = Ai.send_near_biters_to_silo,
 	[300 * 9] = Ai.wake_up_sleepy_groups,
 }
@@ -308,6 +309,7 @@ local function on_tick()
 			diff_vote.difficulty_gui()	
 		else
 			if tick % 18000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 5 minutes
+			--Still players should be able to use /clear-corpses <radius> from their position
 		end
 		
 		
@@ -580,7 +582,6 @@ Event.add(defines.events.on_robot_built_tile, on_robot_built_tile)
 Event.add(defines.events.on_tick, on_tick)
 Event.on_init(on_init)
 
-commands.add_command('clear-corpses', 'Clears all the biter corpses..',
-		     clear_corpses)
+commands.add_command('clear-corpses', 'Clears all the corpses, remnants and ghosts (not sure about ghosts)...',clear_corpses)
 
 require "maps.biter_battles_v2.spec_spy"
