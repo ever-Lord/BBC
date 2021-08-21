@@ -243,6 +243,8 @@ function Public.tables()
 	--EVL well, not even working since waves (with no group in them) are built during lobby time 
 	--We need to set global.next_attack when match starts
 	
+	global.game_id=nil --EVL Game Identificator from website (via lobby?)
+	
 	global.reroll_max=3 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
 	--global.reroll_max=20 --EVL TO be removed  --CODING--
 	global.reroll_left=global.reroll_max --EVL = global.reroll_max as we init (will be set to real value after a reroll has been asked)

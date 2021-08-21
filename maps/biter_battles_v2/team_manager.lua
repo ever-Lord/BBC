@@ -182,7 +182,12 @@ local function draw_manager_gui(player)
 	local i2 = 1
 	for i = 1, #forces * 2 - 1, 1 do
 		if i % 2 == 1 then
-			local l = t.add({type = "sprite-button", caption = string.upper(forces[i2].name).." (".. #game.forces[forces[i2].name].connected_players ..")", name = forces[i2].name})
+			_maxim="Click to customize team name\n".."<<Put the maxim here>>"
+			if forces[i2].name == "spectator" then _maxim="Whoever assists as a spectator sees clearly,\nwhoever takes sides is led astray." end
+			local l = t.add({type = "sprite-button", 
+				caption = string.upper(forces[i2].name).." (".. #game.forces[forces[i2].name].connected_players ..")",
+				name = forces[i2].name, 
+				tooltip = _maxim})
 			l.style.minimal_width = 160
 			l.style.maximal_width = 160
 			l.style.font_color = forces[i2].color
@@ -225,32 +230,36 @@ local function draw_manager_gui(player)
 	frame.add({type = "label", caption = ""})
 	
 	--EVL Button for Reroll
-		local t = frame.add({type = "table", name = "team_manager_reroll_buttons", column_count = 3})
+		local t = frame.add({type = "table", name = "team_manager_reroll_buttons", column_count = 4})
 		
 		if global.match_running or global.reroll_left < 1 then 
-			local tt = t.add({type = "label", caption = "NO MORE REROLL AVAILABLE, MATCH HAS TO BE PLAYED ON THIS MAP !"})
+			local tt = t.add({type = "label", caption = "NO MORE REROLL AVAILABLE, MATCH HAS TO BE PLAYED ON THIS MAP !               "})
 			tt.style.font = "heading-2"
 			tt.style.font_color = {r = 250, g = 250, b = 250}
 			
 		else
-			local tt = t.add({type = "label", caption = "CLICK TO REROLL THE MAP ("..global.reroll_left.." left) :"})
+			local tt = t.add({type = "label", caption = "CLICK TO REROLL ("..global.reroll_left.." left) :"})
 			tt.style.font = "heading-2"
 			tt.style.font_color = {r = 200, g = 200, b = 200}
-			local button = t.add({
-				type = "button",
-				name = "team_manager_reroll",
-				caption = "REROLL MAP",
-				tooltip = "No roll back !"
-			})
-			button.style.font = "heading-1"
-			button.style.font_color = {r = 10, g = 10, b = 10}
-			local tt = t.add({type = "label", caption = "  (team ~AtHome~ choice)"})
+			local buttonrr = t.add({type = "button",	name = "team_manager_reroll", caption = "REROLL MAP", tooltip = "No roll back !"})
+			buttonrr.style.font = "heading-1"
+			buttonrr.style.font_color = {r = 10, g = 10, b = 10}
+			local tt = t.add({type = "label", caption = " (team ~AtHome~ choice)               "})
 			tt.style.font = "heading-3"
 			tt.style.font_color = {r = 180, g = 180, b = 180}
 
 		end
-
-		
+		--EVL BUTTON FOR GAME ID
+		local _game_id = "GAME_ID"
+		if 	global.game_id then _game_id =	global.game_id end
+		local buttonid = t.add({type = "button",	name = "team_manager_gameid", caption = _game_id, tooltip = "Please fill up the game ID before match can start"})
+		buttonid.style.font = "heading-2"
+		if 	global.game_id then 
+			buttonid.style.font_color = {r = 22, g = 111, b = 22}
+		else
+			buttonid.style.font_color = {r = 222, g = 22, b = 22}
+		end
+			
 	frame.add({type = "label", caption = ""})
 	--EVL Buttons for packs 	--game.print("###:"..Tables.packs_total_nb)
 	local t = frame.add({type = "table", name = "team_manager_pack_buttons", column_count = Tables.packs_total_nb+1})
@@ -279,12 +288,7 @@ local function draw_manager_gui(player)
 	frame.add({type = "label", caption = ""})	
 	-- END EVL Buttons for packs
 	local t = frame.add({type = "table", name = "team_manager_bottom_buttons", column_count = 4})	
-	local button = t.add({
-			type = "button",
-			name = "team_manager_close",
-			caption = "Close",
-			tooltip = "Close this window."
-		})
+	local button = t.add({type = "button", name = "team_manager_close", caption = "Close", tooltip = "Close this window."})
 	button.style.font = "heading-2"
 	
 	if global.tournament_mode then
@@ -382,16 +386,71 @@ local function custom_team_name_gui(player, force_name)
 	button.style.font = "heading-2"
 end
 
+-- EVL SET GAME ID
+local function set_custom_game_id(player,game_id)
+	if not game_id then 
+		global.game_id=nil
+		return 
+	end
+	local _game_id=tonumber(game_id)
+	if _game_id == 0 then 
+		global.game_id=nil
+		player.print("ID:"..game_id.." is not a number, pleasy retry.",{r = 222, g = 22, b = 22})
+		return 
+	end
+	if (_game_id<10000) or math.floor(_game_id%123) ~= 0 then 
+		global.game_id=nil
+		player.print("ID:"..game_id.." is not valid, pleasy retry.",{r = 222, g = 22, b = 22})
+		return
+	end
+	global.game_id=_game_id
+	game.print(">>>>> Game_ID has been registered by "..player.name,{r = 22, g = 222, b = 22})
+end
+-- EVL SET GAME ID
+local function custom_game_id_gui(player)
+	if player.gui.center["custom_game_id_gui"] then player.gui.center["custom_game_id_gui"].destroy() return end	
+	local frame = player.gui.center.add({type = "frame", name = "custom_game_id_gui", caption = "Set the game IDentificator :", tooltip = "If not auto, go to website to get GameId", direction = "vertical"})
+	local _text = ""
+	if global.game_id then _text = global.game_id end
+	
+	local textfield = frame.add({ type = "textfield", name = "game_id_text_field", text = _text })	
+	local t = frame.add({type = "table", column_count = 2})	
+	local button = t.add({
+			type = "button",
+			name = "custom_game_id_gui_set",
+			caption = "Set",
+			tooltip = "If not auto, go to website to get GameId."
+		})
+	button.style.font = "heading-2"
+	
+	local button = t.add({
+			type = "button",
+			name = "custom_game_id_gui_close",
+			caption = "Close",
+			tooltip = "Close this window."
+		})
+	button.style.font = "heading-2"
+end
+
+
 local function team_manager_gui_click(event)
 	local player = game.players[event.player_index]
 	local name = event.element.name
 	
 	if game.forces[name] then
-		if not player.admin then player.print("Only admins can change team names.", {r = 175, g = 0, b = 0}) return end
+		if not player.admin then player.print(">>>>> Only admins can change team names.", {r = 175, g = 0, b = 0}) return end
 		custom_team_name_gui(player, name)
 		player.gui.center["team_manager_gui"].destroy()
 		return
 	end
+
+	if name == "team_manager_gameid" then
+		if not player.admin then player.print(">>>>> Only admins can set the Game Identificator.", {r = 175, g = 0, b = 0}) return end
+		if global.match_running then player.print(">>>>> Cannot modify GameId after match has started (contact website admin).", {r = 175, g = 0, b = 0}) return end
+		custom_game_id_gui(player)
+		player.gui.center["team_manager_gui"].destroy()
+		return
+	end	
 	
 	if name == "team_manager_close" then
 		player.gui.center["team_manager_gui"].destroy()	
@@ -471,6 +530,10 @@ local function team_manager_gui_click(event)
 				game.print(">>>>> Starter Packs are not filled yet, retry in a second...", {r = 225, g = 11, b = 11})
 				return
 			end
+			if not global.game_id then -- EVL dont start before game_id is registered
+				game.print(">>>>> Game Id has not been set, DO IT REFEREE (please) !", {r = 225, g = 11, b = 11})
+				return
+			end
 			
 			if not global.match_running then --First unfreeze meaning match is starting
 				global.match_running=true 
@@ -544,7 +607,7 @@ function Public.gui_click(event)
 	end
 	
 	if player.gui.center["team_manager_gui"] then team_manager_gui_click(event) end
-	
+	--EVL SET THE TEAM NAMES
 	if player.gui.center["custom_team_name_gui"] then
 		if name == "custom_team_name_gui_set" then
 			local custom_name = player.gui.center["custom_team_name_gui"].children[1].text
@@ -560,6 +623,23 @@ function Public.gui_click(event)
 			return
 		end
 	end	
+	--EVL SET THE GAME ID CLICK
+	if player.gui.center["custom_game_id_gui"] then
+		if name == "custom_game_id_gui_set" then
+			local game_id = player.gui.center["custom_game_id_gui"].children[1].text
+			--local force_name = player.gui.center["custom_game_id_gui"].children[1].name
+			set_custom_game_id(player,game_id)
+			player.gui.center["custom_game_id_gui"].destroy()
+			draw_manager_gui(player)
+			return
+		end
+		if name == "custom_game_id_gui_close" then
+			player.gui.center["custom_game_id_gui"].destroy()
+			draw_manager_gui(player)
+			return
+		end
+	end	
+
 end
 
 return Public

@@ -423,7 +423,7 @@ local function create_attack_group(surface, force_name, biter_force_name, group_
 		return
 	end
 	if threat <= 0 then 
-		if global.bb_biters_debug then game.print("  DEBUGS: Threat is negative > Skipping group #"..group_numero.."["..force_name.."]", {r = 77, g = 77, b = 77}) end
+		if global.bb_biters_debug then game.print("  DEBUGS: Threat is negative > Skipping ..["..force_name.."]group #"..group_numero, {r = 77, g = 77, b = 77}) end
 		return false 
 	end
 	if bb_config.max_active_biters - get_active_biter_count(biter_force_name) < bb_config.max_group_size then
@@ -480,12 +480,11 @@ end
 Public.perform_main_attack = function()
 	if global.freeze_players then return end -- EVL we dont send groups while freezed
 	local number = (game.tick % 900)/60
-	--if global.bb_biters_debug then game.print("DEBUGS: "..number.." group#"..global.main_attack_wave_amount.." nextatt="..global.next_attack, {r = 127, g = 127, b = 127}) end --CODING--
+	--if global.bb_biters_debug then game.print("DEBUGS: "..number.." group#"..global.main_attack_wave_amount, {r = 127, g = 127, b = 127}) end --CODING--
 	if global.main_attack_wave_amount > 0 then
 		local surface = game.surfaces[global.bb_surface_name]
 		local force_name = global.next_attack
 		local biter_force_name = force_name .. "_biters"
-		--if global.bb_biters_debug then game.print("DEBUGS: group#"..global.main_attack_wave_amount.." sent to create_attack_group ["..force_name.."]", {r = 77, g = 77, b = 77}) end --CODING--
 		create_attack_group(surface, force_name, biter_force_name, global.main_attack_wave_amount) --EVL DOES THIS FUNCTION BUG ? -> called but does whatever and skip next line (amount=amount-1)
 		global.main_attack_wave_amount = global.main_attack_wave_amount - 1 -- EVL tried to switch 2 lines above (even worse)
 		
