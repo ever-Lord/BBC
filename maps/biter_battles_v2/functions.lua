@@ -420,20 +420,20 @@ function Public.show_intro(player)
 	Minfo=Minfo.."Feed your opponent's biters with [item=logistic-science-pack]science to increase their strength, high tier [item=utility-science-pack]science juice will yield stronger mutagenic results.\n"
 	Minfo=Minfo.."Only feeding and [img=quantity-time]time increases the power of the biters and will lead to your team's victory. There is no direct pvp combat.\n"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default-bold][color=#ff9740]Biter Battles Championships (BBC)[/color][/font] consist on 2 leagues where teams fight for their global ranking and the final trophy !\n"
+	Minfo=Minfo.."[font=default-bold][color=#FF9740]Biter Battles Championships (BBC)[/color][/font] consist on 2 leagues where teams fight for their global ranking and the final trophy !\n"
 	Minfo=Minfo.."[font=default-bold][color=#5555FF]    [entity=big-biter] BITER[/color][/font] league is meant for ~casual~ players, with normal difficulty and where blueprints are allowed.\n"
 	Minfo=Minfo.."[font=default-bold][color=#55FF55]    [entity=behemoth-biter] BEHEMOTH[/color][/font] league is meant for ~pro~ players, with hard difficulty and where blueprints are disabled.\n"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default-bold][color=#ff9740]Matches[/color][/font] are 3[font=default-small](+1)[/font] vs 3[font=default-small](+1)[/font], the [font=default-small-bold][color=#CCBBFF](+1)[/color][/font] "
+	Minfo=Minfo.."[font=default-bold][color=#FF9740]Matches[/color][/font] are 3[font=default-small](+1)[/font] vs 3[font=default-small](+1)[/font], the [font=default-small-bold][color=#CCBBFF](+1)[/color][/font] "
 	Minfo=Minfo.."meaning the coach/spy/substitute. One team is said [font=default-bold][color=#CCBBFF]ATHOME[/color][/font]\n"
 	Minfo=Minfo.."                and has advantages against other team said [font=default-bold][color=#BBAAFF]OUTSIDE[/color][/font] (visitors).\n"
 	Minfo=Minfo.."     At the beginning, each team gets a [item=repair-pack][font=default-bold][color=#CCBBFF]STARTER PACK[/color][/font][item=repair-pack] choosed among four, leading to a fast early game.\n"
 	Minfo=Minfo.."     Team [font=default-bold][color=#CCBBFF]ATHOME[/color][/font] chooses : 1/ Their side 2/ To reroll map (up to twice, no rollback) 3/ The starter pack 4/ Is not attacked first.\n"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default-bold][color=#ff9740]Be Careful : [/color][/font]Groups of biters will come from every side, there is no safe place !\n"
+	Minfo=Minfo.."[font=default-bold][color=#FF9740]Be Careful : [/color][/font]Groups of biters will come from every side, there is no safe place !\n"
 	Minfo=Minfo.."          And time is running... Once reached 2h of playtime, [img=quantity-time][font=default-bold][color=#CCBBFF]ARMAGEDDON[/color][/font][img=quantity-time] mode will be activated, expect Behemoths sooner than later !\n"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default-bold][color=#ff9740]Streamers : [/color][/font]You can use ~Spec~ mode to have a larger view of the field.\n"
+	Minfo=Minfo.."[font=default-bold][color=#FF9740]Streamers : [/color][/font]You can use ~Spec~ mode to have a larger view of the field.\n"
 	Minfo=Minfo.."                      Clicking on the name of a player will show his crafting list and his inventory.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."Thanks for reading - Have fun with the game !"
@@ -467,28 +467,28 @@ function Public.show_intro_next(player)
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Some more details about Biter Battles and BBC : [/color][/font]"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]Limitations : [/color][/font] Mines, Artillery, Atomic bomb are disabled. Robots can't build across the river that also can't be landfilled.\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]Limitations : [/color][/font] Mines, Artillery, Atomic bomb are disabled. Robots can't build across the river that also can't be landfilled.\n"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]EVO-lution[/color][/font] of the biters increases when they get fed, and can rise above 100% which unlocks endgame modifiers,\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]EVO-lution[/color][/font] of the biters increases when they get fed, and can rise above 100% which unlocks endgame modifiers,\n"
 	Minfo=Minfo.."                     granting biters increased damage and health. Tier of biters grows with evolution.\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]THREAT[/color][/font] causes biters to attack and reduces when biters are slain. Feeding gives permanent ~threat-income~, as well as\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]THREAT[/color][/font] causes biters to attack and reduces when biters are slain. Feeding gives permanent ~threat-income~, as well as\n"
 	Minfo=Minfo.."                creating instant threat. A high threat value causes big attacks. Values of zero or below will cause no attacks.\n"
 	Minfo=Minfo.."                [font=default-small][color=#999999]Note: if you have less threat than opponents, you'll get fewer groups of biters attacking your structures.[/color][/font]\n"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]PAUSE : [/color][/font] teams can ask for a short pause once per hour, referee will freeze players and biters,\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]PAUSE : [/color][/font] teams can ask for a short pause once per hour, referee will freeze players and biters,\n"
 	Minfo=Minfo.."                 then when players are ready, referee will unfreeze and trigger a short countdown.\n"
 	Minfo=Minfo.."                [font=default-small][color=#999999]Note: referee can force unfreezing players after 180s (if players are not responding).[/color][/font]\n"	
-	Minfo=Minfo.."[font=default][color=#ff9740]SPEED : [/color][/font] if both teams agree, referee can reduce of speed of the game with this chat command [color=#DDDDDD]/c game.speed=0.8[/color]\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]SPEED : [/color][/font] if both teams agree, referee can reduce of speed of the game with this chat command [color=#DDDDDD]/c game.speed=0.8[/color]\n"
 	Minfo=Minfo.."                  [font=default-small][color=#999999](only in case some players can't keep up with the game and have jumps).[/color][/font]\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]CLEAR-CORPSES [/color][/font] is called every 5 min, clearing biter corpses and ghosts of killed entities.\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]CLEAR-CORPSES [/color][/font] is called every 5 min, clearing biter corpses and ghosts of killed entities.\n"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]TIPS : [/color][/font] you need to be fast ! Biters are very aggressive, you need to find a good balance between 3 things :\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]TIPS : [/color][/font] you need to be fast ! Biters are very aggressive, you need to find a good balance between 3 things :\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Defense[/color][/font]    so you don't get overwhelmed,\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Building[/color][/font]    so you can keep up with biter evolution,\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Offensive[/color][/font]  so you boost opponent's biter evolution.\n"
 	--Game is intense, dynamic
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default][color=#ff9740]CONTACT : [/color][/font][color=#DDDDDD]bbc.factorio@gmail.com     Twitter: @BiterBattles[/color]\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]CONTACT : [/color][/font][color=#DDDDDD]bbc.factorio@gmail.com     Twitter: @BiterBattles[/color]\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."Thanks for reading - Have fun with the game !"
 	Minfo=Minfo.."                                                                                    [font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"
@@ -504,7 +504,7 @@ function Public.show_bbc_packs(player)
 	local frame = player.gui.center.add {type = "frame", name = "bbc_packs_frame", caption = "STARTER PACKS   (clic to expand)", direction = "vertical"}
 	local t = frame.add({type = "table", name = "bbc_packs_root_table", column_count = Tables.packs_total_nb})
 	local _pack_score={} -- EVL the score of total items (sum of qtity * item_value)
-	
+		
 	for _, pack_elem in pairs(Tables.packs_list) do
 		local pack_name=pack_elem.name
 
@@ -516,10 +516,15 @@ function Public.show_bbc_packs(player)
 			caption = pack_elem.caption,
 			tooltip = pack_elem.tooltip
 		})
-		button.style.font = "heading-1" --or "heading-3"
+		button.style.font = "heading-1" 
 		if pack_name==global.bbc_pack_details then
-			button.style.font_color = {r = 0, g = 125, b = 0}
+			button.style.font_color = {r = 0, g = 0, b = 125}
 		end
+		if pack_name==global.pack_choosen then
+			button.style.font_color = {r = 0, g = 125, b = 0}
+			
+		end
+
 		tt.add({type = "label", caption = "       "}) 
 		
 		--EVL CONCAT THE CHESTS and get the score/value of the pack		
@@ -608,7 +613,6 @@ function Public.show_bbc_packs(player)
 	})
 	button.style.font = "heading-1"
 	button.style.font_color = {r = 172, g = 32, b = 32}
-	--game.print("gui choosen:".. global.bbc_pack_choosen)
 end
 
 function Public.map_intro_click(player, element)

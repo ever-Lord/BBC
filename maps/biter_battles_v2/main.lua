@@ -41,10 +41,10 @@ local function export_results()
 	_gui=_gui.."  see all results at [color=#DDDDDD]https://www.bbchamps.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
 	_gui=_gui.."[font=default-small][color=#999999]Note: Referee/Admins need to re-allocate permissions as they were before this game.[/color][/font]\n"
 	_gui=_gui.."\n"
-	_gui=_gui.."[font=default-large-bold][color=#FF5555]                                    --- [color=#5555FF]RESULTS[/color] and [color=#55FF55]STATISTICS[/color]  ---[/color][/font]\n"
+	_gui=_gui.."[font=default-large-bold][color=#FF5555]                              --- [color=#55FF55]RESULTS[/color] and [color=#5555FF]STATISTICS[/color]  ---[/color][/font]\n"
 	_gui=_gui.."\n"
 	_gui=_gui.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
-	_gui=_gui.."     GAME_ID=".."tbd".."\n"
+	_gui=_gui.."     GAME_ID="..global.game_id.."\n"
 	_gui=_gui.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
 	_gui=_gui.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
 	local _bb_game_won_by_team=global.bb_game_won_by_team
@@ -358,6 +358,7 @@ local function on_tick()
 			--EVL EXPORTING RESULTS AND STATS
 			if not global.export_stats_done then
 				game.print(">>>>> MATCH IS OVER ! Exporting results and statistics ...", {r = 77, g = 192, b = 77})
+				global.way_points_table = {["north"]={},["south"]={}} --EVL Reinit
 				export_results()
 				global.export_stats_done=true
 			end

@@ -218,7 +218,7 @@ local function draw_manager_gui(player)
 			b.style.maximal_width = 38
 		end		
 	end
-	local tnote=frame.add({type = "label", caption = "Note : [color="..colorAdmin.."]Only[/color] Referee and Streamers should be admins,               >>>>> use [color=#EEEEEE]/promote and.or /demote[/color]\n"
+	local tnote=frame.add({type = "label", caption = "Note : [color="..colorAdmin.."]Only[/color] Referee and Streamers should be admins,               >>>>> use [color=#EEEEEE]/promote[/color] and.or [color=#EEEEEE]/demote[/color]\n"
 														.."Players, Coach/Substitute and Spectators should [color="..colorAdmin.."]NOT[/color] be admins"})
 	tnote.style.single_line = false
 	tnote.style.font = "default-small"
@@ -252,7 +252,7 @@ local function draw_manager_gui(player)
 		--EVL BUTTON FOR GAME ID
 		local _game_id = "GAME_ID"
 		if 	global.game_id then _game_id =	global.game_id end
-		local buttonid = t.add({type = "button",	name = "team_manager_gameid", caption = _game_id, tooltip = "Please fill up the game ID before match can start"})
+		local buttonid = t.add({type = "button",	name = "team_manager_gameid", caption = _game_id, tooltip = "Please fill up the Game ID before match can start\n>type 'scrim' for scrim or show match\n>type 'training' for training mode"})
 		buttonid.style.font = "heading-2"
 		if 	global.game_id then 
 			buttonid.style.font_color = {r = 22, g = 111, b = 22}
@@ -304,7 +304,7 @@ local function draw_manager_gui(player)
 			type = "button",
 			name = "team_manager_activate_tournament",
 			caption = "Tournament Mode Disabled",
-			tooltip = "Only admins can move players. Active players can no longer go spectate. New joining players are spectators."
+			tooltip = "Only admins can move players.\nActive players can no longer go spectate.\nNew joining players are spectators."
 		})
 		button.style.font_color = {r = 55, g = 55, b = 55}
 	end
@@ -312,16 +312,18 @@ local function draw_manager_gui(player)
 	
 	if global.freeze_players then
 		local caption_tmp="Unfreeze (Unpause)" --EVL
+		local tooltip_tmp="[color=#55FF55]Release all players and biters,[/color]"
 		local color_tmp = {r = 0, g = 127, b = 0}
 		if not global.match_running then --EVL first UNFREEZE = Starting match
 			caption_tmp="START & UNFREEZE"
+			tooltip_tmp=tooltip_tmp.."\n [color=#FF5555]Once started, settings will be locked,[/color]\n[font=default-small][color=#999999](players can still be switched)[/color][/font]."
 			if global.pack_choosen == "" then color_tmp = {r = 222, g = 22, b = 22} end
 		end
 		button = t.add({
 			type = "button",
 			name = "team_manager_freeze_players",
 			caption = caption_tmp,
-			tooltip = "Release all players and biters."
+			tooltip = tooltip_tmp
 		})
 		button.style.font_color = color_tmp
 	else
@@ -329,7 +331,7 @@ local function draw_manager_gui(player)
 			type = "button",
 			name = "team_manager_freeze_players",
 			caption = "Freeze (Pause)",
-			tooltip = "Freeze players and biters,\navoid using it when attack is happening\n(turrets will keep shooting)."
+			tooltip = "[color=#5555FF]Freeze players and biters,[/color]\n[color=#FF5555]avoid using[/color] [color=#5555FF]FREEZE[/color] [color=#FF5555]when attacks are in progress,[/color]\n[font=default-small][color=#999999](cause turrets will keep shooting)[/color][/font]."
 		})
 		button.style.font_color = {r = 55, g = 55, b = 222}
 	end
@@ -340,7 +342,7 @@ local function draw_manager_gui(player)
 			type = "button",
 			name = "team_manager_activate_training",
 			caption = "Training Mode Activated",
-			tooltip = "Feed your own team's biters and only teams with players gain threat & evo."
+			tooltip = "Feed your own team's biters and\nonly teams with players gain threat & evo."
 		})
 		button.style.font_color = {r = 222, g = 22, b = 22}
 	else
@@ -348,7 +350,7 @@ local function draw_manager_gui(player)
 			type = "button",
 			name = "team_manager_activate_training",
 			caption = "Training Mode Disabled",
-			tooltip = "Feed your own team's biters and only teams with players gain threat & evo."
+			tooltip = "Feed your own team's biters and\nonly teams with players gain threat & evo."
 		})
 		button.style.font_color = {r = 55, g = 55, b = 55}
 	end
@@ -387,20 +389,41 @@ local function custom_team_name_gui(player, force_name)
 end
 
 -- EVL SET GAME ID
-local function set_custom_game_id(player,game_id)
-	if not game_id then 
+local function set_custom_game_id(player,gameid)
+	
+	if not gameid then 
 		global.game_id=nil
 		return 
 	end
-	local _game_id=tonumber(game_id)
-	if _game_id == 0 then 
+	--Set global.game_id to train if needed
+	if gameid=="training" then 
+		if not global.training_mode then game.print(">>>>> Training Mode has been enabled.", {r = 11, g = 192, b = 11}) end
+		global.game_id="training" --EVL Add special GAME_ID if training mode
+		global.training_mode = true
+		global.game_lobby_active = false
+		return
+	end
+	--Set global.game_id to scrim for 3v3 training, show match etc...
+	if gameid=="scrim" then 
+		if global.training_mode then game.print(">>>>> Training Mode has been disabled.", {r = 192, g = 11, b = 11}) end
+		global.game_id="scrim" --EVL Add special GAME_ID if scrim/showmatch
+		global.training_mode = false
+		global.game_lobby_active = true
+		return
+	end	
+	--We are not in training or scrim mode, check validity of game_id
+	if global.training_mode then game.print(">>>>> Training Mode has been disabled.", {r = 192, g = 11, b = 11}) end
+	global.training_mode = false
+	global.game_lobby_active = true
+	local _game_id=tonumber(gameid)
+	if not _game_id then 
 		global.game_id=nil
-		player.print("ID:"..game_id.." is not a number, pleasy retry.",{r = 222, g = 22, b = 22})
+		player.print("ID:"..gameid.." is not a number, pleasy retry.",{r = 222, g = 22, b = 22})
 		return 
 	end
 	if (_game_id<10000) or math.floor(_game_id%123) ~= 0 then 
 		global.game_id=nil
-		player.print("ID:"..game_id.." is not valid, pleasy retry.",{r = 222, g = 22, b = 22})
+		player.print("ID:".._game_id.." is not valid, pleasy retry.",{r = 222, g = 22, b = 22})
 		return
 	end
 	global.game_id=_game_id
@@ -530,14 +553,16 @@ local function team_manager_gui_click(event)
 				game.print(">>>>> Starter Packs are not filled yet, retry in a second...", {r = 225, g = 11, b = 11})
 				return
 			end
-			if not global.game_id then -- EVL dont start before game_id is registered
+			if not global.game_id then -- EVL dont start before game_id is registered (or ='training')
 				game.print(">>>>> Game Id has not been set, DO IT REFEREE (please) !", {r = 225, g = 11, b = 11})
 				return
 			end
 			
 			if not global.match_running then --First unfreeze meaning match is starting
 				global.match_running=true 
-				game.print(">>>>> Match is starting shortly. Good luck !", {r = 11, g = 255, b = 11})
+				global.bb_threat["north_biters"]=50 --CODING--
+				global.bb_threat["south_biters"]=50
+				game.print(">>>>> Match is starting shortly. Good luck ! Have Fun !", {r = 11, g = 255, b = 11})
 			end  	
 			--global.reroll_left=0		-- Match has started, no more reroll -> changed via match_running (so wee save #rerolls for export stats)
 			global.freeze_players = false
@@ -559,17 +584,20 @@ local function team_manager_gui_click(event)
 	
 	if name == "team_manager_activate_training" then 
 		if not player.admin then player.print(">>>>> Only admins can switch training mode.", {r = 175, g = 0, b = 0}) return end
+		if global.match_running then player.print(">>>>> Cannot modify Game Mode [training] after match has started.", {r = 175, g = 0, b = 0}) return end
 		if global.training_mode then
 			global.training_mode = false
 			global.game_lobby_active = true
+			global.game_id=nil --EVL Remove GAME_ID if not training mode
 			draw_manager_gui(player)
-			game.print(">>>>> Training Mode has been disabled.", {r = 111, g = 111, b = 111})
+			game.print(">>>>> Training Mode has been disabled.", {r = 225, g = 22, b = 22})
 			return
 		end
 		global.training_mode = true
 		global.game_lobby_active = false
+		global.game_id="training" --EVL Add special GAME_ID if training mode
 		draw_manager_gui(player)
-		game.print(">>>>> Training Mode has been enabled!", {r = 225, g = 0, b = 0})
+		game.print(">>>>> Training Mode has been enabled!", {r = 22 , g = 225, b = 22})
 		return
 	end
 	
@@ -626,9 +654,9 @@ function Public.gui_click(event)
 	--EVL SET THE GAME ID CLICK
 	if player.gui.center["custom_game_id_gui"] then
 		if name == "custom_game_id_gui_set" then
-			local game_id = player.gui.center["custom_game_id_gui"].children[1].text
+			local gameid = player.gui.center["custom_game_id_gui"].children[1].text
 			--local force_name = player.gui.center["custom_game_id_gui"].children[1].name
-			set_custom_game_id(player,game_id)
+			set_custom_game_id(player,gameid)
 			player.gui.center["custom_game_id_gui"].destroy()
 			draw_manager_gui(player)
 			return
