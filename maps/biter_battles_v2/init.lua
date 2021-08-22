@@ -242,8 +242,18 @@ function Public.tables()
 	--EVL Need a patch so first attack goes to team OUTSIDE (give an advantage top team ATHOME) not sure its an advantage though
 	--EVL well, not even working since waves (with no group in them) are built during lobby time 
 	--We need to set global.next_attack when match starts
+	global.way_points_table = {  --We save way_points to use them on the other side (equity/balance)
+		["north"]={},
+		["south"]={}
+	}
+	global.way_points_max=12 -- We limit number of way_points to be remembered
+	--global.way_points_max=5 --CODING--
+	
+	
+	
 	
 	global.game_id=nil --EVL Game Identificator from website (via lobby?)
+	global.game_id=12423 --CODING--
 	
 	global.reroll_max=3 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
 	--global.reroll_max=20 --EVL TO be removed  --CODING--

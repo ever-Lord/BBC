@@ -68,7 +68,7 @@ local function on_gui_click(event)
 				player.force = game.forces["spectator"]
 				game.players[event.player_index].zoom=0.30
 				global.god_players[player.name] = false
-				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches back to real mode") end
+				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches back to Real mode") end
 			
 			else
 				game.print(">>>>> Only spectators are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
@@ -100,7 +100,7 @@ local function on_gui_click(event)
 	end
 	
 	if name == "spec_zoom_1" then --EVL Asking for large view
-		if global.bb_debug then game.print("Debug: player:" ..  game.players[event.player_index].name .." ("..game.players[event.player_index].force.name..") asks for Zoom +") end
+		if global.bb_debug then game.print("Debug: player:" ..  game.players[event.player_index].name .." ("..game.players[event.player_index].force.name..") asks for Large view") end
 		if game.players[event.player_index].admin then
 		
 			if game.players[event.player_index].force.name == "spec_god" then --EVL must in in spec_god mode first
@@ -114,7 +114,7 @@ local function on_gui_click(event)
 		return
 	end
 	if name == "spec_zoom_2" then --EVL Asking for larger view
-		if global.bb_debug then game.print("Debug: player :" ..  game.players[event.player_index].name .." ("..game.players[event.player_index].force.name.. ") asks for Zoom ++") end
+		if global.bb_debug then game.print("Debug: player :" ..  game.players[event.player_index].name .." ("..game.players[event.player_index].force.name.. ") asks for LargeR view") end
 		if game.players[event.player_index].admin then
 			if game.players[event.player_index].force.name == "spec_god" then --EVL must in in spec_god mode first
 				game.players[event.player_index].zoom=0.06 -- EVL WRITE ONLY :-(
