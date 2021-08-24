@@ -346,7 +346,11 @@ function Public.server_restart()
 		game.print(">>>>> Map is restarting !  (10s before reveal)", {r = 0.22, g = 0.88, b = 0.22}) --EVL BBC has a reveal of 100x100 for reroll purpose
         local message = 'Map is restarting! '
         Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
-
+		-- REMOVE STATS BUTTON BEFORE RESTART (see main.lua)
+		for _, player in pairs(game.players) do
+			if player.gui.top["bb_export_button"] then player.gui.top["bb_export_button"].destroy() end
+		end
+		
 		local prev_surface = global.bb_surface_name
 
        --EVL SAVE DATAS BEFORE REROLL (global.freeze_players, global.reroll_left)
@@ -469,7 +473,7 @@ local function respawn_silo(event)
 		create_build_effect_smoke = false,
 	}
 	entity.minable = false
-	entity.health = 5
+	entity.health = 9 --EVL was 5
 	global.rocket_silo[force_name] = entity
 end
 

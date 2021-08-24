@@ -19,10 +19,10 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	local _first_init=true --EVL for disabling nauvis (below)
 	if not game.forces["north"] then 
 		game.create_force("north")
-		game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open TEAM MANAGER <<<<<",{r = 00, g = 175, b = 00}) --EVL double message?
+		game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open [color=#FF9740]TEAM MANAGER[/color] <<<<<",{r = 00, g = 175, b = 00}) --EVL double message?
 	else
 		if global.bb_debug then game.print("Debug : Executing initial setup (again)",{r = 00, g = 175, b = 00}) end
-		game.print(">>>>> You may need to refresh TEAM MANAGER GUI manually",{r = 127, g = 127, b = 127})
+		game.print(">>>>> You may need to refresh [color=#FF9740]TEAM MANAGER[/color] GUI manually",{r = 127, g = 127, b = 127})
 		_first_init=false
 	end
 	if not game.forces["south"] then game.create_force("south") end
@@ -91,7 +91,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 			surface.delete_chunk({chunk.x, chunk.y})
 		end
 	end
-	--game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open TEAM MANAGER",{r = 00, g = 175, b = 00}) --EVL
+	--game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 175, b = 00}) --EVL
 	global.tournament_mode = true -- EVL (none)
 	
 	
@@ -246,17 +246,19 @@ function Public.tables()
 		["north"]={},
 		["south"]={}
 	}
-	global.way_points_max=12 -- We limit number of way_points to be remembered
-	--global.way_points_max=5 --CODING--
+	global.way_points_max=15 -- We limit number of way_points to be remembered
+	
+	global.scraps_mined = {  --We save #scraps that were mined by force
+		["north"]=0,
+		["south"]=0
+	}
 	
 	
-	
-	
-	global.game_id=nil --EVL Game Identificator from website (via lobby?)
+	--global.game_id=nil --EVL Game Identificator from website (via lobby?)
 	global.game_id=12423 --CODING--
 	
-	global.reroll_max=3 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
-	--global.reroll_max=20 --EVL TO be removed  --CODING--
+	--global.reroll_max=3 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
+	global.reroll_max=1 --EVL TO be removed  --CODING--
 	global.reroll_left=global.reroll_max --EVL = global.reroll_max as we init (will be set to real value after a reroll has been asked)
 	global.reroll_do_it=false --EVL (none)
 
@@ -271,11 +273,12 @@ function Public.tables()
 	global.freezed_time=0 --EVL (none)
 	global.freezed_start=game.ticks_played --EVL we save tick when players started to be frozen (none)
 	global.reveal_init_map=true --EVL (none)
-	--global.evo_boost_tick=2.5*60*60*60 --EVL We boost evo starting at 2h=120m 
-	global.evo_boost_tick=3*60*60 --EVL  --CODING--
+	--global.evo_boost_tick=1.5*60*60*60 --EVL We boost evo starting at 2h=120m 
+	global.evo_boost_tick=1*60*60 --EVL  --CODING--
 	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
 	global.evo_boost_values={ 	-- EVL set to boost values after global.evo_boost_tick (1%=0.01)
-		["north_biters"]=0.02, --CODING--
+		["north_biters"]=0.001, --CODING--
+		--["north_biters"]=0.00, --CODING--
 		["south_biters"]=0.00
 	}	
 	global.force_map_reset_exceptional=false -- set to true if a map reset is called via chat command

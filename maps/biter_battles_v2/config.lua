@@ -1,7 +1,7 @@
 --BITER BATTLES CONFIG--
 
 local bb_config = {
-	--Optional custom team names, can also be modified via "Team Manager"
+	--Optional custom team names, can also/should be modified via "Team Manager"
 	["north_side_team_name"] = "Team North",
 	["south_side_team_name"] = "Team South",
 

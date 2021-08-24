@@ -445,8 +445,7 @@ function Public.show_intro(player)
 	l.style.font_color = {r=0.7, g=0.6, b=0.99}
 	 --CODING--
 	local lb = frame.add ({type = "button",	name = "biter_battles_map_intro_next", caption = "►", tooltip = "Page 2 with more infos"})
-	lb.style.font_color = {r=0.1, g=0.6, b=0.1}
-	--lb.style.font_color = {r=0.00, g=0.99, b=0.00}
+	lb.style.font_color = {r=0.00, g=0.90, b=0.00}
 	lb.style.font = "default"
 	lb.style.padding = -1
 	lb.style.width = 20
@@ -467,8 +466,11 @@ function Public.show_intro_next(player)
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Some more details about Biter Battles and BBC : [/color][/font]"
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default][color=#FF9740]Limitations : [/color][/font] Mines, Artillery, Atomic bomb are disabled. Robots can't build across the river that also can't be landfilled.\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]Restrictions : [/color][/font] Mines, Artillery, Atomic bomb are disabled. Robots can't build across the river that also can't be landfilled. No Cliff.\n"
+	Minfo=Minfo.."                    [font=default-small][color=#999999]Note: Silo can't be destroyed by players, even with grenades, it will be left with 9 health.[/color][/font]\n"
 	Minfo=Minfo.."\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]BITERS[/color][/font] form groups. Each group first try to reach a ~waypoint~ then attack a random target then attack the silo.\n"
+	Minfo=Minfo.."                [font=default-small][color=#999999]Groups will attack from all angles, and will repeat those attacks to other side (slightly randomized).[/color][/font]\n"
 	Minfo=Minfo.."[font=default][color=#FF9740]EVO-lution[/color][/font] of the biters increases when they get fed, and can rise above 100% which unlocks endgame modifiers,\n"
 	Minfo=Minfo.."                     granting biters increased damage and health. Tier of biters grows with evolution.\n"
 	Minfo=Minfo.."[font=default][color=#FF9740]THREAT[/color][/font] causes biters to attack and reduces when biters are slain. Feeding gives permanent ~threat-income~, as well as\n"
@@ -480,7 +482,7 @@ function Public.show_intro_next(player)
 	Minfo=Minfo.."                [font=default-small][color=#999999]Note: referee can force unfreezing players after 180s (if players are not responding).[/color][/font]\n"	
 	Minfo=Minfo.."[font=default][color=#FF9740]SPEED : [/color][/font] if both teams agree, referee can reduce of speed of the game with this chat command [color=#DDDDDD]/c game.speed=0.8[/color]\n"
 	Minfo=Minfo.."                  [font=default-small][color=#999999](only in case some players can't keep up with the game and have jumps).[/color][/font]\n"
-	Minfo=Minfo.."[font=default][color=#FF9740]CLEAR-CORPSES [/color][/font] is called every 5 min, clearing biter corpses and ghosts of killed entities.\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]CLEAR-CORPSES [/color][/font] is called every 5 min, clearing biter corpses, remnants and ghosts of killed entities.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default][color=#FF9740]TIPS : [/color][/font] you need to be fast ! Biters are very aggressive, you need to find a good balance between 3 things :\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Defense[/color][/font]    so you don't get overwhelmed,\n"

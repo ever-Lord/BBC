@@ -230,10 +230,11 @@ local function draw_manager_gui(player)
 	frame.add({type = "label", caption = ""})
 	
 	--EVL Button for Reroll
-		local t = frame.add({type = "table", name = "team_manager_reroll_buttons", column_count = 4})
+		local t = frame.add({type = "table", name = "team_manager_reroll_buttons", column_count = 6})
 		
 		if global.match_running or global.reroll_left < 1 then 
-			local tt = t.add({type = "label", caption = "NO MORE REROLL AVAILABLE, MATCH HAS TO BE PLAYED ON THIS MAP !               "})
+			local tt = t.add({type = "label", caption = "NO MORE REROLL AVAILABLE,\nMATCH HAS TO BE PLAYED ON THIS MAP !                                       "})
+			tt.style.single_line = false
 			tt.style.font = "heading-2"
 			tt.style.font_color = {r = 250, g = 250, b = 250}
 			
@@ -244,11 +245,13 @@ local function draw_manager_gui(player)
 			local buttonrr = t.add({type = "button",	name = "team_manager_reroll", caption = "REROLL MAP", tooltip = "No roll back !"})
 			buttonrr.style.font = "heading-1"
 			buttonrr.style.font_color = {r = 10, g = 10, b = 10}
-			local tt = t.add({type = "label", caption = " (team ~AtHome~ choice)               "})
+			local tt = t.add({type = "label", caption = " <--- up to team\n~AtHome~ choice        "})
+			tt.style.single_line = false
 			tt.style.font = "heading-3"
 			tt.style.font_color = {r = 180, g = 180, b = 180}
 
 		end
+		
 		--EVL BUTTON FOR GAME ID
 		local _game_id = "GAME_ID"
 		if 	global.game_id then _game_id =	global.game_id end
@@ -259,12 +262,23 @@ local function draw_manager_gui(player)
 		else
 			buttonid.style.font_color = {r = 222, g = 22, b = 22}
 		end
+		buttonid.style.width = 100
+				
+		--EVL BUTTON PROCEDURE TO START A GAME
+		local _space_ = t.add({type = "label", caption = "               "})
+		local buttonproc = t.add({type = "button",	name = "team_manager_procedure", caption = "?", tooltip = "Read the procedure to start an official match,\n or a scrim/training game"})
+		buttonproc.style.font = "heading-1"
+		buttonproc.style.font_color = {r = 122, g = 22, b = 22}
+		buttonproc.style.padding = -1
+		buttonproc.style.width = 30
+
+
 			
 	frame.add({type = "label", caption = ""})
 	--EVL Buttons for packs 	--game.print("###:"..Tables.packs_total_nb)
 	local t = frame.add({type = "table", name = "team_manager_pack_buttons", column_count = Tables.packs_total_nb+1})
-	local tt = t.add({type = "label", caption = "PACKS:"})
-	
+	local tt = t.add({type = "label", caption = "STARTER: "})
+	tt.style.font = "heading-2"
 	for _, pack_elem in pairs(Tables.packs_list) do
 		local button = t.add({
 			type = "button",
@@ -429,7 +443,7 @@ local function set_custom_game_id(player,gameid)
 	global.game_id=_game_id
 	game.print(">>>>> Game_ID has been registered by "..player.name,{r = 22, g = 222, b = 22})
 end
--- EVL SET GAME ID
+-- EVL ADD A TEXTFIELD TO SET GAME ID
 local function custom_game_id_gui(player)
 	if player.gui.center["custom_game_id_gui"] then player.gui.center["custom_game_id_gui"].destroy() return end	
 	local frame = player.gui.center.add({type = "frame", name = "custom_game_id_gui", caption = "Set the game IDentificator :", tooltip = "If not auto, go to website to get GameId", direction = "vertical"})
@@ -455,6 +469,31 @@ local function custom_game_id_gui(player)
 	button.style.font = "heading-2"
 end
 
+--WE ADD A WINDOW TO HELP REFEREE WITH PROCEDURE
+local function procedure_game_gui(player)
+	
+	if player.gui.center["procedure_game"] then player.gui.center["procedure_game"].destroy() return end	
+	
+	local frame = player.gui.center.add({type = "frame", name = "procedure_game", caption = "How to use the team manager in BBC", direction = "vertical"})
+	--local frame = frame.add {type = "frame", direction = "vertical"}				
+	local _text = "If not auto, you need to fill up the settings\nand the switch the players manually,\n > go to website to get parameters."
+	local l = frame.add({ type = "label", caption = _text, name = "procedure_game_text" })	
+
+	l.style.single_line = false
+	l.style.font = "default"
+	l.style.font_color = {r=0.7, g=0.6, b=0.99}	
+		
+	frame.add { type = "line", caption = "this line", direction = "horizontal" }
+	local t = frame.add({type = "table", name = "procedure_game_table", column_count = 2})	
+	local l = t.add({ type = "label", caption = "                                               "})
+	local button = t.add({
+			type = "button",
+			name = "procedure_game_close",
+			caption = "Close",
+			tooltip = "Close this window."
+		})
+	button.style.font = "heading-2"
+end
 
 local function team_manager_gui_click(event)
 	local player = game.players[event.player_index]
@@ -472,6 +511,11 @@ local function team_manager_gui_click(event)
 		if global.match_running then player.print(">>>>> Cannot modify GameId after match has started (contact website admin).", {r = 175, g = 0, b = 0}) return end
 		custom_game_id_gui(player)
 		player.gui.center["team_manager_gui"].destroy()
+		return
+	end	
+	if name == "team_manager_procedure" then
+		if not player.admin then player.print(">>>>> Only admins can learn the procedure.", {r = 175, g = 0, b = 0}) return end
+		procedure_game_gui(player)
 		return
 	end	
 	
@@ -560,11 +604,16 @@ local function team_manager_gui_click(event)
 			
 			if not global.match_running then --First unfreeze meaning match is starting
 				global.match_running=true 
-				global.bb_threat["north_biters"]=50 --CODING--
-				global.bb_threat["south_biters"]=50
+				--CODING-- 
+				global.bb_threat["north_biters"] = 900 --EVL we start at threat=9 to avoid weird sendings at the beginning
+				global.bb_threat["south_biters"] = 900--CODING-- was 9
+				global.bb_evolution["north_biters"] = 0.80 --FOR TESTING (change bullets in turrets next to silo in terrain.lua)
+				global.bb_evolution["south_biters"] = 0.80
+				
 				game.print(">>>>> Match is starting shortly. Good luck ! Have Fun !", {r = 11, g = 255, b = 11})
 			end  	
 			--global.reroll_left=0		-- Match has started, no more reroll -> changed via match_running (so wee save #rerolls for export stats)
+			
 			global.freeze_players = false
 			if global.match_countdown < 0 then -- First unfreeze depends on init, then we use 3 seconds timer (after pause)
 				global.match_countdown = 3
@@ -573,7 +622,10 @@ local function team_manager_gui_click(event)
 			return
 		end
 		--EVL We're PAUSING the game, no change in global.match_running nor in global.pack_choosen (the game was initiated with global.freeze_players=true)
-
+		if global.match_countdown >= 0 then --WAIT FOR UNFREEZE BEFORE FREEZE AGAIN
+			game.print(">>>>> Please wait "..(global.match_countdown+1).."s (game is currently in ~unfreezing~ process) ...", {r = 225, g = 11, b = 11})
+			return
+		end
 		global.freeze_players = true
 		Public.freeze_players()
 		draw_manager_gui(player)
@@ -667,7 +719,17 @@ function Public.gui_click(event)
 			return
 		end
 	end	
-
+	--EVL CLOSE THE FRAME "LEARN HOW TO USE TEAM MANAGER"
+	if player.gui.center["procedure_game"] then
+		if name == "procedure_game_close" then
+			player.gui.center["procedure_game"].destroy()
+			return
+		end
+		if name == "procedure_game_text" then
+			player.gui.center["procedure_game"].destroy()
+			return
+		end		
+	end	
 end
 
 return Public

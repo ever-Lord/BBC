@@ -582,56 +582,62 @@ function Public.generate_silo(surface)
 			entity.destroy()
 		end
 	end
-	--EVL we put 3 turrets next to silo
+	--EVL we put 3 turrets next to silo with 12 bullets in each
+	local _count=1 --CODING-- count=12
+
 	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
-	turret1.insert({name = "firearm-magazine", count = 12})
+	turret1.insert({name = "firearm-magazine", count = _count})
 	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
-	turret2.insert({name = "firearm-magazine", count = 12})
+	turret2.insert({name = "firearm-magazine", count = _count})
 	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
-	turret3.insert({name = "firearm-magazine", count = 12})
+	turret3.insert({name = "firearm-magazine", count = _count})
 	
-	--EVL SOME MORE TURRETS FOR TESTING IN SOLO
-	--[[
-	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
-	turret1.insert({name = "firearm-magazine", count = 200})
-	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
-	turret2.insert({name = "firearm-magazine", count = 200})
-	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
-	turret3.insert({name = "firearm-magazine", count = 200})
+	local add_turrets=true --CODING--
+	if add_turrets then --EVL SOME MORE TURRETS FOR TESTING IN SOLO
+		--local bullet="firearm-magazine"
+		local bullet="uranium-rounds-magazine"
+		local count=200
+		local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
+		turret1.insert({name = bullet, count = count})
+		local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
+		turret2.insert({name = bullet, count = count})
+		local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
+		turret3.insert({name = bullet, count = count})
 
-	local turret4 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-8}, force = "north"})
-	turret4.insert({name = "firearm-magazine", count = 200})
-	local turret5 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-8}, force = "north"})
-	turret5.insert({name = "firearm-magazine", count = 200})
-	local turret6 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-8}, force = "north"})
-	turret6.insert({name = "firearm-magazine", count = 200})
-	local turret7 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-11}, force = "north"})
-	turret7.insert({name = "firearm-magazine", count = 200})
-	local turret8 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-11}, force = "north"})
-	turret8.insert({name = "firearm-magazine", count = 200})
-	local turret9 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-11}, force = "north"})
-	turret9.insert({name = "firearm-magazine", count = 200})
+		local turret4 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-8}, force = "north"})
+		turret4.insert({name = bullet, count = count})
+		local turret5 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-8}, force = "north"})
+		turret5.insert({name = bullet, count = count})
+		local turret6 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-8}, force = "north"})
+		turret6.insert({name = bullet, count = count})
+		local turret7 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-11}, force = "north"})
+		turret7.insert({name = bullet, count = count})
+		local turret8 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-11}, force = "north"})
+		turret8.insert({name = bullet, count = count})
+		local turret9 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-11}, force = "north"})
+		turret9.insert({name = bullet, count = count})
 
-	local turret1a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-5}, force = "north"})
-	turret1a.insert({name = "firearm-magazine", count = 200})
-	local turret2a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-5}, force = "north"})
-	turret2a.insert({name = "firearm-magazine", count = 200})
-	local turret3a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-5}, force = "north"})
-	turret3a.insert({name = "firearm-magazine", count = 200})
+		local turret1a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-5}, force = "north"})
+		turret1a.insert({name = bullet, count = count})
+		local turret2a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-5}, force = "north"})
+		turret2a.insert({name = bullet, count = count})
+		local turret3a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-5}, force = "north"})
+		turret3a.insert({name = bullet, count = count})
 
-	local turret4a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-8}, force = "north"})
-	turret4a.insert({name = "firearm-magazine", count = 200})
-	local turret5a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-8}, force = "north"})
-	turret5a.insert({name = "firearm-magazine", count = 200})
-	local turret6a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-8}, force = "north"})
-	turret6a.insert({name = "firearm-magazine", count = 200})
-	local turret7a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-11}, force = "north"})
-	turret7a.insert({name = "firearm-magazine", count = 200})
-	local turret8a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-11}, force = "north"})
-	turret8a.insert({name = "firearm-magazine", count = 200})
-	local turret9a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-11}, force = "north"})
-	turret9a.insert({name = "firearm-magazine", count = 200})
-	]]--
+		local turret4a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-8}, force = "north"})
+		turret4a.insert({name = bullet, count = count})
+		local turret5a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-8}, force = "north"})
+		turret5a.insert({name = bullet, count = count})
+		local turret6a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-8}, force = "north"})
+		turret6a.insert({name = bullet, count = count})
+		local turret7a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-11}, force = "north"})
+		turret7a.insert({name = bullet, count = count})
+		local turret8a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-11}, force = "north"})
+		turret8a.insert({name = bullet, count = count})
+		local turret9a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-11}, force = "north"})
+		turret9a.insert({name = bullet, count = count})
+	end
+
 	
 end
 
@@ -676,6 +682,11 @@ function Public.minable_wrecks(event)
 	
 	local surface = entity.surface
 	local player = game.players[event.player_index]
+	
+	
+	-- EVL ONE MORE SCRAP MINED (for exports in main.lua)
+	global.scraps_mined[player.force.name] = global.scraps_mined[player.force.name] + 1
+	
 	--[[ EVL NO MORE RANDOM IN SCRAPS
 	local loot_worth = math_floor(math_abs(entity.position.x * 0.02)) + math_random(16, 32)	
 	local blacklist = LootRaffle.get_tech_blacklist(math_abs(entity.position.x * 0.0001) + 0.10)
@@ -704,25 +715,34 @@ function Public.minable_wrecks(event)
 		['iron-plate'] = 5,
 		['copper-plate'] = 1,
 		['steel-plate'] = 1,
-		['coal'] = 5,
-		['stone'] = 5,
 		['electronic-circuit'] = 1,
 		['transport-belt'] = 2,
-		['inserter'] = 1
+		['inserter'] = 1,
+		['coal'] = 5,
+		['stone'] = 5
 	}
+	--EVL flourish (we show scraps in 2 columns)
 	local k=1
+	local _text=""
 	for _item,_qty in pairs(item_stacks) do	
 		local inserted_count = player.insert({name = _item, count = _qty})	
 		if inserted_count ~= _qty then
 			local amount_to_spill = _qty - inserted_count			
 			surface.spill_item_stack(entity.position, {name = _item, count = amount_to_spill}, true)
 		end
-		surface.create_entity({
-			name = "flying-text",
-			position = {entity.position.x, entity.position.y - 0.5 * k},
-			text = "+" .. _qty .. " [img=item/" .. _item .. "]",
-			color = {r=0.98, g=0.66, b=0.22}
-		})
+		--EVL flourish (we show scraps in 2 columns)
+		if k%2==0 then
+			_text = _text.."     +" .. _qty .. " [img=item/" .. _item .. "]"
+			surface.create_entity({
+				name = "flying-text",
+				position = {entity.position.x, entity.position.y - 0.5 * k},
+				text = _text,
+				color = {r=0.98, g=0.66, b=0.22}
+			})
+			_text=""
+		else
+			_text = _text.."+" .. _qty .. " [img=item/" .. _item .. "]"
+		end
 		k=k+1
 	end
 end

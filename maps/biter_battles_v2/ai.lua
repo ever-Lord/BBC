@@ -282,6 +282,7 @@ local function show_way_points_table(_wp)
 		local msg="  WayPoints ["..force.."] >"
 		if table_size(wp)>0 then
 			for index,position in pairs (wp) do
+				--msg=msg.."  ["..index.."]=("..position[1]..","..position[2]..")"
 				msg=msg.."  ("..position[1]..","..position[2]..")"
 			end
 			if global.bb_biters_debug then game.print(msg,{r = 127, g = 97, b = 97}) end
@@ -329,8 +330,8 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 	--BUG? Sometime a group is assigned (or reassigned?) and is sent (again?) search for "waking up" below
 	--BUG? Biters (or groups?) are destroyed, i dont get it search for "destroy_inactive_biters"
 	--global.way_points stores previous waypoints to re-use them for opponent team, though it is limited to global.way_points_max entries
-	--we always check the possibility to reach waypoints
-	--so 2 chances out of 3 to re-use a waypoint (if enough are already stored)
+	--we always check the possibility to reach waypoints (and the target is always different, obv. we cant copy it)
+	--so 2 chances out of 3 to re-use a waypoint (if enough are already stored, plus trick to never get last one)
 	-- 1 out of 3 to set a new waypoint that will be stored in global.way_points[force]
 	-- if position (waypoint) is not valid, we skip the first command (the one aiming the waypoint)
 	
@@ -352,9 +353,10 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		--game.print("opponent "..force_opponent.." has ".._nb_way_points_opp.." waypoints")
 		if _nb_way_points_opp > 2 then --we have 3 or more waypoints to choose from --CODING--Change to 4 or 5 ?
 			local _index=math.random(1,_nb_way_points_opp)
+			if _index>1 then _index=_index-1 end --EVL little trick to go further in the past, last waypoint will never be choosed
 			_position=global.way_points_table[force_opponent][_index]
 			table.remove(global.way_points_table[force_opponent],_index)
-			if global.bb_biters_debug then game.print("          Taking waypoint from "..force_opponent.." (".._position[1]..",".._position[2]..").", {r = 97, g = 97, b = 127}) end
+			if global.bb_biters_debug then game.print("          Taking waypoint from "..force_opponent.." [".._index.."]=(".._position[1]..",".._position[2]..").", {r = 97, g = 97, b = 127}) end
 			_position[2]=-_position[2] --EVL switch side of _position
 			--EVL TODO? : send the group to the same side of the target  OR send it to the same side as it was sent to opponents ?
 		end
@@ -403,13 +405,13 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		if _position_is_new then 
 			if table_size(global.way_points_table[force_name]) < global.way_points_max then --EVL we dont remember infinity of waypoints (we prefer to use old ones than new ones, for equity/balance)
 				table.insert(global.way_points_table[force_name],_position)
-				if global.bb_biters_debug then game.print("          Inserting new waypoint for "..force_name.." (".._position[1]..",".._position[2]..")", {r = 97, g = 127, b = 97}) end
+				if global.bb_biters_debug then game.print("          Inserting new waypoint at "..force_name.." (".._position[1]..",".._position[2]..")", {r = 97, g = 127, b = 97}) end
 			else
 				if global.bb_biters_debug then game.print("          Forgetting new waypoint for "..force_name.." (".._position[1]..",".._position[2]..")", {r = 97, g = 127, b = 97}) end
 			end
 		end
 	else
-		if global.bb_biters_debug then game.print("  DEBUGS: failed to get position (in send_group) skipping waypoint command for group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
+		if global.bb_biters_debug then game.print("          Debugs : failed to get position (in send_group) [color=#55AA55]skipping waypoint[/color] command for group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
 		--no return here, we just skip way_point command
 	end
 	-- THEN WE SEND TO TARGET
@@ -485,38 +487,39 @@ end
 
 local function create_attack_group(surface, force_name, biter_force_name, group_numero)
 	
-	if global.freeze_players then game.print("  DEBUGS: create_attack_group called while freezed") return end --EVL not supposed to happen
+	if global.freeze_players then game.print("  DEBUGS: create_attack_group called while freezed", {r = 200, g = 99, b = 99}) return end --EVL not supposed to happen
 	local threat = global.bb_threat[biter_force_name]
 	if get_active_threat(biter_force_name) > threat * 1.20 then 
-		if global.bb_biters_debug then game.print("  DEBUGS: Enough threat ("..get_active_threat(biter_force_name)..") on " .. force_name .." side > Skipping group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug then game.print("          Debugs: Enough threat ("..get_active_threat(biter_force_name)..") on " .. force_name .." side > [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return
 	end
 	if threat <= 0 then 
-		if global.bb_biters_debug then game.print("  DEBUGS: Threat is negative > Skipping ..["..force_name.."] skipping group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug then game.print("          Debugs: Threat is negative ["..force_name.."] [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return false 
 	end
 	if bb_config.max_active_biters - get_active_biter_count(biter_force_name) < bb_config.max_group_size then
-		if global.bb_biters_debug then game.print("  DEBUGS: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. bb_config.max_active_biters - get_active_biter_count(biter_force_name).." skipping group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug then game.print("          Debugs: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. bb_config.max_active_biters - get_active_biter_count(biter_force_name)
+										.." [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return false
 	end
 	local side_target = get_target_entity(force_name)
 	if not side_target then
-		if global.bb_biters_debug then game.print("  DEBUGS: No side target found for " .. force_name .. " (in create_attack_group) skipping group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug then game.print("          Debugs: No side target found for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return
 	end
 	local spawner = get_nearby_biter_nest(side_target)
 	if not spawner then
-		if global.bb_biters_debug then game.print("  DEBUGS: No spawner found for " .. force_name .. " (in create_attack_group) skipping group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug then game.print("          Debugs: No spawner found for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return
 	end
 	local unit_group_position = get_unit_group_position(spawner)
 	if not unit_group_position then 
-		if global.bb_biters_debug then game.print("  DEBUGS: failed to get unit_group_position for " .. force_name .. " (in create_attack_group) skipping group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug then game.print("          Debugs: failed to get unit_group_position for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return 
 	end
 	local units = select_units_around_spawner(spawner, force_name, side_target)
 	if not units then 
-		if global.bb_biters_debug then game.print("  DEBUGS: failed to get units for " .. force_name .. " (in create_attack_group) skipping group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug then game.print("          Debugs: failed to get units for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return 
 	end
 	local unit_group = surface.create_unit_group({position = unit_group_position, force = biter_force_name})
@@ -538,7 +541,8 @@ Public.pre_main_attack = function()
 		global.main_attack_wave_amount = math.ceil(get_threat_ratio(biter_force_name) * 7)
 		if global.main_attack_wave_amount < 3 then global.main_attack_wave_amount=3 end --EVL even if one team is far ahead, we want at least 3 waves : so waves are 0 (if threat<0) or in 3..7 interval
 		--CHANGE THIS TO SHOW ADMINS ONLY ? (probably no)
-		if global.bb_biters_debug then game.print("DEBUGS: UP TO "..global.main_attack_wave_amount .. " unit groups designated for " .. force_name .. " biters.", {r = 192, g = 77, b = 77}) end --EVL
+		if global.bb_biters_debug then game.print("DEBUGS: UP TO "..global.main_attack_wave_amount .. " unit groups designated for " .. force_name .. " biters. [threats N="
+		..math.floor(global.bb_threat["north_biters"]).." S="..math.floor(global.bb_threat["south_biters"]).."]", {r = 192, g = 77, b = 77}) end --EVL
 	else
 		global.main_attack_wave_amount = 0
 	end
@@ -563,7 +567,7 @@ Public.perform_main_attack = function()
 		global.main_attack_wave_amount = global.main_attack_wave_amount - 1
 		if global.main_attack_wave_amount==0 and global.bb_biters_debug then  --show the table at the end of the main attacks
 			show_way_points_table(global.way_points_table) 
-			game.print("‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒", {r = 50, g = 50, b = 50})
+			game.print("‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒", {r = 50, g = 50, b = 50})
 		end
 	end
 

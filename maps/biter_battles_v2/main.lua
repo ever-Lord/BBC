@@ -24,101 +24,244 @@ require "modules.spawners_contain_biters"
 
 require 'spectator_zoom' -- EVL Zoom for spectators 
 
+--EVL A BEAUTIFUL COUNTDOWN IN ASCII ART (limited to 9 -> 1)
+local function show_countdown(_second)
+	if not _second or _second<1 or _second>9 then return end
+	for _, player in pairs(game.players) do -- EVL cdf for countdown_frame, cdb for countdown_button
+		if player.gui.center["bbc_cdf"] then player.gui.center["bbc_cdf"].destroy()	end
+		local bbc_frame = player.gui.center.add({type = "frame", name = "bbc_cdf", caption = "Starting in "})
+		local _caption="\n"
+		for _line=1,#Tables.bbc_countdowns[_second],1 do
+		 _caption=_caption.."            "..Tables.bbc_countdowns[_second][_line].."\n"
+		end
+		local bbc_count = bbc_frame.add({type = "label", name = "bbc_cdb", caption = _caption, tooltip="This is what you get when you cant display a .png"})
+		bbc_count.style.single_line = false
+		bbc_count.style.font="default-large-bold"
+		bbc_count.style.font_color = {r=0.66, g=0.66, b=0.66}
+		if global.match_countdown<=6 then bbc_count.style.font_color = {r=0.78, g=0.44, b=0.44} end
+		if global.match_countdown<=3 then bbc_count.style.font_color = {r=0.98, g=0.22, b=0.22} end
+		bbc_count.style.minimal_width = 250
+		bbc_count.style.minimal_height = 225
+		--local bbc_image = bbc_frame.add({type = "sprite", name = "bbc_png", sprite = "01.png"}) --EVL WHY??? PLEASE....
+	end	
+end
 
---EVL BUILDING THE EXPORTS (Results & statistics) FRAME (for all players) & FILE (.json)
-local function export_results()
-	--entity_build_count_statistics for _, player in pairs(game.players)
+
+--EVL EXPORTING DATAS TO FRAME AND TO JSON FILE
+local _stats_are_set = false --First we set the datas
+local _guit = ""	--_GUI_TITLE FULL WIDTH
+local _guil = ""	--_GUI_LEFT
+local _guir = ""	--_GUI_RIGHT
+local _jsont = {}	-- JSON TITLE TABLE
+local _jsonl = {}	-- JSON LEFT TABLE
+local _jsonr = {}	-- JSON RIGHT TABLE
+
+local function set_stats_title() --fill up string "local _guit" and table "local _jsont"
+	
+	_guit=_guit.."              [font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
+	_guit=_guit.."              see all results at [color=#DDDDDD]https://www.bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
+	_guit=_guit.."              [font=default-small][color=#999999]Note: Referee/Admins need to re-allocate permissions as they were before this game.[/color][/font]\n"
+	_guit=_guit.."\n"
+	_guit=_guit.."              [font=default-large-bold][color=#FF5555]                              --- [color=#55FF55]RESULTS[/color] and [color=#5555FF]STATISTICS[/color]  ---[/color][/font]\n"
+
+end
+local function set_stats_left() --fill up string "local _guil" and table "local _jsonl"
+	
+	
+	--GUI_LEFT, LEFT COLUMN
+	
+	
 	local biters = {'small-biter','medium-biter','big-biter','behemoth-biter','small-spitter','medium-spitter','big-spitter','behemoth-spitter'}
-	local worms =  {'small-worm','medium-worm','big-worm','behemoth-worm'}
+	local worms =  {'small-worm-turret','medium-worm-turret','big-worm-turret','behemoth-worm-turret'}
 	local spawners = {}
-	
-	--CONSTRUCTION
-	_export={}
-	--Add line
-	_gui=""
-	--CODING--
-	_gui=_gui.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
-	_gui=_gui.."  see all results at [color=#DDDDDD]https://www.bbchamps.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
-	_gui=_gui.."[font=default-small][color=#999999]Note: Referee/Admins need to re-allocate permissions as they were before this game.[/color][/font]\n"
-	_gui=_gui.."\n"
-	_gui=_gui.."[font=default-large-bold][color=#FF5555]                              --- [color=#55FF55]RESULTS[/color] and [color=#5555FF]STATISTICS[/color]  ---[/color][/font]\n"
-	_gui=_gui.."\n"
-	_gui=_gui.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
-	_gui=_gui.."     GAME_ID="..global.game_id.."\n"
-	_gui=_gui.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
-	_gui=_gui.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
+	--
+	--GLOBAL STATS
+	--
+	_guil=_guil.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
+	_guil=_guil.."     GAME_ID="..global.game_id.."\n"
+	_guil=_guil.."     REFEREE=".."tbd".."\n"
+	_guil=_guil.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
+	_guil=_guil.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
 	local _bb_game_won_by_team=global.bb_game_won_by_team
-	--local _bb_game_loss_by_team="south"
-	--if _bb_game_won_by_team == "south" then _bb_game_loss_by_team= "north" end --EVL should use Tables.enemy_team_of 
 	local _bb_game_loss_by_team = Tables.enemy_team_of[_bb_game_won_by_team]
-	_gui=_gui.."     WINNER=".._bb_game_won_by_team.." | LOOSER=".._bb_game_loss_by_team.."\n"
-	_gui=_gui.."     TEAM_ATHOME=".."tbd".."\n"
-	_gui=_gui.."     REROLL="..(global.reroll_max-global.reroll_left).."\n"
-	_gui=_gui.."\n"
-	--NORTH SIDE
-	_gui=_gui.."[font=default-bold][color=#FF9740]>>NORTH STATS>>[/color][/font]\n"
-	local north_name = "Team North"
-	if global.tm_custom_name["north"] then north_name = global.tm_custom_name["north"]	end
-	_gui=_gui.."     TEAM_NAME="..north_name.."\n"
-	local north_evo = math.floor(1000 * global.bb_evolution["north_biters"]) * 0.1
-	local north_threat = math.floor(global.bb_threat["north_biters"])
-	_gui=_gui.."     EVOLUTION="..north_evo.." | THREAT="..north_threat.."\n"
-	local _c = 0
-	for _, biter in pairs(biters) do _c = _c + game.forces["north"].kill_count_statistics.get_input_count(biter) end
-	_gui=_gui.."     DEAD_BITERS=".._c.."\n"
-	if global.science_logs_total_north then
-		local _science=""
-		local total_science_of_north_force  = global.science_logs_total_north
-		for i = 1, 7 do _science=_science.." | [item="..Tables.food_long_and_short[i].long_name.."]".."="..global.science_logs_total_north[i] end
-		_gui=_gui.."     SCIENCE_SENT".._science.."\n"
-	else
-		_gui=_gui.."     SCIENCE_SENT | NONE".."\n"
+	_guil=_guil.."     WINNER=".._bb_game_won_by_team.." | LOOSER=".._bb_game_loss_by_team.."\n"
+	_guil=_guil.."     TEAM_ATHOME=".."tbd".."\n"
+	_guil=_guil.."     REROLL="..(global.reroll_max-global.reroll_left).."\n"
+	_guil=_guil.."\n"
+
+	for i=1,2,1 do
+		--NORTH SIDE --
+		local team_name = "Team North"
+		if global.tm_custom_name["north"] then team_name = global.tm_custom_name["north"]	end
+		local biter_name = "north_biters"
+		local force_name = "north"
+		local total_science_of_force  = global.science_logs_total_north
+		if i==2 then --SOUTH SIDE --
+			team_name = "Team South"
+			if global.tm_custom_name["south"] then team_name = global.tm_custom_name["south"]	end
+			biter_name = "south_biters"
+			force_name = "south"
+			total_science_of_force  = global.science_logs_total_south
+		end
+
+
+
+		_guil=_guil.."[font=default-bold][color=#FF9740]>>"..string.upper(force_name).." STATS>>[/color][/font]\n"
+		--local north_name = "Team North"
+		--if global.tm_custom_name["north"] then north_name = global.tm_custom_name["north"]	end
+		_guil=_guil.."     TEAM_NAME="..team_name.."\n"
+		local team_evo = math.floor(1000 * global.bb_evolution[biter_name]) * 0.1
+		local team_threat = math.floor(global.bb_threat[biter_name])
+		_guil=_guil.."     EVOLUTION="..team_evo.." | THREAT="..team_threat.."\n"
+
+		--BITERS WITH DETAILS --EVL DOING SOME FIORITURES
+		local _b = 0 
+		local _b_details = {["small"]=0,["med"]=0,["big"]=0,["behe"]=0}
+		for _, biter in pairs(biters) do 
+			_b = _b + game.forces[force_name].kill_count_statistics.get_input_count(biter) 
+			local _bshort=string.sub(biter, 1, string.find(biter,"-")-1)
+			if _bshort=="medium" then _bshort="med" end
+			if _bshort=="behemoth" then _bshort="behe" end
+			_b_details[_bshort]=_b_details[_bshort]+game.forces[force_name].kill_count_statistics.get_input_count(biter)
+		end
+		_guil=_guil.."     DEAD_BITERS=".._b
+			--adding details if exist
+			if _b > 0 then 
+				local _b_str=" > "
+				for _biter,_count in pairs(_b_details) do _b_str=_b_str.._count.." ".._biter..", " end
+				_b_str=string.sub(_b_str, 1, string.len(_b_str)-2)
+				_guil=_guil.._b_str
+			end
+			_guil=_guil.."\n"
+
+		--WORMS WITH DETAILS
+		local _w = 0
+		local _w_details = ""
+		for _, worm in pairs(worms) do 
+			_w = _w + game.forces[force_name].kill_count_statistics.get_input_count(worm) 
+			local _wshort=string.sub(worm, 1, string.find(worm,"-")-1)
+			if _wshort=="medium" then _wshort="med" end
+			if _wshort=="behemoth" then _wshort="behe" end
+			_w_details = _w_details..game.forces[force_name].kill_count_statistics.get_input_count(worm)..":".._wshort..", "
+		end
+		_guil=_guil.."     DEAD_WORMS=".._w
+		if _w > 0 then _guil=_guil.." > ".._w_details end
+		--if _w > 0 then _guil=_guil.." > "..string.sub(_w_details, 1, string.len(_w_details)-1).."." end
+		_guil=_guil.."\n"
+		
+		--SCRAPS
+		_guil=_guil.."     SCRAPS="..global.scraps_mined[force_name].."\n"
+
+		--SCIENCE
+		if total_science_of_force then
+			local _science=""
+			for i = 1, 7 do 
+				_science=_science.." | [item="..Tables.food_long_and_short[i].long_name.."]".."="..total_science_of_force[i]
+				if i==3 then _science=_science.."\n     " end
+			end
+			_guil=_guil.."     SCIENCE_SENT".._science.."\n"
+		else
+			_guil=_guil.."     SCIENCE_SENT | NONE".."\n"
+		end
+		_guil=_guil.."\n"
 	end
-	_gui=_gui.."\n"
-	--SOUTH SIDE
-	_gui=_gui.."[font=default-bold][color=#FF9740]>>SOUTH STATS>>[/color][/font]\n"
-	local south_name = "Team South"
-	if global.tm_custom_name["south"] then south_name = global.tm_custom_name["south"]	end
-	_gui=_gui.."     TEAM_NAME="..south_name.."\n"
-	local south_evo = math.floor(1000 * global.bb_evolution["south_biters"]) * 0.1
-	local south_threat = math.floor(global.bb_threat["south_biters"])				
-	_gui=_gui.."     EVOLUTION="..south_evo.." | THREAT="..south_threat.."\n"
-	local _d = 0
-	for _, biter in pairs(biters) do _d = _d + game.forces["south"].kill_count_statistics.get_input_count(biter) end
-	_gui=_gui.."     DEAD_BITERS=".._d.."\n"
-	if global.science_logs_total_south then
-		local _science=""
-		local total_science_of_south_force  = global.science_logs_total_south
-		for i = 1, 7 do _science=_science.." | [item="..Tables.food_long_and_short[i].long_name.."]".."="..global.science_logs_total_south[i] end
-		_gui=_gui.."     SCIENCE_SENT".._science.."\n"
-	else
-		_gui=_gui.."     SCIENCE_SENT | NONE".."\n"
-	end
-	_gui=_gui.."\n"
+		
 	--OTHER DATAS
-	_gui=_gui.."[font=default-bold][color=#FF9740]>>FORCE MAP RESETS>>[/color][/font]\n"
+	_guil=_guil.."[font=default-bold][color=#FF9740]>>FORCE MAP RESETS>>[/color][/font]\n"
 	for _index,_msg in pairs(global.force_map_reset_export_reason) do
-		_gui=_gui.."     ".._index.." : ".._msg.."\n"
+		_guil=_guil.."     [".._index.."] ".._msg.."\n"
 	end
-	_gui=_gui.."\n"
-	_gui=_gui.."[font=default-bold][color=#FF9740]<<END OF EXPORTS<<[/color][/font]\n"				
+		
 	
+end
+
+--EVL EXPORTING (Results & statistics) to FRAME (for all players) & if export_to_json then into FILE (.json)
+local function export_results(export_to_json)
+	--entity_build_count_statistics for _, player in pairs(game.players)
+	-- Note who is admins in player/referee list
+
+	--Add line --CODING-- ?
+	if not _stats_are_set then
+		_stats_are_set=true
+		if global.bb_debug then game.print(">>>>> Setting results and stats.", {r = 0.22, g = 0.22, b = 0.22}) end
+		set_stats_title()	--Will fill up string "local _guit" and table "local _jsont"
+		set_stats_left()	--Will fill up string "local _guil" and table "local _jsonl"
+		
+	else 
+		if global.bb_debug then game.print(">>>>> Results and stats are already set.", {r = 0.22, g = 0.22, b = 0.22}) end
+	end
+
+	
+
+
+	-- get_input_count(string) get_output_count(string) (prototype)
+	--game.print(serpent.block(game.forces["north"].kill_count_statistics.input_counts))
+	--game.print(serpent.block(game.forces["north"].kill_count_statistics.output_counts))
+	game.print("DDDDDDDDDDDDD")
+	
+
 	
 	--EXPORTING INTO FRAME
 	for _, player in pairs(game.players) do
 		if player.gui.center["bb_export_frame"] then player.gui.center["bb_export_frame"].destroy() end
 		local frame = player.gui.center.add {type = "frame", name = "bb_export_frame", direction = "vertical"}
-		local frame = frame.add {type = "frame"}
-		local l = frame.add {type = "label", caption = _gui, name = "biter_battles_export"}
+		local l = frame.add {type = "label", caption = _guit, name = "bb_export_title"}
 		l.style.single_line = false
 		l.style.font = "default"
 		l.style.font_color = {r=0.7, g=0.6, b=0.99}
+
+		local frame = frame.add {type = "table", name = "bb_export_table", column_count = 3}
+		local l = frame.add {type = "label", caption = _guil, name = "bb_export_left"}
+		l.style.single_line = false
+		l.style.font = "default"
+		l.style.font_color = {r=0.7, g=0.6, b=0.99}
+		l.style.minimal_width = 250
+		l.style.maximal_width = 500
+		local l = frame.add {type = "label", caption = "     "} --EVL SEPARATOR
+		local l = frame.add {type = "label", caption = _guil, name = "bb_export_right"}
+		l.style.single_line = false
+		l.style.font = "default"
+		l.style.font_color = {r=0.7, g=0.6, b=0.99}
+		l.style.minimal_width = 250
+		l.style.maximal_width = 500		
+		local _guiend="[font=default-bold][color=#FF9740]<<END OF EXPORTS<<[/color][/font]"		
+		local eoe = frame.add {type = "label", caption = _guiend, name = "bb_export_end"}
+	end
+	--ADDING A BUTTON
+	for _, player in pairs(game.players) do
+		if not player.gui.top["bb_export_button"] then 
+			local export_button = player.gui.top.add({type = "sprite-button", name = "bb_export_button", caption = "Stats", tooltip = "Toggle results and stats frame."})
+			export_button.style.font = "heading-2"
+			export_button.style.font_color = {112, 112, 112}
+			export_button.style.minimal_height = 38
+			export_button.style.minimal_width = 50
+			export_button.style.padding = -2
+		end
 	end
 	--EXPORTING TO FILE JSON
+	if export_to_json then
+		if global.bb_debug then game.print(">>>>> TODO : export results and stats to json.") end
+	else
+		if global.bb_debug then game.print(">>>>> Results and stats have already been exported.") end
+	end
 end
 --LITTLE THING TO CLOSE EXPORT GUI (above)
 local function frame_export_click(player, element)
-	if element.name == "biter_battles_export" then player.gui.center["bb_export_frame"].destroy() return true end	
+	--EVL Stats button switch
+	if element.name == "bb_export_button" then
+		if player.gui.center["bb_export_frame"] then player.gui.center["bb_export_frame"].destroy() return end
+		export_results(false)	--false means its NOT the first time we draw the results -> we dont export to json
+								-- EVL not very smart since we redraw for all players but meh
+		return
+	end
+	--EVL close export frame when clicked
+	local _bb_export=string.sub(element.name,1,10) -- EVL we keep "bb_export_"
+	
+	if _bb_export == "bb_export_" then player.gui.center["bb_export_frame"].destroy() return end	
+--	if element.name == "bb_export_table" then player.gui.center["bb_export_frame"].destroy() return end	
+--	if element.name == "bb_export_title" then player.gui.center["bb_export_frame"].destroy() return end	
+--	if element.name == "bb_export_left" then player.gui.center["bb_export_frame"].destroy() return end	
+--	if element.name == "bb_export_right" then player.gui.center["bb_export_frame"].destroy() return end	
 end
 
 --EVL MANUAL CLEAR CORPSES
@@ -182,7 +325,7 @@ local function clear_corpses_auto(radius) -- EVL - Automatic clear corpses calle
 		end
 	end
 	if global.bb_debug then game.print("Debug: Cleared corpses (dead biters and destroyed entities).", Color.success) 
-	else game.print("Cleared corpses.", Color.success) end
+	else game.print("Cleared corpses.", Color.success) end --EVL we could count the biters (and only the biters?)
 end
 
 local function on_player_joined_game(event)
@@ -196,7 +339,7 @@ local function on_player_joined_game(event)
 	Team_manager.draw_top_toggle_button(player)
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
-	player.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open TEAM MANAGER",{r = 00, g = 225, b = 00})
+	player.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 225, b = 00})
 end
 
 local function on_gui_click(event)
@@ -204,7 +347,10 @@ local function on_gui_click(event)
 	local element = event.element
 	if not element then return end
 	if not element.valid then return end
-	if element.name == "biter_battles_export" then 
+	--Do we need to see the clicks ?
+	if false and global.bb_debug then game.print("      ON GUI CLICK : elem="..element.name.."       parent="..element.parent.name, {r = 0.22, g = 0.22, b = 0.22}) end
+	--EVL Not beautiful but it works
+	if element.parent.name == "bb_export_frame" or element.parent.name == "bb_export_table" or element.name == "bb_export_button" then 
 		frame_export_click(player, element)
 		return
 	end	
@@ -359,7 +505,7 @@ local function on_tick()
 			if not global.export_stats_done then
 				game.print(">>>>> MATCH IS OVER ! Exporting results and statistics ...", {r = 77, g = 192, b = 77})
 				global.way_points_table = {["north"]={},["south"]={}} --EVL Reinit
-				export_results()
+				export_results(true) --true means its the first time we draw the results -> we need to export json too
 				global.export_stats_done=true
 			end
 			Game_over.reveal_map() --EVL timing seems perfect
@@ -374,8 +520,8 @@ local function on_tick()
 					local real_played_time = game.ticks_played - global.freezed_time
 					if real_played_time >= global.evo_boost_tick then
 						-- EVL FOR TESTING/DEBUG, TO BE REMOVED --CODING--
-						--global.bb_evolution["north_biters"] = global.bb_evolution["north_biters"] + 0.25
-						--global.bb_evolution["south_biters"] = global.bb_evolution["south_biters"] + 0.20
+						--global.bb_evolution["north_biters"] = global.bb_evolution["north_biters"] + 0.05
+						--global.bb_evolution["south_biters"] = global.bb_evolution["south_biters"] + 0.10
 
 						--EVL Set boosts for north and south
 						local evo_north = global.bb_evolution["north_biters"]
@@ -421,24 +567,14 @@ local function on_tick()
 	end
 	-- EVL COUNTDOWN FOR STARTING GAME (UNFREEZE AND SOME INITS)
 	if global.match_countdown >=0 and global.match_running and tick % 60 == 0 then
-		for _, player in pairs(game.players) do -- EVL cdf for countdown_frame, cdb for countdown_button
-			if player.gui.center["bbc_cdf"] then player.gui.center["bbc_cdf"].destroy()	end
-			local bbc_frame = player.gui.center.add({type = "frame", name = "bbc_cdf", caption = "Starting in "})
-			local bbc_count = bbc_frame.add({type = "sprite-button", name = "bbc_cdb", caption = " "..global.match_countdown.." "})
-			bbc_count.style.font="default-large-bold"
-			bbc_count.style.font_color = {r=0.66, g=0.66, b=0.66}
-			if global.match_countdown<=6 then bbc_count.style.font_color = {r=0.78, g=0.44, b=0.44} end
-			if global.match_countdown<=3 then bbc_count.style.font_color = {r=0.98, g=0.22, b=0.22} end
-			bbc_count.style.minimal_width = 250
-			bbc_count.style.minimal_height = 250
-			--local bbc_image = bbc_frame.add({type = "sprite", name = "bbc_png", sprite = "01.png"}) --EVL WHY??? PLEASE....
-		end	
+		show_countdown(global.match_countdown)
 		global.match_countdown = global.match_countdown - 1
+		--CLOSE THE FRAMES WHEN DONE
 		if global.match_countdown < 0 then
 			for _, player in pairs(game.players) do		
 				if player.gui.center["bbc_cdf"] then	player.gui.center["bbc_cdf"].destroy() end
 			end
-			-- EVL SET global.next_attack = "north" / "south" and global.main_attack_wave_amount=0
+			-- EVL SET global.next_attack = "north" / "south" and global.main_attack_wave_amount=0 --CODING--
 			Team_manager.unfreeze_players()
 			game.print(">>>>> Players & Biters have been unfrozen !", {r = 255, g = 77, b = 77})
 		end
@@ -448,10 +584,7 @@ local function on_tick()
 	
 	if global.match_running and tick % 30 == 0 then	
 		local key = tick % 3600
-		if tick_minute_functions[key] then 
-			--if global.bb_biters_debug then game.print("calling function : "..key) end
-			tick_minute_functions[key]() 
-		end
+		if tick_minute_functions[key] then tick_minute_functions[key]() end
 	end
 end
 
@@ -552,7 +685,7 @@ local function on_init()
 	Init.forces()
 	Init.draw_structures()
 	Init.load_spawn()
-	--EVL Looking why always south gets attacked first
+	--EVL Looking why always south gets attacked first <- not true
 	local whoisattackedfirst=math.random(1,2)
 	--if global.bb_debug then game.print("DEBUG: wiaf="..whoisattackedfirst.."  before "..global.next_attack) end 
 	if whoisattackedfirst == 1 then global.next_attack = "south" end
