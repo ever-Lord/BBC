@@ -264,6 +264,37 @@ function Public.create_main_gui(player)
 		l.style.width = 50
 		l.tooltip = gui_value.t2
 	end
+	--EVL ADD BUTTONS FOR SPEC_GOD MODE (Larger wiew of the map without revealing other forces)
+	--ONLY if admin AND spectator (real & god modes)
+	if is_spec and player.admin then
+		frame.add { type = "line", caption = "this line", direction = "horizontal" }
+		local _spec_gui = frame.add { type = "table", column_count = 5 }
+		--EVL Button SPEC (zoom=0.18)
+		local b_spec = _spec_gui.add({type = "sprite-button", name = "spec_z_spec", caption = "Spec", tooltip = "[color=#999999]Only admins as spectators can fly over the map,[/color]\n Click to switch between REAL and GOD modes."})
+		b_spec.style.font = "heading-2"
+		b_spec.style.font_color = {112, 112, 255}
+		b_spec.style.width = 50
+		b_spec.style.maximal_height = 30
+		b_spec.style.padding = -2
+		_spec_gui.add({type = "label", caption="  "})
+		--EVL Button + (zoom=0.12)
+		local b_zoom1 = _spec_gui.add({type = "sprite-button", name = "spec_z_1", caption = "+", tooltip = "Large view"})
+		b_zoom1.style.font = "default-large-bold"
+		b_zoom1.style.font_color = {112, 212, 112}
+		b_zoom1.style.width = 40
+		b_zoom1.style.maximal_height = 30
+		b_zoom1.style.padding = -2
+		_spec_gui.add({type = "label", caption="   "})
+		--EVL Button + (zoom=0.06)
+		local b_zoom2 =_spec_gui.add({type = "sprite-button", name = "spec_z_2", caption = "++", tooltip = "Larger view"})
+		b_zoom2.style.font = "default-large-bold"
+		b_zoom2.style.font_color = {255, 112, 112}
+		b_zoom2.style.width = 40
+		b_zoom2.style.maximal_height = 30
+		b_zoom2.style.padding = -2
+	end
+
+
 
 	-- Difficulty mutagen effectivness update
 	bb_diff.difficulty_gui()
@@ -524,7 +555,76 @@ local function on_gui_click(event)
 			return
 		end
 	end
+	--
+	--EVL BUTTONS FOR SPEC_GOD MODE (Larger wiew of the map without revealing other forces)
+	--
+	if name=="spec_z_spec" then --Spec_God_Mode switch
+		--First we create the new force
+		if not game.forces["spec_god"] then 
+			game.create_force("spec_god")
+			local f = game.forces["spec_god"]
+			--f.set_spawn_position({0,0},surface)
+			f.technologies["toolbelt"].researched = true
+			f.set_cease_fire("north_biters", true)
+			f.set_cease_fire("south_biters", true)
+			f.set_friend("north", false)
+			f.set_friend("south", false)
+			f.set_cease_fire("player", true)
+			f.share_chart = true
+		end
+		
+		if player.admin then
+			if player.force.name == "spectator" then -- GO TO SPEC GOD MODE
+				player.force = game.forces["spec_god"]
+				if player.character then player.character.destroy() end
+				player.character = nil
+				player.zoom=0.18
+				global.god_players[player.name] = true
+				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches to God mode") end
+			elseif player.force.name == "spec_god" then -- GO TO SPEC REAL MODE
+				player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
+				player.create_character()
+				player.force = game.forces["spectator"]
+				player.zoom=0.30
+				global.god_players[player.name] = false
+				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches back to Real mode") end
+			else
+				game.print(">>>>> Only spectators are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
+			end
+			return
+		else
+			player.print(">>>>> Only admins are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
+			return
+		end
+	end
 	
+	if name == "spec_z_1" then --EVL Asking for large view
+		if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") asks for Large view") end
+		if player.admin then
+		
+			if player.force.name == "spec_god" then --EVL admin must be in spec_god mode too
+				player.zoom=0.12 -- EVL WRITE ONLY :-(
+			else
+				player.print(">>>>> You must click on ~Spec~ button first.", {r = 175, g = 0, b = 0})
+			end
+		else 
+			player.print(">>>>> You are not allowed to do that.", {r = 175, g = 0, b = 0})
+		end
+		return
+	end
+	if name == "spec_z_2" then --EVL Asking for larger view
+		if global.bb_debug then game.print("Debug: player :" ..  player.name .." ("..player.force.name.. ") asks for LargeR view") end
+		if game.players[event.player_index].admin then
+			if player.force.name == "spec_god" then --EVL admin must be in spec_god mode too
+				player.zoom=0.06 -- EVL WRITE ONLY :-(
+			else
+				player.print(">>>>> You must click on ~Spec~ button first.", {r = 175, g = 0, b = 0})
+			end
+		else
+			player.print(">>>>> You are not allowed to do that.", {r = 175, g = 0, b = 0})
+		end
+		return
+	end	
 	
 end
 

@@ -24,15 +24,15 @@ local function force_map_reset(reason)
 				--game.print("[ERROR] Map is during reset already") --EVL changed to below
 				
 				--EVL game has ended, we can even so ask for reset (but what for : rematch ? training ?)
-				msg =">>>>> Admin/Referee " .. player.name .. " initiated exceptional map reset (after end). Reason: " .. reason --EVL shouldnt be used in BBC
-				msg_gui="Admin/Referee " .. player.name .. " initiated exceptional map reset (after end).\nReason: " .. reason --EVL remember (manual validation on website ?)
+				msg = ">>>>> Admin/Referee " .. player.name .. " initiated exceptional map reset (after end). Reason: " .. reason --EVL shouldnt be used in BBC
+				msg_gui = player.name .. " initiated exceptional map reset (after end).\nReason: " .. reason --EVL remember (manual validation on website ?)
 				game.print(msg, Color.fail)
 				Server.to_discord_embed(msg)
 				global.force_map_reset_exceptional=true
 				global.confirm_map_reset_exceptional=false
 				global.server_restart_timer=nil --EVL see main.lua (will be set to 20)
-				--EVL WE ADD TO EXPORT DATAS THAT A FORCE-MAP-RESET HAS BEEN CALLED (after match ends so its fine, we just write it down)
-				global.force_map_reset_export_reason[#global.force_map_reset_export_reason + 1] = msg_gui .. " (at tick="..game.tick..")"
+				--EVL WE ADD TO EXPORT DATAS THAT A FORCE-MAP-RESET HAS BEEN CALLED (after match ends so its fine (datas are already exported), we just write it down)
+				table.insert(global.force_map_reset_export_reason, msg_gui .. " (at tick="..game.tick..")")
 				return
 			end
 			--EVL game has not ended, we can even so ask for reset (but what for ?)
@@ -46,11 +46,9 @@ local function force_map_reset(reason)
 			global.confirm_map_reset_exceptional=false
 			global.server_restart_timer=nil --EVL see main.lua (will be set to 20)
 			--EVL WE ADD TO EXPORT DATAS THAT A FORCE-MAP-RESET HAS BEEN CALLED (before or during match ... this match should be cancelled?)
-			global.force_map_reset_export_reason[#global.force_map_reset_export_reason + 1] = msg_gui .. " (at tick="..game.tick..")"
+			table.insert(global.force_map_reset_export_reason, msg_gui .. " (at tick="..game.tick..")")
         end
     end
 end
 
-commands.add_command('force-map-reset',
-                     '/force-map-reset <reason> (should never be used)',
-                     function(cmd) force_map_reset(cmd.parameter); end)
+commands.add_command('force-map-reset','/force-map-reset <reason> (should never be used)',function(cmd) force_map_reset(cmd.parameter); end)

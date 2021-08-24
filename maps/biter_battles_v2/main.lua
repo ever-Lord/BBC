@@ -22,7 +22,7 @@ require "maps.biter_battles_v2.sciencelogs_tab"
 -- require 'maps.biter_battles_v2.commands' --EVL no need (other way to restart : use /force_map_reset instead)
 require "modules.spawners_contain_biters"
 
-require 'spectator_zoom' -- EVL Zoom for spectators 
+--require 'spectator_zoom' -- EVL Zoom for spectators -> Moved to GUI.LEFT
 
 --EVL A BEAUTIFUL COUNTDOWN IN ASCII ART (limited to 9 -> 1)
 local function show_countdown(_second)
@@ -48,7 +48,7 @@ end
 
 
 --EVL EXPORTING DATAS TO FRAME AND TO JSON FILE
-local _stats_are_set = false --First we set the datas
+--local _stats_are_set = false --First we set the datas moved to init global.export_stats_are_set
 local _guit = ""	--_GUI_TITLE FULL WIDTH
 local _guil = ""	--_GUI_LEFT
 local _guir = ""	--_GUI_RIGHT
@@ -58,11 +58,12 @@ local _jsonr = {}	-- JSON RIGHT TABLE
 
 local function set_stats_title() --fill up string "local _guit" and table "local _jsont"
 	
-	_guit=_guit.."              [font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
-	_guit=_guit.."              see all results at [color=#DDDDDD]https://www.bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
-	_guit=_guit.."              [font=default-small][color=#999999]Note: Referee/Admins need to re-allocate permissions as they were before this game.[/color][/font]\n"
+	_guit=_guit.."                   [font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
+	_guit=_guit.."                   see all results at [color=#DDDDDD]https://www.bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
+	_guit=_guit.."                   [font=default-small][color=#999999]Note: Referee/Admins need to re-allocate permissions as they were before this game.[/color][/font]\n"
+	_guit=_guit.."                   [font=default-small][color=#77DD77]Referee & players need to set url of their replay via the website ASAP.[/color][/font]"
 	_guit=_guit.."\n"
-	_guit=_guit.."              [font=default-large-bold][color=#FF5555]                              --- [color=#55FF55]RESULTS[/color] and [color=#5555FF]STATISTICS[/color]  ---[/color][/font]\n"
+	_guit=_guit.."                   [font=default-large-bold][color=#FF5555]                              --- [color=#55FF55]RESULTS[/color] and [color=#5555FF]STATISTICS[/color]  ---[/color][/font]"
 
 end
 local function set_stats_left() --fill up string "local _guil" and table "local _jsonl"
@@ -84,10 +85,9 @@ local function set_stats_left() --fill up string "local _guil" and table "local 
 	_guil=_guil.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
 	local _bb_game_won_by_team=global.bb_game_won_by_team
 	local _bb_game_loss_by_team = Tables.enemy_team_of[_bb_game_won_by_team]
-	_guil=_guil.."     WINNER=".._bb_game_won_by_team.." | LOOSER=".._bb_game_loss_by_team.."\n"
-	_guil=_guil.."     TEAM_ATHOME=".."tbd".."\n"
-	_guil=_guil.."     REROLL="..(global.reroll_max-global.reroll_left).."\n"
-	_guil=_guil.."\n"
+	_guil=_guil.."     WINNER=".._bb_game_won_by_team.."  |  LOOSER=".._bb_game_loss_by_team.."\n"
+	_guil=_guil.."     TEAM_ATHOME=".."tbd".."  |  Side: ".."tbd".."\n"
+	_guil=_guil.."     REROLL="..(global.reroll_max-global.reroll_left)
 
 	for i=1,2,1 do
 		--NORTH SIDE --
@@ -106,7 +106,7 @@ local function set_stats_left() --fill up string "local _guil" and table "local 
 
 
 
-		_guil=_guil.."[font=default-bold][color=#FF9740]>>"..string.upper(force_name).." STATS>>[/color][/font]\n"
+		_guil=_guil.."\n[font=default-bold][color=#FF9740]>>"..string.upper(force_name).." STATS>>[/color][/font]\n"
 		--local north_name = "Team North"
 		--if global.tm_custom_name["north"] then north_name = global.tm_custom_name["north"]	end
 		_guil=_guil.."     TEAM_NAME="..team_name.."\n"
@@ -159,19 +159,19 @@ local function set_stats_left() --fill up string "local _guil" and table "local 
 				_science=_science.." | [item="..Tables.food_long_and_short[i].long_name.."]".."="..total_science_of_force[i]
 				if i==3 then _science=_science.."\n     " end
 			end
-			_guil=_guil.."     SCIENCE_SENT".._science.."\n"
+			_guil=_guil.."     SCIENCE_SENT".._science
 		else
-			_guil=_guil.."     SCIENCE_SENT | NONE".."\n"
+			_guil=_guil.."     SCIENCE_SENT | NONE"
 		end
-		_guil=_guil.."\n"
 	end
 		
 	--OTHER DATAS
-	_guil=_guil.."[font=default-bold][color=#FF9740]>>FORCE MAP RESETS>>[/color][/font]\n"
-	for _index,_msg in pairs(global.force_map_reset_export_reason) do
-		_guil=_guil.."     [".._index.."] ".._msg.."\n"
-	end
-		
+	local fmr_nb=table_size(global.force_map_reset_export_reason) --EVL number of frece-map-reset
+	if fmr_nb>0 then
+		_guil=_guil.."\n[font=default-bold][color=#FF9740]>>FORCE MAP RESETS>>[/color][/font] [font=default-small][color=#999999]"
+		_guil=_guil.."   (organisators will double check this match)[/color][/font]"
+		for _index=1,fmr_nb,1 do _guil=_guil.."\n     [".._index.."] "..global.force_map_reset_export_reason[_index] end
+	end		
 	
 end
 
@@ -181,12 +181,17 @@ local function export_results(export_to_json)
 	-- Note who is admins in player/referee list
 
 	--Add line --CODING-- ?
-	if not _stats_are_set then
-		_stats_are_set=true
+	if not global.export_stats_are_set then
+		_guit = ""	--_GUI_TITLE FULL WIDTH
+		_guil = ""	--_GUI_LEFT
+		_guir = ""	--_GUI_RIGHT
+		_jsont = {}	-- JSON TITLE TABLE
+		_jsonl = {}	-- JSON LEFT TABLE
+		_jsonr = {}	-- JSON RIGHT TABLE
 		if global.bb_debug then game.print(">>>>> Setting results and stats.", {r = 0.22, g = 0.22, b = 0.22}) end
 		set_stats_title()	--Will fill up string "local _guit" and table "local _jsont"
 		set_stats_left()	--Will fill up string "local _guil" and table "local _jsonl"
-		
+		global.export_stats_are_set=true		
 	else 
 		if global.bb_debug then game.print(">>>>> Results and stats are already set.", {r = 0.22, g = 0.22, b = 0.22}) end
 	end
@@ -197,7 +202,6 @@ local function export_results(export_to_json)
 	-- get_input_count(string) get_output_count(string) (prototype)
 	--game.print(serpent.block(game.forces["north"].kill_count_statistics.input_counts))
 	--game.print(serpent.block(game.forces["north"].kill_count_statistics.output_counts))
-	game.print("DDDDDDDDDDDDD")
 	
 
 	

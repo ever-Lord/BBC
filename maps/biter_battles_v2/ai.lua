@@ -73,11 +73,16 @@ local threat_values = {
 	["spitter-spawner"] = 32
 }
 
-local function get_active_biter_count(biter_force_name)
+local function get_active_biter_count(biter_force_name, debug)
 	local count = 0
-	for _, _ in pairs(global.active_biters[biter_force_name]) do
+	msg="" --EVL DEBUG/TEST/UNDERSTAND?
+	for unit_number, biter in pairs(global.active_biters[biter_force_name]) do
 		count = count + 1
+		msg=msg..unit_number.." | "
 	end
+	debug=false
+	if debug and global.bb_biters_debug and msg~="" then game.print("         "..biter_force_name..": "..count.." active biters  > "..msg, {r = 50, g = 50, b = 50}) end --EVL tracking biters
+
 	return count
 end
 
@@ -268,9 +273,8 @@ local function select_units_around_spawner(spawner, force_name, side_target)
 			global.biter_spawn_unseen[force_name][unit_name] = false
 		end
 	end
-
-	--if global.bb_biters_debug then game.print("DEBUGS: "..get_active_biter_count(biter_force_name) .. " active units for " .. biter_force_name,{20, 20, 20}) end --CODING--
-
+	get_active_biter_count(biter_force_name, true) -- game.print in the function
+	--if global.bb_biters_debug then game.print("         info: "..get_active_biter_count(biter_force_name, true) .. " active units for " .. biter_force_name,{50, 50, 50}) end --CODING-- DEBUGS CAREFUL
 	return valid_biters
 end
 
@@ -497,7 +501,7 @@ local function create_attack_group(surface, force_name, biter_force_name, group_
 		if global.bb_biters_debug then game.print("          Debugs: Threat is negative ["..force_name.."] [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return false 
 	end
-	if bb_config.max_active_biters - get_active_biter_count(biter_force_name) < bb_config.max_group_size then
+	if bb_config.max_active_biters - get_active_biter_count(biter_force_name, false) < bb_config.max_group_size then
 		if global.bb_biters_debug then game.print("          Debugs: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. bb_config.max_active_biters - get_active_biter_count(biter_force_name)
 										.." [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return false
@@ -540,6 +544,9 @@ Public.pre_main_attack = function()
 		local biter_force_name = force_name .. "_biters"
 		global.main_attack_wave_amount = math.ceil(get_threat_ratio(biter_force_name) * 7)
 		if global.main_attack_wave_amount < 3 then global.main_attack_wave_amount=3 end --EVL even if one team is far ahead, we want at least 3 waves : so waves are 0 (if threat<0) or in 3..7 interval
+		--In training mode with only one team (which is supposed to be the case), global.main_attack_wave_amount will always be=7 (due to threat ratio)
+		if global.training_mode then global.main_attack_wave_amount=math.random(3,6) end -- EVL little patch for training mode need TODO and add threat to opponents too ?
+		
 		--CHANGE THIS TO SHOW ADMINS ONLY ? (probably no)
 		if global.bb_biters_debug then game.print("DEBUGS: UP TO "..global.main_attack_wave_amount .. " unit groups designated for " .. force_name .. " biters. [threats N="
 		..math.floor(global.bb_threat["north_biters"]).." S="..math.floor(global.bb_threat["south_biters"]).."]", {r = 192, g = 77, b = 77}) end --EVL

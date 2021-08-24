@@ -146,8 +146,8 @@ end
 function Public.draw_structures()
 	local surface = game.surfaces[global.bb_surface_name]
 	Terrain.draw_spawn_area(surface)
-	Terrain.clear_ore_in_main(surface) --EVL --CODING--
-	Terrain.generate_spawn_ore(surface)
+	--Terrain.clear_ore_in_main(surface) --EVL --CODING--
+	--Terrain.generate_spawn_ore(surface)
 	Terrain.generate_additional_rocks(surface)
 	Terrain.generate_silo(surface)
 	Terrain.draw_spawn_circle(surface)
@@ -238,7 +238,7 @@ function Public.tables()
 	game.reset_time_played()
 	
 	global.main_attack_wave_amount = 0
-	global.next_attack = "north" --EVL Coinflip moved to main.lua (and game_over.lua after reroll) 
+	global.next_attack = "north" --EVL Coinflip moved to main.lua (and game_over.lua after reroll/reset) 
 	--EVL Need a patch so first attack goes to team OUTSIDE (give an advantage top team ATHOME) not sure its an advantage though
 	--EVL well, not even working since waves (with no group in them) are built during lobby time 
 	--We need to set global.next_attack when match starts
@@ -257,8 +257,8 @@ function Public.tables()
 	--global.game_id=nil --EVL Game Identificator from website (via lobby?)
 	global.game_id=12423 --CODING--
 	
-	--global.reroll_max=3 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
-	global.reroll_max=1 --EVL TO be removed  --CODING--
+	global.reroll_max=3 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
+	--global.reroll_max=1 --EVL TO be removed  --CODING-- 2 or 3 ???????
 	global.reroll_left=global.reroll_max --EVL = global.reroll_max as we init (will be set to real value after a reroll has been asked)
 	global.reroll_do_it=false --EVL (none)
 
@@ -273,17 +273,20 @@ function Public.tables()
 	global.freezed_time=0 --EVL (none)
 	global.freezed_start=game.ticks_played --EVL we save tick when players started to be frozen (none)
 	global.reveal_init_map=true --EVL (none)
-	--global.evo_boost_tick=1.5*60*60*60 --EVL We boost evo starting at 2h=120m 
-	global.evo_boost_tick=1*60*60 --EVL  --CODING--
+	global.evo_boost_tick=2*60*60*60 --EVL We boost evo starting at 2h=120m 
+	--global.evo_boost_tick=1*60*60 --EVL  --CODING--
 	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
 	global.evo_boost_values={ 	-- EVL set to boost values after global.evo_boost_tick (1%=0.01)
-		["north_biters"]=0.001, --CODING--
-		--["north_biters"]=0.00, --CODING--
+		--["north_biters"]=0.001, --CODING--
+		["north_biters"]=0.00, --CODING--
 		["south_biters"]=0.00
 	}	
 	global.force_map_reset_exceptional=false -- set to true if a map reset is called via chat command
 	global.force_map_reset_export_reason={} -- we save infos about force-map-resets
-	global.export_stats_done=nil -- Set to true after match is over and stats are exported
+	
+	global.export_stats_are_set = false -- first : At the end of the match we first we set the datas
+	global.export_stats_done=nil -- then : Set to true after match is over and stats are exported
+	
 	--global.server_restart_timer = 20 -- EVL see main.lua, need to be nil
 	global.god_players={} -- EVL List of players in spec_god force/mode : we have 2 kinds of specs (see spectator_zoom.lua)
 	
