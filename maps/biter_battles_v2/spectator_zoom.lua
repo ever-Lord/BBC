@@ -1,3 +1,6 @@
+--MOVED TO GUI.LUA
+--NOT USED ANYMORE
+
 --Adds 3 buttons to fly over the map and get 2 levels of zoom out
 --Limited to Admins (referees) that are in spectator force (on the island)
 
@@ -53,16 +56,17 @@ local function on_gui_click(event)
 	local name = element.name
 	if name == "spec_zoom_spec" then
 		local player = game.players[event.player_index]
-		-- GO TO SPEC GOD MODE
+		
 		if player.admin then
-			if player.force.name == "spectator" then
+			if player.force.name == "spectator" then -- GO TO SPEC GOD MODE
 				player.force = game.forces["spec_god"]
 				if player.character then player.character.destroy() end
 				player.character = nil
+				game.players[event.player_index].zoom=0.18
 				global.god_players[player.name] = true
 				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches to God mode") end
 				--game.print("##"..table_size(global.god_players))
-			elseif player.force.name == "spec_god" then
+			elseif player.force.name == "spec_god" then -- GO TO SPEC REAL MODE
 				player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
 				player.create_character()
 				player.force = game.forces["spectator"]
@@ -77,26 +81,6 @@ local function on_gui_click(event)
 			player.print(">>>>> Only admins are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
 			return
 		end
-		--[[ EVL OLD VERSION
-		--player.character.destructible = false
-		if player.admin and player.force.name == "spectator" then
-			if not God_Players[player.name] then
-				if player.character then player.character.destroy() end
-				player.character = nil
-				God_Players[player.name] = true
-				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches to God mode") end
-			
-			else
-				player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-				player.create_character()
-				God_Players[player.name] = false
-				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches back to real mode") end
-			end
-			
-		else 
-			player.print(">>>>> You are not allowed to do that.", {r = 175, g = 0, b = 0})
-		end
-		]]--
 	end
 	
 	if name == "spec_zoom_1" then --EVL Asking for large view

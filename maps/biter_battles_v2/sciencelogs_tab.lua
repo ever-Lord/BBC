@@ -55,12 +55,13 @@ local function add_science_logs(player, element)
 		[7] = global.science_logs_category_potion[6],
 		[8] = global.science_logs_category_potion[7]
 	}
+	--HEAD LINE SUMMARY
 	for _, w in ipairs(column_widths) do
 		local label = t_summary.add { type = "label", caption = headersSummary[_] }
 		label.style.minimal_width = w
 		label.style.maximal_width = w
 	end
-	
+	--NORTH SUMMARY
 	summary_panel_table = science_scrollpanel.add { type = "table", column_count = 8 }
 	local label = summary_panel_table.add { type = "label", name = "science_logs_total_north_header", caption = "Total sent by north" }
 	label.style.minimal_width = width_summary_first_column
@@ -71,7 +72,7 @@ local function add_science_logs(player, element)
 		label.style.maximal_width = width_summary_columns
 	end
 	science_scrollpanel.add({type = "line"})
-	
+	--SOUTH SUMMARY
 	summary_panel_table2 = science_scrollpanel.add { type = "table", column_count = 8 }
 	local label = summary_panel_table2.add { type = "label", name = "science_logs_total_south_header", caption = "Total sent by south" }
 	label.style.minimal_width = width_summary_first_column
@@ -82,7 +83,7 @@ local function add_science_logs(player, element)
 		label.style.maximal_width = width_summary_columns
 	end
 	science_scrollpanel.add({type = "line"})
-	
+	--PASSIVE FEED SUMMARY
 	summary_panel_table3 = science_scrollpanel.add { type = "table", column_count = 8 }
 	local label = summary_panel_table3.add { type = "label", name = "science_logs_total_passive_feed_header", caption = "Total passive feed" }
 	label.style.minimal_width = width_summary_first_column
@@ -98,6 +99,13 @@ local function add_science_logs(player, element)
 	end
 	science_scrollpanel.add({type = "line"})
 	
+	--EVL BOOST mode infos
+	local t_boost_info = "   Note : ARMAGEDDON/BOOST mode (after ".. math.floor(global.evo_boost_tick/3600) .." minutes) does not appear here (TODO)"
+	local t_boost = science_scrollpanel.add {type = "label", name = "science_logs_boost_info", caption = t_boost_info }
+	t_boost.style.font_color = { r=0.66, g=0.66, b=0.66 }
+	science_scrollpanel.add({type = "line"})
+	--EVL END
+	
 	if global.dropdown_users_choice_force == nil then
 		initialize_dropdown_users_choice()
 	end
@@ -111,12 +119,7 @@ local function add_science_logs(player, element)
 		global.dropdown_users_choice_evo_filter[player.name] = 1
 	end
 	
-	--EVL BOOST mode infos
-	local t_boost_info = "   Note : BOOST mode (after ".. math.floor(global.evo_boost_tick/3600) .." minutes) does not appear here (TODO)"
-	local t_boost = science_scrollpanel.add {type = "label", name = "science_logs_boost_info", caption = t_boost_info }
-	t_boost.style.font_color = { r=0.66, g=0.66, b=0.66 }
-	science_scrollpanel.add({type = "line"})
-	--EVL END
+
 	
 	
 	local t_filter = science_scrollpanel.add { type = "table", name = "science_logs_filter_table", column_count = 3 }

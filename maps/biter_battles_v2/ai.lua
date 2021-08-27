@@ -355,7 +355,7 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		local force_opponent=enemy_team_of[force_name]
 		local _nb_way_points_opp=table_size(global.way_points_table[force_opponent])
 		--game.print("opponent "..force_opponent.." has ".._nb_way_points_opp.." waypoints")
-		if _nb_way_points_opp > 2 then --we have 3 or more waypoints to choose from --CODING--Change to 4 or 5 ?
+		if _nb_way_points_opp > 2 then --we have 3 or more waypoints to choose from
 			local _index=math.random(1,_nb_way_points_opp)
 			if _index>1 then _index=_index-1 end --EVL little trick to go further in the past, last waypoint will never be choosed
 			_position=global.way_points_table[force_opponent][_index]
@@ -395,7 +395,7 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 	
 	if position then
 		if math.abs(position.y) >= math.abs(unit_group.position.y) then --EVL TEST/DEBUG/UNDERSTAND
-			if global.bb_biters_debug then game.print("  DEBUGS: I dont know what happened here (send_group in ai.lua)  group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
+			if global.bb_biters_debug then game.print("  DEBUGS: I dont understand what happened here (send_group in ai.lua)  group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
 		end 
 		--if math.abs(position.y) < math.abs(unit_group.position.y) then
 			commands[#commands + 1] = {
@@ -561,8 +561,7 @@ Public.perform_main_attack = function()
 	--game.print("start of main_attack #"..global.main_attack_wave_amount)
 	if global.freeze_players then return end -- EVL we dont send groups while freezed
 	local number = (game.tick % 900)/60 --#call from tick functions (main.lua)
-	
-	--if global.bb_biters_debug then game.print("DEBUGS: "..number.." group#"..global.main_attack_wave_amount, {r = 127, g = 127, b = 127}) end --CODING--
+
 	if number==1 and global.bb_biters_debug then show_way_points_table(global.way_points_table) end --show the table at the beginning of the main attacks
 	if global.main_attack_wave_amount > 0 then
 		--if global.bb_biters_debug then game.print("--------START OF SENDING GROUP#"..global.main_attack_wave_amount.."------", {r = 99, g = 99, b = 99}) end
@@ -570,7 +569,6 @@ Public.perform_main_attack = function()
 		local force_name = global.next_attack
 		local biter_force_name = force_name .. "_biters"
 		create_attack_group(surface, force_name, biter_force_name, global.main_attack_wave_amount)
-		--if global.bb_biters_debug then game.print("--------END OF SENDING GROUP#"..global.main_attack_wave_amount.."------", {r = 99, g = 99, b = 99}) end --CODING--
 		global.main_attack_wave_amount = global.main_attack_wave_amount - 1
 		if global.main_attack_wave_amount==0 and global.bb_biters_debug then  --show the table at the end of the main attacks
 			show_way_points_table(global.way_points_table) 
@@ -629,12 +627,13 @@ Public.unlock_satellite = function(event)
 end
 
 Public.raise_evo = function()
-	--game.print("public.raise_evo ") --EVL debug
+
 	if global.freeze_players then --EVL evo of evo if also frozen
 		return 
 	end
+
 	--EVL LINE BELOW TO UNCOMMENT AFTER TESTING --CODING--
-	--if not global.training_mode and (#game.forces.north.connected_players == 0 or #game.forces.south.connected_players == 0) then return end
+	if not global.training_mode and (#game.forces.north.connected_players == 0 or #game.forces.south.connected_players == 0) then return end
 
 
 	--[[ EVL we are not babies, no more pity timer
@@ -653,12 +652,12 @@ Public.raise_evo = function()
 	local a_team_has_players = false
 	for bf, pf in pairs(biter_teams) do
 		--EVL LINE BELOW TO UNCOMMENT AFTER TESTING  --CODING--
-		--if #game.forces[pf].connected_players > 0 then --CODING--
+		if #game.forces[pf].connected_players > 0 then --CODING--
 			set_evo_and_threat(amount, "automation-science-pack", bf)
 			a_team_has_players = true
 			global.bb_evolution[bf] = global.bb_evolution[bf] + global.evo_boost_values[bf] --EVL we boost EVO (but not threat)
 			--game.print("evo "..bf.."="..global.bb_evolution[bf]) --EVL debug
-		--end --CODING--
+		end --CODING--
 	end
 	if not a_team_has_players then return end
 	global.evo_raise_counter = global.evo_raise_counter + (1 * 0.50)

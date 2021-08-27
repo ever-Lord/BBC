@@ -302,10 +302,10 @@ local function generate_extra_worm_turrets(surface, left_top)
 	local r = math.round(amount - floor_amount, 3) * 1000
 	if math_random(0, 999) <= r then floor_amount = floor_amount + 1 end 
 	
-	if floor_amount > 64 then floor_amount = 64 end
+	if floor_amount > 64 then floor_amount = 64 end --EVL by the way there are a LOT of worms over the map !!!
 	
 	for _ = 1, floor_amount, 1 do	
-		local worm_turret_name = BiterRaffle.roll("worm", chunk_distance_to_center * 0.00015)
+		local worm_turret_name = BiterRaffle.roll("worm", chunk_distance_to_center * 0.00015) --EVL Never saw a big or a behemoth
 		local v = chunk_tile_vectors[math_random(1, size_of_chunk_tile_vectors)]
 		local position = surface.find_non_colliding_position(worm_turret_name, {left_top.x + v[1], left_top.y + v[2]}, 8, 1)
 		if position then
@@ -583,8 +583,9 @@ function Public.generate_silo(surface)
 		end
 	end
 	--EVL we put 3 turrets next to silo with 12 bullets in each
-	local _count=1 --CODING-- count=12
-
+	local _count=12 --CODING-- count=1(debug) or 12
+	--local _count=1
+	
 	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
 	turret1.insert({name = "firearm-magazine", count = _count})
 	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
@@ -592,7 +593,7 @@ function Public.generate_silo(surface)
 	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
 	turret3.insert({name = "firearm-magazine", count = _count})
 	
-	local add_turrets=true --CODING--
+	local add_turrets=false --CODING--
 	if add_turrets then --EVL SOME MORE TURRETS FOR TESTING IN SOLO
 		--local bullet="firearm-magazine"
 		local bullet="uranium-rounds-magazine"

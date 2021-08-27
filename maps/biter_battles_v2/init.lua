@@ -13,8 +13,8 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.pollution.enabled = false
 	game.map_settings.enemy_expansion.enabled = false
 
-	global.bb_debug = true --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
-	global.bb_biters_debug = true --EVL ADD MUCH VERBOSE TO BITERS AI
+	global.bb_debug = false --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
+	global.bb_biters_debug = false --EVL ADD MUCH VERBOSE TO BITERS AI
 	-- EVL change for map restart (/force-map-reset)
 	local _first_init=true --EVL for disabling nauvis (below)
 	if not game.forces["north"] then 
@@ -22,7 +22,12 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 		game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open [color=#FF9740]TEAM MANAGER[/color] <<<<<",{r = 00, g = 175, b = 00}) --EVL double message?
 	else
 		if global.bb_debug then game.print("Debug : Executing initial setup (again)",{r = 00, g = 175, b = 00}) end
-		game.print(">>>>> You may need to refresh [color=#FF9740]TEAM MANAGER[/color] GUI manually",{r = 127, g = 127, b = 127})
+		--game.print(">>>>> You may need to refresh [color=#FF9740]TEAM MANAGER[/color] GUI manually",{r = 127, g = 127, b = 127})
+		for _, player in pairs(game.players) do
+			if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
+		end
+		--CODING--
+		--REINIT SCORE ? NOT NEEDED IT SEEMS
 		_first_init=false
 	end
 	if not game.forces["south"] then game.create_force("south") end
@@ -146,8 +151,8 @@ end
 function Public.draw_structures()
 	local surface = game.surfaces[global.bb_surface_name]
 	Terrain.draw_spawn_area(surface)
-	--Terrain.clear_ore_in_main(surface) --EVL --CODING--
-	--Terrain.generate_spawn_ore(surface)
+	Terrain.clear_ore_in_main(surface) --EVL --CODING--
+	Terrain.generate_spawn_ore(surface)
 	Terrain.generate_additional_rocks(surface)
 	Terrain.generate_silo(surface)
 	Terrain.draw_spawn_circle(surface)
@@ -254,10 +259,12 @@ function Public.tables()
 	}
 	
 	
-	--global.game_id=nil --EVL Game Identificator from website (via lobby?)
-	global.game_id=12423 --CODING--
+	global.game_id=nil --EVL Game Identificator from website (via lobby?)
+	--global.game_id=12423 --CODING--
 	
-	global.reroll_max=3 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
+	global.player_anim={}
+	
+	global.reroll_max=2 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
 	--global.reroll_max=1 --EVL TO be removed  --CODING-- 2 or 3 ???????
 	global.reroll_left=global.reroll_max --EVL = global.reroll_max as we init (will be set to real value after a reroll has been asked)
 	global.reroll_do_it=false --EVL (none)
@@ -266,8 +273,8 @@ function Public.tables()
 	global.pack_choosen = ""	--EVL starter pack choosen
 	global.fill_starter_chests = false  --EVL 
 	global.starter_chests_are_filled = false  --EVL (none)
-	--global.match_countdown = 9 --EVL time of the countdown in seconds before match starts (unpause will have a 3 seconds countdown)
-	global.match_countdown = 2 --CODING--
+	global.match_countdown = 9 --EVL time of the countdown in seconds before match starts (unpause will have a 3 seconds countdown)
+	--global.match_countdown = 2 --CODING--
 	global.match_running = false  --EVL determine if this is first unfreeze (start match) or nexts (pause/unpause)
 
 	global.freezed_time=0 --EVL (none)
@@ -278,7 +285,7 @@ function Public.tables()
 	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
 	global.evo_boost_values={ 	-- EVL set to boost values after global.evo_boost_tick (1%=0.01)
 		--["north_biters"]=0.001, --CODING--
-		["north_biters"]=0.00, --CODING--
+		["north_biters"]=0.00, 
 		["south_biters"]=0.00
 	}	
 	global.force_map_reset_exceptional=false -- set to true if a map reset is called via chat command
@@ -286,6 +293,8 @@ function Public.tables()
 	
 	global.export_stats_are_set = false -- first : At the end of the match we first we set the datas
 	global.export_stats_done=nil -- then : Set to true after match is over and stats are exported
+	global.science_per_player = {} -- table for total science sent per player -> global.science_per_player[player.name][indexScience]
+	
 	
 	--global.server_restart_timer = 20 -- EVL see main.lua, need to be nil
 	global.god_players={} -- EVL List of players in spec_god force/mode : we have 2 kinds of specs (see spectator_zoom.lua)

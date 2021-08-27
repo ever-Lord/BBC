@@ -100,6 +100,8 @@ local function add_stats(player, food, flask_amount,biter_force_name,evo_before_
 		else
 			minute_unit = "mins"
 		end
+
+		
 		
 		local shown_feed_time_hours = ""
 		local shown_feed_time_mins = ""
@@ -134,6 +136,15 @@ local function add_stats(player, food, flask_amount,biter_force_name,evo_before_
 		
 		local indexScience = tables.food_long_to_short[food].indexScience
 		total_science_of_player_force[indexScience] = total_science_of_player_force[indexScience] + flask_amount
+		
+		if not global.science_per_player[player.name] then
+			global.science_per_player[player.name]={}
+			for _index = 1, 7 do
+				table.insert(global.science_per_player[player.name], 0)
+			end
+		end
+		global.science_per_player[player.name][indexScience] = global.science_per_player[player.name][indexScience] + flask_amount
+		
 		
 		if global.science_logs_text then
 			table.insert(global.science_logs_date,1, formatted_feed_time)

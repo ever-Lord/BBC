@@ -25,7 +25,7 @@ local function force_map_reset(reason)
 				
 				--EVL game has ended, we can even so ask for reset (but what for : rematch ? training ?)
 				msg = ">>>>> Admin/Referee " .. player.name .. " initiated exceptional map reset (after end). Reason: " .. reason --EVL shouldnt be used in BBC
-				msg_gui = player.name .. " initiated exceptional map reset (after end).\nReason: " .. reason --EVL remember (manual validation on website ?)
+				msg_gui = player.name .. " initiated exceptional map reset (after end). Reason: " .. reason --EVL remember (manual validation on website ?)
 				game.print(msg, Color.fail)
 				Server.to_discord_embed(msg)
 				global.force_map_reset_exceptional=true
@@ -37,7 +37,7 @@ local function force_map_reset(reason)
 			end
 			--EVL game has not ended, we can even so ask for reset (but what for ?)
 			msg =">>>>> Admin/Referee " .. player.name .. " initiated exceptional map reset (before end). Reason: " .. reason --EVL shouldnt be used in BBC
-			msg_gui="Admin/Referee " .. player.name .. " initiated exceptional map reset (before end).\nReason: " .. reason --EVL remember (manual validation on website ?)
+			msg_gui="Admin/Referee " .. player.name .. " initiated exceptional map reset (before end). Reason: " .. reason --EVL remember (manual validation on website ?)
 			game.print(msg, Color.fail)
 			Server.to_discord_embed(msg)
 			--local p = global.rocket_silo["north"].position

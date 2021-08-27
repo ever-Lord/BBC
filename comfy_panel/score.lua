@@ -40,10 +40,27 @@ function Public.init_player_table(player)
     end
     if not this.score_table[player.force.name].players[player.name] then
         this.score_table[player.force.name].players[player.name] = {
-            built_entities = 0,
-            deaths = 0,
-            killscore = 0,
-            mined_entities = 0
+			built_entities = 0,
+			built_walls = 0, --EVL more stats !
+			built_chests = 0,
+			built_belts = 0,
+			built_pipes = 0,
+			built_powers = 0,
+			built_inserters = 0,
+			built_miners = 0,
+			built_furnaces = 0,
+			built_machines = 0,
+			built_labs = 0,
+			built_turrets = 0, --EVL
+			deaths = 0,
+			killscore = 0,
+			kills_small = 0, --EVL even more stats !
+			kills_medium = 0,
+			kills_big = 0,
+			kills_behemoth = 0,
+			kills_spawner = 0,
+			kills_worm = 0, --EVL
+			mined_entities = 0
         }
     end
 end
@@ -411,10 +428,26 @@ local function on_entity_died(event)
     if #players_to_reward == 0 then
         return
     end
+	local _ent=event.entity.name
+	local _typ=event.entity.type
+	if global.bb_debug then game.print("died : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
+	
+	
+	--PLAYER KILLS STATS --
     for _, player in pairs(players_to_reward) do
         Public.init_player_table(player)
         local score = this.score_table[player.force.name].players[player.name]
         score.killscore = score.killscore + entity_score_values[event.entity.name]
+		--EVL MORE STATS -- (see main.lua)
+		if _ent=="small-biter" or _ent=="small-spitter" then score.kills_small = score.kills_small + 1 end
+		if _ent=="medium-biter" or _ent=="medium-spitter" then score.kills_medium = score.kills_medium + 1 end
+		if _ent=="big-biter" or _ent=="big-spitter" then score.kills_big = score.kills_big + 1 end
+		if _ent=="behemoth-biter" or _ent=="behemoth-spitter" then score.kills_behemoth = score.kills_behemoth + 1 end
+		if _ent=="biter-spawner" or _ent=="spitter-spawner" then score.kills_spawner = score.kills_spawner + 1 end
+		if _ent=="small-worm-turret" or _ent=="medium-worm-turret" or _ent=="big-worm-turret" or _ent=="behemoth-worm-turret" 
+			then score.kills_worm = score.kills_worm + 1 end
+  
+
         if global.show_floating_killscore[player.name] then
             event.entity.surface.create_entity(
                 {
@@ -436,13 +469,15 @@ local function on_player_died(event)
 end
 
 local function on_player_mined_entity(event)
-    if not event.entity.valid then
-        return
+	if not event.entity.valid then
+		return
+	end
+	if building_and_mining_blacklist[event.entity.type] then
+		return
     end
-    if building_and_mining_blacklist[event.entity.type] then
-        return
-    end
-
+	local _ent=event.entity.name
+	local _typ=event.entity.type
+	if global.bb_debug then game.print("mined : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
     local player = game.players[event.player_index]
     Public.init_player_table(player)
     local score = this.score_table[player.force.name].players[player.name]
@@ -460,6 +495,23 @@ local function on_built_entity(event)
     Public.init_player_table(player)
     local score = this.score_table[player.force.name].players[player.name]
     score.built_entities = 1 + (score.built_entities or 0)
+	
+	--EVL YES WE WANT STATS
+	local _ent=event.created_entity.name
+	local _typ=event.created_entity.type
+	--game.print("proto=".._typ.." entity=".._ent)	
+	if _ent=="stone-wall" or _ent=="gate" or _ent=="stone-brick" or _ent=="concrete"	then score.built_walls = 1 + (score.built_walls or 0) return end
+	if _typ=="container" or _typ=="logistic-container" 				 					then score.built_chests = 1 + (score.built_chests or 0) return end
+	if _typ=="transport-belt" or _typ=="underground-belt" or _typ=="splitter" 			then score.built_belts = 1 + (score.built_belts or 0) return end
+	if _ent=="pipe" or _ent=="pipe-to-ground" or _ent=="storage-tank" or _ent=="pump"	then score.built_pipes = 1 + (score.built_pipes or 0) return end
+	if _ent=="offshore-pump" or _ent=="boiler" or _ent=="steam-engine" or _ent=="solar-panel" or _ent=="accumulator" then score.built_powers = 1 + (score.built_powers or 0) return end
+	if _typ=="inserter" 													 			then score.built_inserters = 1 + (score.built_inserters or 0) return end
+	if _ent=="electric-mining-drill" or _ent=="burner-mining-drill" 					then score.built_miners = 1 + (score.built_miners or 0) return end
+	if _typ=="furnace" 													 				then score.built_furnaces = 1 + (score.built_furnaces or 0) return end
+	if _typ=="assembling-machine" or _ent=="pumpjack" or _ent=="beacon"		 			then score.built_machines = 1 + (score.built_machines or 0) return end
+	if _ent=="lab"							 											then score.built_labs = 1 + (score.built_labs or 0) return end
+	if _ent=="gun-turret" or _ent=="flamethrower-turret" or _ent=="laser-turret" or _ent=="radar" then score.built_turrets = 1 + (score.built_turrets or 0) return end	
+	
 end
 
 comfy_panel_tabs['Scoreboard'] = {gui = show_score, admin = false}

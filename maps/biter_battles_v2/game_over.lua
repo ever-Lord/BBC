@@ -372,7 +372,7 @@ function Public.server_restart()
 		--EVL Looking why always south gets attacked first
 		local whoisattackedfirst=math.random(1,2)
 		if whoisattackedfirst == 1 then global.next_attack = "south" end
-		if global.bb_debug then game.print("DEBUG: first wave will attack "..global.next_attack.." (after reroll)") end 
+		if global.bb_debug then game.print("DEBUG: first wave will attack "..global.next_attack.." (after reroll)") end -- EVL or reset but no need to talk about that unusual command
 	
 
 
@@ -389,8 +389,7 @@ function Public.server_restart()
 		return
     end
     if global.server_restart_timer % 15 == 0 then --EVL was 30
-        game.print(">>>>> Map will exceptionally restart after " .. global.server_restart_timer ..
-                       " seconds !", {r = 0.22, g = 0.88, b = 0.22})
+        game.print(">>>>> Map will [color=#FF9740]exceptionally[/color] restart after "..global.server_restart_timer.." seconds ...", {r = 0.22, g = 0.88, b = 0.22})
         --if global.server_restart_timer / 15 == 1 then --EVL was 30 NOT NEEDED
         ---   game.print("Good luck with your next match!", {r=0.98, g=0.66, b=0.22})
         --end

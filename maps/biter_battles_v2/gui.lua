@@ -269,6 +269,8 @@ function Public.create_main_gui(player)
 	if is_spec and player.admin then
 		frame.add { type = "line", caption = "this line", direction = "horizontal" }
 		local _spec_gui = frame.add { type = "table", column_count = 5 }
+		-- _spec_gui.style.horizontal_align = "center" -- WTF
+		-- frame.style.horizontal_align = "center" -- WTF
 		--EVL Button SPEC (zoom=0.18)
 		local b_spec = _spec_gui.add({type = "sprite-button", name = "spec_z_spec", caption = "Spec", tooltip = "[color=#999999]Only admins as spectators can fly over the map,[/color]\n Click to switch between REAL and GOD modes."})
 		b_spec.style.font = "heading-2"
@@ -541,7 +543,7 @@ local function on_gui_click(event)
 	--EVL only available for admins that are spectating
 	local _name=string.sub(name,0,6)
 	if _name=="plist_" then
-		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then  --CODING--  Switch lines
+		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
 		--if true then -- EVL  --CODING-- Switch lines 
 			local _target_name = event.element.caption
 			if not game.players[_target_name] then
@@ -598,14 +600,14 @@ local function on_gui_click(event)
 		end
 	end
 	
-	if name == "spec_z_1" then --EVL Asking for large view
+	if name == "spec_z_1" then --EVL Asking for large view {112, 112, 255}
 		if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") asks for Large view") end
 		if player.admin then
 		
 			if player.force.name == "spec_god" then --EVL admin must be in spec_god mode too
 				player.zoom=0.12 -- EVL WRITE ONLY :-(
 			else
-				player.print(">>>>> You must click on ~Spec~ button first.", {r = 175, g = 0, b = 0})
+				player.print(">>>>> You must click on [color=#7070FF]~SPEC~[/color] button first.", {r = 175, g = 0, b = 0})
 			end
 		else 
 			player.print(">>>>> You are not allowed to do that.", {r = 175, g = 0, b = 0})
@@ -618,7 +620,7 @@ local function on_gui_click(event)
 			if player.force.name == "spec_god" then --EVL admin must be in spec_god mode too
 				player.zoom=0.06 -- EVL WRITE ONLY :-(
 			else
-				player.print(">>>>> You must click on ~Spec~ button first.", {r = 175, g = 0, b = 0})
+				player.print(">>>>> You must click on [color=#7070FF]~SPEC~[/color] button first.", {r = 175, g = 0, b = 0})
 			end
 		else
 			player.print(">>>>> You are not allowed to do that.", {r = 175, g = 0, b = 0})

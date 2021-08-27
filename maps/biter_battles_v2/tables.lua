@@ -174,13 +174,13 @@ Public.food_value_table_version = { Public.food_values["automation-science-pack"
 		["pack_01"] = {name = "pack_01", caption = "[img=item.iron-gear-wheel] Regular", tooltip = "Raw materials, free for crafting", item_list=nil },
 		["pack_02"] = {name = "pack_02", caption = "[img=item.lab] Science", tooltip = "Labs, red potions & power", item_list=nil },
 		["pack_03"] = {name = "pack_03", caption = "[img=item.construction-robot] Robots", tooltip = "One personal robotport", item_list=nil }, -- THIS PACK HAS BONUS (bot speed) -see terrain.lua-
-		["pack_04"] = {name = "pack_04", caption = "[img=item.grenade] Combat", tooltip = "One heavy armor, fishes, grenades...", item_list=nil },
-		["pack_05"] = {name = "pack_05", caption = "[img=item.assembling-machine-2] Advanced", tooltip = "Electric miners & machines MK2", item_list=nil }
+		["pack_04"] = {name = "pack_04", caption = "[img=item.grenade] Combat", tooltip = "One heavy armor, fishes, grenades...", item_list=nil } --,
+		--["pack_05"] = {name = "pack_05", caption = "[img=item.assembling-machine-2] Advanced", tooltip = "Electric miners & machines MK2", item_list=nil }
 	}
 	Public.packs_total_nb = table_size(Public.packs_list)
 	
 Public.packs_contents= {
-	["pack_01"] =  --CHECKED
+	["pack_01"] =  --REGULER
 		{
 			["left"] = {
 				["raw-fish"]=10,
@@ -228,7 +228,7 @@ Public.packs_contents= {
 				["firearm-magazine"]=10
 			}
 		},
-	["pack_03"] =  --CHECKED
+	["pack_03"] =  --ROBOTS
 		{
 			["left"] = {
 				["lab"]=1,
@@ -271,7 +271,7 @@ Public.packs_contents= {
 				["construction-robot"]=10
 			}
 		},	
-	["pack_04"] =  -- CHECKED
+	["pack_04"] =  -- COMBAT
 		{ --Z-EM VARIATION
 			["left"] = {
 				["raw-fish"]=50,
@@ -320,7 +320,14 @@ Public.packs_contents= {
 				["shotgun-shell"]=10,
 				["heavy-armor"]=1,
 				["firearm-magazine"]=200,
-				["grenade"]=30
+				--["power-armor-mk2"]=1,  --EVL for testing --CODING--
+				--["fusion-reactor-equipment"]=2,
+				---["exoskeleton-equipment"]=2,
+				--["energy-shield-mk2-equipment"]=5,
+				--["battery-mk2-equipment"]=2,
+				--["personal-laser-defense-equipment"]=7, --EVL for testing 
+				
+				["grenade"]=300 --was 30
 			}
 		},
 		--[[{ --ORIGINAL VERSION
@@ -374,18 +381,18 @@ Public.packs_contents= {
 				["grenade"]=30
 			}
 		},]]--	
-	["pack_02"] =  --CHECKED
+	["pack_02"] =  --SCIENCE
 		{--Z-EM VARIATION
 			["left"] = {
 				["raw-fish"]=15,
 				["lab"]=20,
-				["automation-science-pack"]=50,
-				--["logistic-science-pack"]=60, --EVL for testing --CODING--
-				--["military-science-pack"]=70,
-				--["chemical-science-pack"]=80,
-				--["production-science-pack"]=90,
-				--["utility-science-pack"]=100,
-				--["space-science-pack"]=150, --EVL for testing
+				["automation-science-pack"]=50, --was 50
+				--["logistic-science-pack"]=10, --EVL for testing --CODING--
+				--["military-science-pack"]=20,
+				--["chemical-science-pack"]=30,
+				--["production-science-pack"]=40,
+				--["utility-science-pack"]=50,
+				--["space-science-pack"]=60, --EVL for testing
 				["burner-mining-drill"]=20,				
 				["stone-furnace"]=20,
 				["inserter"]=60,
@@ -422,8 +429,8 @@ Public.packs_contents= {
 				["pistol"]=1,
 				["firearm-magazine"]=10
 			}
-		},
-	["pack_05"] = 
+		}--,
+	--[[["pack_05"] = 
 		{
 			["left"] = {
 				["raw-fish"]=10,
@@ -474,18 +481,18 @@ Public.packs_contents= {
 				["pistol"]=1,
 				["firearm-magazine"]=30
 			}
-		}		
+		}]]--		
 	}	
 Public.packs_item_value = {
 	["raw-fish"]=1.4,
 	["lab"]=73.0,
 	["automation-science-pack"]=8.5,
-	--["logistic-science-pack"]=8.5*2.5, --EVL for testing --CODING--
-	--["military-science-pack"]=8.5*8,
-	--["chemical-science-pack"]=8.5*22.5,
-	--["production-science-pack"]=8.5*105,
-	--["utility-science-pack"]=8.5*120,
-	--["space-science-pack"]=8.5*500, --EVL for testing
+	["logistic-science-pack"]=8.5*2.5, --EVL for testing --CODING--
+	["military-science-pack"]=8.5*8,
+	["chemical-science-pack"]=8.5*22.5,
+	["production-science-pack"]=8.5*105,
+	["utility-science-pack"]=8.5*120,
+	["space-science-pack"]=8.5*500, --EVL for testing
 	["electric-mining-drill"]=35.7,
 	["burner-mining-drill"]=18.0,
 	["repair-pack"]=13.0,
@@ -533,7 +540,14 @@ Public.packs_item_value = {
 	["battery-equipment"]=390.0,
 	["personal-roboport-equipment"]=3450.0,
 	["car"]=215.0,
-	["construction-robot"]=139.3	
+	["construction-robot"]=139.3,
+	["power-armor-mk2"]=9999, --EVL for testing, values tbd
+	["fusion-reactor-equipment"]=999,
+	["exoskeleton-equipment"]=999,
+	["energy-shield-mk2-equipment"]=999,
+	["battery-mk2-equipment"]=999,
+	["personal-laser-defense-equipment"]=999
+
 }		
 --EVL FIN
 --EVL COUNTDOWN ASCII ART http://patorjk.com/software/taag/#p=display&c=lua&f=Impossible&t=2

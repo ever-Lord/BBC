@@ -6,9 +6,9 @@ local Game_over = require "maps.biter_battles_v2.game_over"
 local Gui = require "maps.biter_battles_v2.gui"
 local Init = require "maps.biter_battles_v2.init"
 local Tables = require "maps.biter_battles_v2.tables" --EVL (none)
-
+local Score = require "comfy_panel.score" --EVL (none)
 local Mirror_terrain = require "maps.biter_battles_v2.mirror_terrain"
-require 'modules.simple_tags'
+require 'modules.simple_tags' -- is this used ?
 local Team_manager = require "maps.biter_battles_v2.team_manager"
 	
 local Terrain = require "maps.biter_battles_v2.terrain"
@@ -16,19 +16,28 @@ local Session = require 'utils.datastore.session_data'
 local Color = require 'utils.color_presets'
 local diff_vote = require "maps.biter_battles_v2.difficulty_vote"
 
-
-
 require "maps.biter_battles_v2.sciencelogs_tab"
 -- require 'maps.biter_battles_v2.commands' --EVL no need (other way to restart : use /force_map_reset instead)
-require "modules.spawners_contain_biters"
+require "modules.spawners_contain_biters" -- is this used ?
 
 --require 'spectator_zoom' -- EVL Zoom for spectators -> Moved to GUI.LEFT
 
---EVL A BEAUTIFUL COUNTDOWN IN ASCII ART (limited to 9 -> 1)
+--EVL A BEAUTIFUL COUNTDOWN (WAS IN ASCII ART) (limited to 9 -> 1)
 local function show_countdown(_second)
-	if not _second or _second<1 or _second>9 then return end
-	for _, player in pairs(game.players) do -- EVL cdf for countdown_frame, cdb for countdown_button
-		if player.gui.center["bbc_cdf"] then player.gui.center["bbc_cdf"].destroy()	end
+	if not _second or _second<1 then return end
+	if _second>9 then 
+		game.print(">>>>> ".._second.."s remaining", {r = 77, g = 192, b = 77})
+		return 
+	end
+	for _, player in pairs(game.players) do
+		--EVL close all gui.center frames
+		for _, gui_names in pairs (player.gui.center.children_names) do 
+			player.gui.center[gui_names].destroy()
+		end
+
+		local _sprite="file/png/".._second..".png" 
+		player.gui.center.add{name = "bbc_cdf", type = "sprite", sprite = _sprite} -- EVL cdf for countdown_frame
+		--[[ THAT WAS SO NICE ASCII ART
 		local bbc_frame = player.gui.center.add({type = "frame", name = "bbc_cdf", caption = "Starting in "})
 		local _caption="\n"
 		for _line=1,#Tables.bbc_countdowns[_second],1 do
@@ -43,28 +52,75 @@ local function show_countdown(_second)
 		bbc_count.style.minimal_width = 250
 		bbc_count.style.minimal_height = 225
 		--local bbc_image = bbc_frame.add({type = "sprite", name = "bbc_png", sprite = "01.png"}) --EVL WHY??? PLEASE....
+		]]--
 	end	
 end
+--EVL SOME IMAGES TO INTRODUCE WHEN PLAYER JOINS
+local function show_anim_player(player,countdown)
+	--Close all GUI.CENTER except show_anim_png
+	for _, gui_name in pairs (player.gui.center.children_names) do -- :: array[string] [R]	Names of all the children of this element.
+		if gui_name ~= "show_anim_png" then player.gui.center[gui_name].destroy() end
+	end
 
+	--Simple way to show the anims (countdown is measured in half seconds)
+	if countdown ==19 then
+		if player.gui.center["show_anim_png"] then player.gui.center["show_anim_png"].destroy() end
+		player.gui.center.add{name = "show_anim_png", type = "sprite", sprite = "file/png/logo_100.png"}
+	elseif countdown ==18 then
+		if player.gui.center["show_anim_png"] then player.gui.center["show_anim_png"].destroy() end
+		player.gui.center.add{name = "show_anim_png", type = "sprite", sprite = "file/png/logo_150.png"}
+	elseif countdown ==17 then
+		if player.gui.center["show_anim_png"] then player.gui.center["show_anim_png"].destroy() end
+		player.gui.center.add{name = "show_anim_png", type = "sprite", sprite = "file/png/logo_200.png"}
+	elseif countdown ==16 then
+		if player.gui.center["show_anim_png"] then player.gui.center["show_anim_png"].destroy() end
+		player.gui.center.add{name = "show_anim_png", type = "sprite", sprite = "file/png/logo_300.png"}
+	elseif countdown ==15 then
+		if player.gui.center["show_anim_png"] then player.gui.center["show_anim_png"].destroy() end
+		local _png = player.gui.center.add{name = "show_anim_png", type = "sprite", sprite = "file/png/logo_1000.png"}
+	elseif countdown ==9 then
+		if player.gui.center["show_anim_png"] then player.gui.center["show_anim_png"].destroy() end
+		player.gui.center.add{name = "show_anim_png", type = "sprite", sprite = "file/png/logo_bbc.png"}
+	elseif countdown ==1 then
+		if player.gui.center["show_anim_png"] then player.gui.center["show_anim_png"].destroy() end
+		Functions.show_intro(player)
+	end
 
+end
 --EVL EXPORTING DATAS TO FRAME AND TO JSON FILE
 --local _stats_are_set = false --First we set the datas moved to init global.export_stats_are_set
 local _guit = ""	--_GUI_TITLE FULL WIDTH
 local _guil = ""	--_GUI_LEFT
-local _guir = ""	--_GUI_RIGHT
+local _guin = ""	--_GUI_NORTH
+local _guis = ""	--_GUI_SOUTH
+local _guib = ""	--_GUI_BOTTOM
 local _jsont = {}	-- JSON TITLE TABLE
 local _jsonl = {}	-- JSON LEFT TABLE
-local _jsonr = {}	-- JSON RIGHT TABLE
+local _jsonn = {}	-- JSON NORTH TABLE
+local _jsons = {}	-- JSON SOUTH TABLE
+local _jsonb = {}	-- JSON RIGHT TABLE
 
+--SETTINGS STATS ONCE FOR ALL TO USE IN EXPORT JSON AND DRAW RESULTS
 local function set_stats_title() --fill up string "local _guit" and table "local _jsont"
 	
-	_guit=_guit.."                   [font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
-	_guit=_guit.."                   see all results at [color=#DDDDDD]https://www.bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
-	_guit=_guit.."                   [font=default-small][color=#999999]Note: Referee/Admins need to re-allocate permissions as they were before this game.[/color][/font]\n"
-	_guit=_guit.."                   [font=default-small][color=#77DD77]Referee & players need to set url of their replay via the website ASAP.[/color][/font]"
-	_guit=_guit.."\n"
-	_guit=_guit.."                   [font=default-large-bold][color=#FF5555]                              --- [color=#55FF55]RESULTS[/color] and [color=#5555FF]STATISTICS[/color]  ---[/color][/font]"
+	--_guit=_guit.."                   [font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
+	_guit=_guit.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
+	_guit=_guit.."see all results at [color=#DDDDDD]https://www.bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
+	_guit=_guit.."[font=default-bold][color=#77DD77]ADD the result [/color][color=#999999](gameId)[/color][color=#77DD77] to the website [/color][color=#999999](referee)[/color]"
+	_guit=_guit.."[color=#77DD77] & SET url of the replays [/color][color=#999999](players & streamers)[/color][color=#77DD77] ASAP ![/color][/font]\n"
+	_guit=_guit.."[font=default-small][color=#999999]Note: Referee/Admins need to re-allocate permissions as they were before this game.[/color][/font]\n"
+	_guit=_guit.."[font=default-large-bold][color=#FF5555]--- [color=#55FF55]RESULTS[/color] and [color=#5555FF]STATISTICS[/color]  ---[/color][/font]"
 
+end
+local function set_stats_bottom() --fill up string "local _guib" and table "local _jsonb"
+
+		local fmr_nb=table_size(global.force_map_reset_export_reason) --EVL number of frece-map-reset
+		if fmr_nb>0 then
+			_guib=_guib.."\n[font=default-bold][color=#FF9740]>>FORCE MAP RESETS>>[/color][/font] [font=default-small][color=#999999]"
+			_guib=_guib.."   (organisators will double check this match)[/color][/font]\n"
+			for _index=1,fmr_nb,1 do _guib=_guib.." [".._index.."] "..global.force_map_reset_export_reason[_index].."\n" end
+			_guib=string.sub(_guib, 1, string.len(_guib)-2)
+		end
 end
 local function set_stats_left() --fill up string "local _guil" and table "local _jsonl"
 	
@@ -73,21 +129,22 @@ local function set_stats_left() --fill up string "local _guil" and table "local 
 	
 	
 	local biters = {'small-biter','medium-biter','big-biter','behemoth-biter','small-spitter','medium-spitter','big-spitter','behemoth-spitter'}
-	local worms =  {'small-worm-turret','medium-worm-turret','big-worm-turret','behemoth-worm-turret'}
-	local spawners = {}
+	local worms =  {'small-worm-turret','medium-worm-turret','big-worm-turret'} --remove behemoth ,'behemoth-worm-turret'}
+	local spawners = {'biter-spawner', 'spitter-spawner'}
 	--
 	--GLOBAL STATS
 	--
 	_guil=_guil.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
 	_guil=_guil.."     GAME_ID="..global.game_id.."\n"
 	_guil=_guil.."     REFEREE=".."tbd".."\n"
-	_guil=_guil.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
+	_guil=_guil.."     TEAM_ATHOME=".."tbd".."  [Outside: ".."tbd".."]\n"
 	_guil=_guil.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
+	_guil=_guil.."     REROLL="..(global.reroll_max-global.reroll_left).."\n"
+	_guil=_guil.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
 	local _bb_game_won_by_team=global.bb_game_won_by_team
 	local _bb_game_loss_by_team = Tables.enemy_team_of[_bb_game_won_by_team]
 	_guil=_guil.."     WINNER=".._bb_game_won_by_team.."  |  LOOSER=".._bb_game_loss_by_team.."\n"
-	_guil=_guil.."     TEAM_ATHOME=".."tbd".."  |  Side: ".."tbd".."\n"
-	_guil=_guil.."     REROLL="..(global.reroll_max-global.reroll_left)
+
 
 	for i=1,2,1 do
 		--NORTH SIDE --
@@ -106,73 +163,307 @@ local function set_stats_left() --fill up string "local _guil" and table "local 
 
 
 
-		_guil=_guil.."\n[font=default-bold][color=#FF9740]>>"..string.upper(force_name).." STATS>>[/color][/font]\n"
+		_guil=_guil.."[font=default-bold][color=#FF9740]>>"..string.upper(force_name).." STATS>>[/color][/font]\n"
 		--local north_name = "Team North"
 		--if global.tm_custom_name["north"] then north_name = global.tm_custom_name["north"]	end
 		_guil=_guil.."     TEAM_NAME="..team_name.."\n"
 		local team_evo = math.floor(1000 * global.bb_evolution[biter_name]) * 0.1
 		local team_threat = math.floor(global.bb_threat[biter_name])
 		_guil=_guil.."     EVOLUTION="..team_evo.." | THREAT="..team_threat.."\n"
-
+		_guil=_guil.."     ROCKETS LAUNCHED="..game.forces[force_name].rockets_launched.."\n"
+		
 		--BITERS WITH DETAILS --EVL DOING SOME FIORITURES
 		local _b = 0 
-		local _b_details = {["small"]=0,["med"]=0,["big"]=0,["behe"]=0}
-		for _, biter in pairs(biters) do 
-			_b = _b + game.forces[force_name].kill_count_statistics.get_input_count(biter) 
-			local _bshort=string.sub(biter, 1, string.find(biter,"-")-1)
-			if _bshort=="medium" then _bshort="med" end
-			if _bshort=="behemoth" then _bshort="behe" end
-			_b_details[_bshort]=_b_details[_bshort]+game.forces[force_name].kill_count_statistics.get_input_count(biter)
+		local _b_details = {["small-biter"]=0,["medium-biter"]=0,["big-biter"]=0,["behemoth-biter"]=0}
+		for _, _biter in pairs(biters) do 
+			_b = _b + game.forces[force_name].kill_count_statistics.get_input_count(_biter) 
+			--local _bshort=string.sub(biter, 1, string.find(biter,"-")-1)
+			--if _bshort=="medium" then _bshort="med" end
+			--if _bshort=="behemoth" then _bshort="behe" end
+			local biter=_biter
+			if biter=="small-spitter" then biter="small-biter" end
+			if biter=="medium-spitter" then biter="medium-biter" end
+			if biter=="big-spitter" then biter="big-biter" end
+			if biter=="behemoth-spitter" then biter="behemoth-biter" end
+			_b_details[biter]=_b_details[biter]+game.forces[force_name].kill_count_statistics.get_input_count(_biter)
 		end
-		_guil=_guil.."     DEAD_BITERS=".._b
-			--adding details if exist
-			if _b > 0 then 
-				local _b_str=" > "
-				for _biter,_count in pairs(_b_details) do _b_str=_b_str.._count.." ".._biter..", " end
-				_b_str=string.sub(_b_str, 1, string.len(_b_str)-2)
-				_guil=_guil.._b_str
+		_guil=_guil.."     BITERS: ".._b
+		--adding details if exist
+		if _b > 0 then 
+			local _b_str="\n     "
+			--USE Kilos when > 800
+			for _biter,_count in pairs(_b_details) do 
+				local count=_count
+				if count > 800 then count=math.floor(count/1000).."k"..math.floor((count%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 990 -> 0k9 TODO
+				_b_str=_b_str..count.." [entity=".._biter.."], " 
 			end
-			_guil=_guil.."\n"
+			
+			_b_str=string.sub(_b_str, 1, string.len(_b_str)-2)
+			_guil=_guil.._b_str
+		end
+		_guil=_guil.."\n"
 
 		--WORMS WITH DETAILS
 		local _w = 0
 		local _w_details = ""
-		for _, worm in pairs(worms) do 
-			_w = _w + game.forces[force_name].kill_count_statistics.get_input_count(worm) 
-			local _wshort=string.sub(worm, 1, string.find(worm,"-")-1)
-			if _wshort=="medium" then _wshort="med" end
-			if _wshort=="behemoth" then _wshort="behe" end
-			_w_details = _w_details..game.forces[force_name].kill_count_statistics.get_input_count(worm)..":".._wshort..", "
+		for _, worm in pairs(worms) do
+			local _count = game.forces[force_name].kill_count_statistics.get_input_count(worm) 
+			_w = _w + _count
+			_w_details = _w_details.._count.." [entity="..worm.."], "
 		end
-		_guil=_guil.."     DEAD_WORMS=".._w
-		if _w > 0 then _guil=_guil.." > ".._w_details end
-		--if _w > 0 then _guil=_guil.." > "..string.sub(_w_details, 1, string.len(_w_details)-1).."." end
+		_w_details=string.sub(_w_details, 1, string.len(_w_details)-2)
+		_guil=_guil.."     WORMS: ".._w
+		if _w > 0 then _guil=_guil.." ► ".._w_details end
 		_guil=_guil.."\n"
 		
 		--SCRAPS
-		_guil=_guil.."     SCRAPS="..global.scraps_mined[force_name].."\n"
+		_guil=_guil.."     SCRAPS: "..global.scraps_mined[force_name].."\n"
+
+		--SPAWNERS WITH DETAILS
+		local _s = 0
+		local _s_details = ""
+		for _, spawner in pairs(spawners) do
+			local _count = game.forces[force_name].kill_count_statistics.get_input_count(spawner) 
+			_s = _s + _count
+			_s_details = _s_details.._count.." [entity="..spawner.."], "
+		end
+		_s_details=string.sub(_s_details, 1, string.len(_s_details)-2)
+		_guil=_guil.."     SPAWNERS: ".._s
+		if _w > 0 then _guil=_guil.." ► ".._s_details end
+		_guil=_guil.."\n"
 
 		--SCIENCE
 		if total_science_of_force then
 			local _science=""
 			for i = 1, 7 do 
-				_science=_science.." | [item="..Tables.food_long_and_short[i].long_name.."]".."="..total_science_of_force[i]
+				local _this_science=total_science_of_force[i]
+				if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 990 -> 0k9 TODO
+				_science=_science.._this_science.."[item="..Tables.food_long_and_short[i].long_name.."]"..", "
 				if i==3 then _science=_science.."\n     " end
 			end
-			_guil=_guil.."     SCIENCE_SENT".._science
+			_science=string.sub(_science, 1, string.len(_science)-2)
+			_guil=_guil.."     SCIENCE: ".._science.."\n"
 		else
-			_guil=_guil.."     SCIENCE_SENT | NONE"
+			_guil=_guil.."     NO SCIENCE SENT\n"
 		end
 	end
 		
 	--OTHER DATAS
-	local fmr_nb=table_size(global.force_map_reset_export_reason) --EVL number of frece-map-reset
-	if fmr_nb>0 then
-		_guil=_guil.."\n[font=default-bold][color=#FF9740]>>FORCE MAP RESETS>>[/color][/font] [font=default-small][color=#999999]"
-		_guil=_guil.."   (organisators will double check this match)[/color][/font]"
-		for _index=1,fmr_nb,1 do _guil=_guil.."\n     [".._index.."] "..global.force_map_reset_export_reason[_index] end
-	end		
 	
+end
+local function set_stats_north_and_south() --fill up string "local _guir" and table "local _jsonr"
+	
+	
+	--GUI_RIGHT, RIGHT COLUMN
+	
+	local get_score = Score.get_table().score_table
+	--game.print("get_score:"..serpent.block(get_score))
+    if not get_score then 
+		_guin=_guin.."[font=default-small][color=#999999][Unable to get scores at all][/color][/font]\n"
+		_guis=_guis.."[font=default-small][color=#999999][Unable to get scores at all][/color][/font]\n"
+		if global.bb_debug then game.print(">>>>> Unable to get score table.", {r = 0.88, g = 0.22, b = 0.22}) end
+		return
+	end
+	local _score = { ["north"]={}, ["south"]={}}
+	--we'll have to check if player were in a force at some time
+	
+	if not get_score["north"] then 
+		_guin=_guin.."[font=default-small][color=#999999][Unable to get scores at north][/color][/font]\n"
+		if global.bb_debug then game.print(">>>>> Unable to get score table for north.", {r = 0.88, g = 0.22, b = 0.22}) end
+	else
+		_score["north"] = get_score["north"]
+	end
+	if not get_score["south"] then 
+		_guis=_guis.."[font=default-small][color=#999999][Unable to get scores at south][/color][/font]\n"
+		if global.bb_debug then game.print(">>>>> Unable to get score table for south.", {r = 0.88, g = 0.22, b = 0.22}) end
+	else
+		_score["south"] = get_score["south"]
+	end
+	local biters = {'small-biter','medium-biter','big-biter','behemoth-biter','small-spitter','medium-spitter','big-spitter','behemoth-spitter'}
+	local worms =  {'small-worm-turret','medium-worm-turret','big-worm-turret','behemoth-worm-turret'}
+	local spawners = {}
+	--
+	--PLAYER STATS
+	--
+	for _, player in pairs(game.players) do
+		local _force=player.force.name
+		local _name=player.name
+		
+		--INITIALIZE DATAS
+		local _killscore = 0
+		local _deaths =  0
+		local _entities = 0
+		local _mined = 0
+		local _walls = 0
+		local _chests = 0
+		local _belts = 0
+		local _pipes = 0
+		local _powers = 0
+		local _inserters = 0
+		local _miners = 0
+		local _furnaces = 0
+		local _machines = 0
+		local _labs = 0
+		local _turrets = 0
+
+		-- IF PLAYER WAS IN A TEAM AND BUILT BEFORE MOVED TO SPEC
+		if (_force=="spectator" or _force=="spec_god") then
+			if _score["north"] and _score["north"].players and _score["north"].players[_name] then _force="north" end
+			if _score["south"] and _score["south"].players and _score["south"].players[_name] then _force="south" end
+		end
+
+		-- GRAB DATAS IF WE HAVE SOME
+		if (_force=="north" or _force=="south") then
+			if _score[_force].players and _score[_force].players[_name] then 
+				local score_player= _score[_force].players[_name]
+
+				_killscore = score_player.killscore
+				_deaths = score_player.deaths
+				_entities = score_player.built_entities
+				_mined = score_player.mined_entities
+				-- EVL MORE STATS !
+				_walls = score_player.built_walls
+				_chests = score_player.built_chests
+				_belts = score_player.built_belts
+				_pipes = score_player.built_pipes
+				_powers = score_player.built_powers
+				_inserters = score_player.built_inserters
+				_miners = score_player.built_miners
+				_furnaces = score_player.built_furnaces
+				_machines = score_player.built_machines
+				_labs = score_player.built_labs
+				_turrets = score_player.built_turrets
+				--EVL EVEN MORE STATS !
+				_smalls = score_player.kills_small
+				_mediums = score_player.kills_medium
+				_bigs = score_player.kills_big
+				_behemoths = score_player.kills_behemoth
+				_spawners = score_player.kills_spawner
+				_worms = score_player.kills_worm
+			end
+		end
+		--WHICH PLAYER
+		local _guif="" --we dont specify force for now
+		_guif=_guif.."[font=default-bold][color=#FF9740]>>"..string.upper(_name)..">>[/color][/font]"
+		_guif=_guif.."  (".._force
+		if player.admin then _guif=_guif..":Admin" end
+		_guif=_guif..")\n"
+		
+		--SHOW THE DATAS
+		if _force=="spectator" or _force=="spec_god" then
+			_guif=_guif.."     NO STATISTICS\n"
+		else
+			_guif=_guif.."     [font=default][color=#FF9999]DEATHS=".._deaths.."[/color] | [color=#99FF99]KILLSCORE=".._killscore.."[/color][/font]\n"
+			_guif=_guif.."     ".._entities.."[item=blueprint], ".._mined.."[item=deconstruction-planner], ".._turrets.."[item=gun-turret], ".._walls.."[item=stone-wall]\n"
+			_guif=_guif.."     ".._belts.."[item=transport-belt], ".._pipes.."[item=pipe], ".._inserters.."[item=inserter], ".._powers.."[item=steam-engine]\n"
+			_guif=_guif.."     ".._miners.."[item=electric-mining-drill], ".._furnaces.."[item=stone-furnace], ".._machines.."[item=assembling-machine-1], ".._labs.."[item=lab]\n"
+			-- (Not used : chests)
+			_guif=_guif.."     ".._worms.."[entity=small-worm-turret], ".._spawners.."[entity=biter-spawner], ".._smalls.."[entity=small-biter]\n"
+			_guif=_guif.."     ".._mediums.."[entity=medium-biter], ".._bigs.."[entity=big-biter], ".._behemoths.."[entity=behemoth-biter]\n"		
+
+
+			
+		end
+	
+		--SCIENCE
+		if global.science_per_player[player.name] then
+			local _science=""
+			--local _crlf=0
+			for _index = 1, 7 do 
+				local _this_science=0
+				if global.science_per_player[player.name][_index] then _this_science = global.science_per_player[player.name][_index] end
+				if _this_science > 0 then 
+					--_crlf=_crlf+1 
+					if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 999->0k9 TODO
+					_science=_science.._this_science.."[item="..Tables.food_long_and_short[_index].long_name.."]"..", "
+				end
+				--if _index==3 then _science=_science.."\n     " end
+				--if _crlf==3 then _science=_science.."\n" end
+			end
+			_science=string.sub(_science, 1, string.len(_science)-2)
+			_guif=_guif.."     ".._science.."\n"
+		else
+			_guif=_guif.."     NO SCIENCE SENT\n"
+		end
+		if _force=="north" then _guin=_guin.._guif 
+		elseif _force=="south" then _guis=_guis.._guif
+		end --if force = spec or god, we forget (they did nothing, if they had they would be switched to north (in prio) or south, see above
+			
+
+	end		
+	--OTHER DATAS
+	local _s=""
+	if #game.forces["north"].connected_players > 1 then _s="S" end
+	_guin=_guin.."[font=default-bold][color=#FF9740]<<"..#game.forces["north"].connected_players.." PLAYER".._s.." ONLINE<<[/color][/font]"	
+	_s=""	
+	if #game.forces["south"].connected_players > 1 then _s="S" end
+	_guis=_guis.."[font=default-bold][color=#FF9740]<<"..#game.forces["south"].connected_players.." PLAYER".._s.." ONLINE<<[/color][/font]"	
+end
+
+--DRAWING EXPORT FRAME (Global / North / South)
+local function draw_results(player)
+	
+	if player.gui.center["bb_export_frame"] then player.gui.center["bb_export_frame"].destroy() end
+	
+	local frame = player.gui.center.add {type = "frame", name = "bb_export_frame", direction = "vertical"}
+	--Some infos about what icons are meaning
+	local _tooltip="[color=#CCCCCC]Killscore[/color] [color=#999999]is your score at fighting biters\n"
+	.."[item=blueprint] entities built, [item=deconstruction-planner] entities mined\n"
+	.."[item=gun-turret] include gun, flame, laser and radars\n"
+	.."[item=stone-wall] include gates\n" -- and paths of bricks/concrete\n" TODO
+	.."[item=steam-engine] include offshore, boiler, steam, solar, accu\n"
+	.."[item=electric-mining-drill] include elec and burners\n"
+	.."[item=assembling-machine-1] also include oil refining, beacon etc.[/color]"
+
+	--TOP / TITLE
+	--LOGO AND FIRST PART
+	local t= frame.add {type = "table", name = "bb_export_top", column_count = 2}
+	t.vertical_centering=false
+
+	local t1 = t.add {type = "sprite", name = "bb_export_top_left", sprite = "file/png/logo_100.png"}
+	t1.style.minimal_width = 125
+	t1.style.maximal_width = 125
+	local t2 = t.add {type = "label", name = "bb_export_top_right", caption = _guit, tooltip=_tooltip}
+	t2.style.single_line = false
+	t2.style.horizontal_align = 'center'
+	t2.style.font = "default"
+	t2.style.font_color = {r=0.7, g=0.6, b=0.99}
+	
+	--CENTER
+	local _table = frame.add {type = "table", name = "bb_export_table", column_count = 5}
+	--CENTER LEFT : GLOBAL
+	_table.vertical_centering=false
+	--_table.style.vertical_align = "top"		
+	local ll = _table.add {type = "label", caption = _guil, name = "bb_export_left"}
+	ll.style.single_line = false
+	ll.style.font = "default"
+	ll.style.font_color = {r=0.7, g=0.6, b=0.99}
+	ll.style.minimal_width = 250
+	ll.style.maximal_width = 500
+	local sep = _table.add {type = "label", caption = "   "} --EVL SEPARATOR
+	--CENTER MID : NORTH
+	local ln = _table.add {type = "label", caption = _guin, name = "bb_export_north"}
+	ln.style.single_line = false
+	ln.style.font = "default"
+	ln.style.font_color = {r=0.7, g=0.6, b=0.99}
+	ln.style.minimal_width = 250
+	ln.style.maximal_width = 500
+	local sep = _table.add {type = "label", caption = "   "} --EVL SEPARATOR
+	--CENTER RIGHT : SOUTH
+	local ls = _table.add {type = "label", caption = _guis, name = "bb_export_south"}
+	ls.style.single_line = false
+	ls.style.font = "default"
+	ls.style.font_color = {r=0.7, g=0.6, b=0.99}
+	ls.style.minimal_width = 250
+	ls.style.maximal_width = 500
+
+	--BOTTOM
+	local lb = frame.add {type = "label", caption = _guib, name = "bb_export_bottom"}
+	lb.style.single_line = false
+	lb.style.font = "default"
+	lb.style.font_color = {r=0.7, g=0.6, b=0.99}
+	lb.style.minimal_width = 250
+	lb.style.maximal_width = 1000
 end
 
 --EVL EXPORTING (Results & statistics) to FRAME (for all players) & if export_to_json then into FILE (.json)
@@ -180,59 +471,40 @@ local function export_results(export_to_json)
 	--entity_build_count_statistics for _, player in pairs(game.players)
 	-- Note who is admins in player/referee list
 
-	--Add line --CODING-- ?
+	if #game.connected_players < 1 then
+		if global.bb_debug then game.print(">>>>> There is nobody here, no reason to build the stats ?", {r = 0.22, g = 0.22, b = 0.22}) end
+		global.export_stats_are_set=true --EVL MEH (TODO)
+		return
+	end
+
 	if not global.export_stats_are_set then
 		_guit = ""	--_GUI_TITLE FULL WIDTH
 		_guil = ""	--_GUI_LEFT
-		_guir = ""	--_GUI_RIGHT
+		_guin = ""	--_GUI_RIGHT
+		_guis = ""	--_GUI_RIGHT
+		_guib = ""	--_GUI_RIGHT
 		_jsont = {}	-- JSON TITLE TABLE
 		_jsonl = {}	-- JSON LEFT TABLE
-		_jsonr = {}	-- JSON RIGHT TABLE
+		_jsonn = {}	-- JSON RIGHT TABLE
+		_jsons = {}	-- JSON RIGHT TABLE
+		_jsonb = {}	-- JSON RIGHT TABLE
 		if global.bb_debug then game.print(">>>>> Setting results and stats.", {r = 0.22, g = 0.22, b = 0.22}) end
 		set_stats_title()	--Will fill up string "local _guit" and table "local _jsont"
 		set_stats_left()	--Will fill up string "local _guil" and table "local _jsonl"
+		set_stats_north_and_south()	--Will fill up string "local _guin and guis" and table "local _jsonr???"
+		set_stats_bottom()	--Will fill up string "local _guib" and table "local _jsonb"
 		global.export_stats_are_set=true		
 	else 
 		if global.bb_debug then game.print(">>>>> Results and stats are already set.", {r = 0.22, g = 0.22, b = 0.22}) end
 	end
-
-	
-
-
 	-- get_input_count(string) get_output_count(string) (prototype)
 	--game.print(serpent.block(game.forces["north"].kill_count_statistics.input_counts))
 	--game.print(serpent.block(game.forces["north"].kill_count_statistics.output_counts))
-	
 
-	
 	--EXPORTING INTO FRAME
 	for _, player in pairs(game.players) do
-		if player.gui.center["bb_export_frame"] then player.gui.center["bb_export_frame"].destroy() end
-		local frame = player.gui.center.add {type = "frame", name = "bb_export_frame", direction = "vertical"}
-		local l = frame.add {type = "label", caption = _guit, name = "bb_export_title"}
-		l.style.single_line = false
-		l.style.font = "default"
-		l.style.font_color = {r=0.7, g=0.6, b=0.99}
-
-		local frame = frame.add {type = "table", name = "bb_export_table", column_count = 3}
-		local l = frame.add {type = "label", caption = _guil, name = "bb_export_left"}
-		l.style.single_line = false
-		l.style.font = "default"
-		l.style.font_color = {r=0.7, g=0.6, b=0.99}
-		l.style.minimal_width = 250
-		l.style.maximal_width = 500
-		local l = frame.add {type = "label", caption = "     "} --EVL SEPARATOR
-		local l = frame.add {type = "label", caption = _guil, name = "bb_export_right"}
-		l.style.single_line = false
-		l.style.font = "default"
-		l.style.font_color = {r=0.7, g=0.6, b=0.99}
-		l.style.minimal_width = 250
-		l.style.maximal_width = 500		
-		local _guiend="[font=default-bold][color=#FF9740]<<END OF EXPORTS<<[/color][/font]"		
-		local eoe = frame.add {type = "label", caption = _guiend, name = "bb_export_end"}
-	end
-	--ADDING A BUTTON
-	for _, player in pairs(game.players) do
+		draw_results(player)
+		--ADDING A BUTTON TO GUI.TOP
 		if not player.gui.top["bb_export_button"] then 
 			local export_button = player.gui.top.add({type = "sprite-button", name = "bb_export_button", caption = "Stats", tooltip = "Toggle results and stats frame."})
 			export_button.style.font = "heading-2"
@@ -242,6 +514,7 @@ local function export_results(export_to_json)
 			export_button.style.padding = -2
 		end
 	end
+
 	--EXPORTING TO FILE JSON
 	if export_to_json then
 		if global.bb_debug then game.print(">>>>> TODO : export results and stats to json.") end
@@ -253,19 +526,19 @@ end
 local function frame_export_click(player, element)
 	--EVL Stats button switch
 	if element.name == "bb_export_button" then
-		if player.gui.center["bb_export_frame"] then player.gui.center["bb_export_frame"].destroy() return end
-		export_results(false)	--false means its NOT the first time we draw the results -> we dont export to json
-								-- EVL not very smart since we redraw for all players but meh
-		return
+		if player.gui.center["bb_export_frame"] then 
+			player.gui.center["bb_export_frame"].destroy() 
+			return 
+		else
+			draw_results(player)
+			return
+		end
 	end
 	--EVL close export frame when clicked
 	local _bb_export=string.sub(element.name,1,10) -- EVL we keep "bb_export_"
 	
 	if _bb_export == "bb_export_" then player.gui.center["bb_export_frame"].destroy() return end	
---	if element.name == "bb_export_table" then player.gui.center["bb_export_frame"].destroy() return end	
---	if element.name == "bb_export_title" then player.gui.center["bb_export_frame"].destroy() return end	
---	if element.name == "bb_export_left" then player.gui.center["bb_export_frame"].destroy() return end	
---	if element.name == "bb_export_right" then player.gui.center["bb_export_frame"].destroy() return end	
+
 end
 
 --EVL MANUAL CLEAR CORPSES
@@ -341,6 +614,10 @@ local function on_player_joined_game(event)
 	Functions.create_map_intro_button(player)
 	Functions.create_bbc_packs_button(player)
 	Team_manager.draw_top_toggle_button(player)
+	
+	--EVL SET the countdown for intro animation
+	global.player_anim[player.name]=20
+	
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
 	player.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 225, b = 00})
@@ -458,7 +735,7 @@ local function on_tick()
 		if not global.match_running then 
 			diff_vote.difficulty_gui()	
 		else
-			if tick % 18000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 5 minutes
+			if global.match_running and tick % 18000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 5 minutes
 			--Still players should be able to use /clear-corpses <radius> from their position
 		end
 		
@@ -519,6 +796,8 @@ local function on_tick()
 
 
 		if tick % 1200 == 0 then --EVL monitoring game times every 20s for EVO BOOST/ARMAGEDDON
+			-- Check for AFK players 
+			
 			if global.freezed_start == 999999999 then -- players are unfreezed
 				if not global.evo_boost_active then -- EVO BOOST AFTER 2H (global.tick_evo_boost=60*60*60*2)
 					local real_played_time = game.ticks_played - global.freezed_time
@@ -529,9 +808,9 @@ local function on_tick()
 
 						--EVL Set boosts for north and south
 						local evo_north = global.bb_evolution["north_biters"]
-						if evo_north<0.00001 then evo_north=0.00001 end --!DIV0
+						if evo_north<0.001 then evo_north=0.001 end --!DIV0
 						local evo_south = global.bb_evolution["south_biters"]
-						if evo_south<0.00001 then evo_south=0.0001 end --!DIV0
+						if evo_south<0.001 then evo_south=0.001 end --!DIV0
 						
 						if evo_north < evo_south then
 							-- WE WANT NORTH TO GO UP TO 90% UNTIL global.evo_boost_active+30min (PLUS NATURAL AND SENDINGS)
@@ -589,6 +868,14 @@ local function on_tick()
 	if global.match_running and tick % 30 == 0 then	
 		local key = tick % 3600
 		if tick_minute_functions[key] then tick_minute_functions[key]() end
+	elseif not global.match_running and tick % 30 == 0 then	
+		-- SHOW THE INTRO IMAGES
+		for player,countdown in pairs(global.player_anim) do
+			if countdown>0 then
+				show_anim_player(game.players[player],countdown)
+				global.player_anim[player]=global.player_anim[player]-1
+			end
+		end
 	end
 end
 
@@ -720,6 +1007,6 @@ Event.add(defines.events.on_robot_built_tile, on_robot_built_tile)
 Event.add(defines.events.on_tick, on_tick)
 Event.on_init(on_init)
 
-commands.add_command('clear-corpses', 'Clears all the corpses, remnants and ghosts (not sure about ghosts)...',clear_corpses)
+commands.add_command('clear-corpses', 'Clears all the corpses and remnants in the ~radius~ around you',clear_corpses)
 
 require "maps.biter_battles_v2.spec_spy"

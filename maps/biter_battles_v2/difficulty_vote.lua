@@ -3,7 +3,8 @@ local ai = require "maps.biter_battles_v2.ai"
 local event = require 'utils.event'
 local Server = require 'utils.server'
 
---CODING-- EVL Changing difficulties for BBC 
+ --CODING-- EVL Changing difficulties for BBC 
+--[[
 local difficulties = {
 	
 	[1] = {name = "I'm Too Young to Die", str = "25%", value = 0.25, color = {r=0.00, g=0.45, b=0.00}, print_color = {r=0.00, g=0.9, b=0.00}},
@@ -14,14 +15,14 @@ local difficulties = {
 	[6] = {name = "Nightmare", str = "300%", value = 3, color = {r=0.35, g=0.00, b=0.00}, print_color = {r=0.7, g=0.0, b=0.00}},
 	[7] = {name = "Fun and Fast", str = "500%", value = 5, color = {r=0.55, g=0.00, b=0.00}, print_color = {r=0.9, g=0.0, b=0.00}}
 }
-
+]]--
 --CODING-- EVL BBC LEAGUES
---[[ 
+
 local difficulties = {
 	[1] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.0, g=0.0, b=0.7}},
 	[2] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.0, g=0.7, b=0.0}},
 }
-]]--
+
 
 local function difficulty_gui()
 	local value = math.floor(global.difficulty_vote_value*100)
@@ -64,7 +65,7 @@ local function poll_difficulty(player)
 	end
 	
 	
-	local frame = player.gui.center.add { type = "frame", caption = "Vote global difficulty:", name = "difficulty_poll", direction = "vertical" }
+	local frame = player.gui.center.add { type = "frame", caption = "Set the league:", name = "difficulty_poll", direction = "vertical" }
 	for key, _ in pairs(difficulties) do
 		local b = frame.add({type = "button", name = tostring(key), caption = difficulties[key].name .. " (" .. difficulties[key].str .. ")"})
 		b.style.font_color = difficulties[key].color

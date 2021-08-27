@@ -56,7 +56,7 @@ function Public.freeze_players() --EVL Needed to start game already frozen
     for _, e in pairs(surface.find_entities_filtered({force = "south_biters"})) do
         e.active = false
     end
-	if global.bb_debug then game.print("Debug: Players and Biters are frozen (Team_manager).") end
+	--if global.bb_debug then game.print("Debug: Players and Biters are frozen (Team_manager).") end
 	--game.print("end of function : freezing players at ".. global.freezed_start .." ticks", {r = 111, g = 111, b = 255}) --EVL DEBUG
 end
 
@@ -85,7 +85,7 @@ function Public.unfreeze_players()
     for _, e in pairs(surface.find_entities_filtered({force = "south_biters"})) do
         e.active = true
     end
-	if global.bb_debug then game.print("Debug: Players and Biters are unfrozen (Team_manager).") end
+	--if global.bb_debug then game.print("Debug: Players and Biters are unfrozen (Team_manager).") end
 	--game.print("end of function unfreezing players at ".. game.ticks_played  .." ticks,     game.tick=" .. game.tick, {r = 255, g = 77, b = 77}) --EVL DEBUG
 end
 
@@ -419,29 +419,29 @@ local function set_custom_game_id(player,gameid)
 	end
 	--Set global.game_id to scrim for 3v3 training, show match etc...
 	if gameid=="scrim" then 
-		if global.training_mode then game.print(">>>>> Training Mode has been disabled.", {r = 192, g = 11, b = 11}) end
+		if global.training_mode then game.print(">>>>> Training Mode has been disabled.", {r = 175, g = 11, b = 11}) end
 		global.game_id="scrim" --EVL Add special GAME_ID if scrim/showmatch
 		global.training_mode = false
 		global.game_lobby_active = true
 		return
 	end	
 	--We are not in training or scrim mode, check validity of game_id
-	if global.training_mode then game.print(">>>>> Training Mode has been disabled.", {r = 192, g = 11, b = 11}) end
+	if global.training_mode then game.print(">>>>> Training Mode has been disabled.", {r = 175, g = 11, b = 11}) end
 	global.training_mode = false
 	global.game_lobby_active = true
 	local _game_id=tonumber(gameid)
 	if not _game_id then 
 		global.game_id=nil
-		player.print("ID:"..gameid.." is not a number, pleasy retry.",{r = 222, g = 22, b = 22})
+		player.print("ID:"..gameid.." is not a number, pleasy retry.",{r = 175, g = 11, b = 11})
 		return 
 	end
 	if (_game_id<10000) or math.floor(_game_id%123) ~= 0 then 
 		global.game_id=nil
-		player.print("ID:".._game_id.." is not valid, pleasy retry.",{r = 222, g = 22, b = 22})
+		player.print("ID:".._game_id.." is not valid, pleasy retry.",{r = 175, g = 11, b = 11})
 		return
 	end
 	global.game_id=_game_id
-	game.print(">>>>> Game_ID has been registered by "..player.name,{r = 22, g = 222, b = 22})
+	game.print(">>>>> Game_ID has been registered by "..player.name,{r = 11, g = 222, b = 11})
 end
 -- EVL ADD A TEXTFIELD TO SET GAME ID
 local function custom_game_id_gui(player)
@@ -476,7 +476,32 @@ local function procedure_game_gui(player)
 	
 	local frame = player.gui.center.add({type = "frame", name = "procedure_game", caption = "How to use the team manager in BBC", direction = "vertical"})
 	--local frame = frame.add {type = "frame", direction = "vertical"}				
-	local _text = "If not auto, you need to fill up the settings\nand the switch the players manually,\n > go to website to get parameters."
+	local _text = "[font=default-bold][color=#FF9740]While not automatic (todo), you need to fill up the settings and \n switch the players manually       >>>       go to website to get the parameters.[/color][/font]"
+	_text=_text.."\n\n"
+	_text=_text.."When everything is set please [font=default-bold][color=#55FF55]double check[/color][/font] before starting the game :\n\n"
+	_text=_text.."- League [font=default-bold][color=#5555FF]Biter[/color][/font] | [font=default-bold][color=#55FF55]Behemoth[/color][/font] is set via the top button (right to Team Manager).\n"
+	_text=_text.."\n"
+	_text=_text.."- The names of the teams have to be set by clicking on [font=default-bold][color=#2222FF]NORTH[/color][/font] and [font=default-bold][color=#CC2222]SOUTH[/color][/font].\n"
+	_text=_text.."- Team ~AtHome~ chooses its side and can choose to reroll the map up to twice.     \n"
+	_text=_text.."- Team ~AtHome~ also chooses the starter pack (same pack for both teams).\n"
+	_text=_text.."\n"
+	_text=_text.."- 3 players per team, 4th stays in spectator as coach/spy/substitute.\n"
+	_text=_text.."- All the players and spectators must be [color=#FF5555]/c demote[/color] (anti cheat).\n"
+	_text=_text.."- Only Referee and streamers can be [color=#55FF55]/c promote[/color] (admin features).\n"
+	_text=_text.."   [font=default-small][color=#999999]Note: when match has finished, give back permissions[/color][/font]\n"	
+	_text=_text.."\n"
+	_text=_text.."- Training mode must be [color=#FF5555]DISABLED[/color].\n"
+	_text=_text.."   [font=default-small][color=#999999]Note: on training mode, teams send potions to themselves[/color][/font]\n"
+	_text=_text.."\n"
+	_text=_text.."- [font=default-bold]Game Identificator has to be set (and [color=#55FF55]green[/color])[/font].\n"
+	_text=_text.."   [font=default-small][color=#999999]Note: use [/color][color=#55FF55]scrim[/color][color=#999999] for showmatch, "
+	_text=_text.."or [/color][color=#55FF55]train[/color][color=#999999] for training mode[/color][/font]\n"	
+	_text=_text.."\n"
+	_text=_text.."During the game you can [color=#5555FF]pause/freeze[/color] if asked, use it wisely.\n\n"
+	_text=_text.."[font=default-bold][color=#FF9740]AFTER THE MATCH :[/color][/font]"
+	_text=_text.." - Report the results on the Website (using GameID),\n"
+	_text=_text.."                                       - Upload and Set the url of the replay."
+
 	local l = frame.add({ type = "label", caption = _text, name = "procedure_game_text" })	
 
 	l.style.single_line = false
@@ -500,21 +525,21 @@ local function team_manager_gui_click(event)
 	local name = event.element.name
 	
 	if game.forces[name] then
-		if not player.admin then player.print(">>>>> Only admins can change team names.", {r = 175, g = 0, b = 0}) return end
+		if not player.admin then player.print(">>>>> Only admins can change team names.", {r = 175, g = 11, b = 11}) return end
 		custom_team_name_gui(player, name)
 		player.gui.center["team_manager_gui"].destroy()
 		return
 	end
 
 	if name == "team_manager_gameid" then
-		if not player.admin then player.print(">>>>> Only admins can set the Game Identificator.", {r = 175, g = 0, b = 0}) return end
-		if global.match_running then player.print(">>>>> Cannot modify GameId after match has started (contact website admin).", {r = 175, g = 0, b = 0}) return end
+		if not player.admin then player.print(">>>>> Only admins can set the Game Identificator.", {r = 175, g = 11, b = 11}) return end
+		if global.match_running then player.print(">>>>> Cannot modify GameId after match has started (contact website admin).", {r = 175, g = 11, b = 11}) return end
 		custom_game_id_gui(player)
 		player.gui.center["team_manager_gui"].destroy()
 		return
 	end	
 	if name == "team_manager_procedure" then
-		if not player.admin then player.print(">>>>> Only admins can learn the procedure.", {r = 175, g = 0, b = 0}) return end
+		if not player.admin then player.print(">>>>> Only admins can learn the procedure.", {r = 175, g = 11, b = 11}) return end
 		procedure_game_gui(player)
 		return
 	end	
@@ -525,11 +550,11 @@ local function team_manager_gui_click(event)
 	end
 	
 	if name == "team_manager_activate_tournament" then --EVL Only tournament mode, cant be disabled
+		if not player.admin then player.print("Only admins can switch tournament mode.", {r = 175, g = 11, b = 11}) return end
 		if true then
-			game.print(">>>>>>  Tournament mode must stay activated in BBC", {r = 225, g = 0, b = 0}) --EVL
+			game.print(">>>>>  Tournament mode must stay activated in BBC", {r = 175, g = 11, b = 11}) --EVL
 			return --EVL
 		end
-		if not player.admin then player.print("Only admins can switch tournament mode.", {r = 175, g = 0, b = 0}) return end
 		if global.tournament_mode then
 			global.tournament_mode = false
 			draw_manager_gui(player)
@@ -538,31 +563,31 @@ local function team_manager_gui_click(event)
 		end
 		global.tournament_mode = true
 		draw_manager_gui(player)
-		game.print(">>> Tournament Mode has been enabled!", {r = 225, g = 0, b = 0})
+		game.print(">>> Tournament Mode has been enabled!", {r = 175, g = 11, b = 11})
 		return
 	end
 	
 	--EVL Reroll
 	if name == "team_manager_reroll" then
-		if not player.admin then player.print(">>>>> Only admins can reroll the map.", {r = 175, g = 0, b = 0}) return end
+		if not player.admin then player.print(">>>>> Only admins can reroll the map.", {r = 175, g = 11, b = 11}) return end
 		global.reroll_do_it = true --EVL global_reroll_left decreased if main
 		global.freeze_players = true
 		--draw_manager_gui(player)
 		player.gui.center["team_manager_gui"].destroy()	
-		game.print(">>>> Asking for map reroll - Please wait...", {r = 175, g = 0, b = 0})
+		game.print(">>>> Asking for map reroll - Please wait...", {r = 175, g = 11, b = 11})
 		return
 	end
 	--EVL Reroll
 	--EVL Packs
 	local pack=string.sub(name,0,5)
 	if pack=="pack_" then
-		if not player.admin then player.print(">>>>> Only admins can choose the starter pack.", {r = 175, g = 0, b = 0}) return end
+		if not player.admin then player.print(">>>>> Only admins can choose the starter pack.", {r = 175, g = 11, b = 11}) return end
 		if global.match_running then -- No more changing, game has started
-			player.print(">>>>> Pack cannot be changed after the match has started !", {r = 225, g = 11, b = 11})
+			player.print(">>>>> Pack cannot be changed after the match has started !", {r = 175, g = 11, b = 11})
 			return
 		end
 		if global.fill_starter_chests then -- Chests are not filled yet, cant change pack
-			player.print(">>>>> Chests are in filling sequence, please wait...", {r = 225, g = 11, b = 11})
+			player.print(">>>>> Chests are in filling sequence, please wait...", {r = 175, g = 11, b = 11})
 			return
 		end
 		if not global.pack_choosen or global.pack_choosen=="" then 
@@ -571,7 +596,7 @@ local function team_manager_gui_click(event)
 			global.fill_starter_chests = true
 		else 
 			global.pack_choosen = name
-			game.print(">>>>> Pack has been changed to Pack#" .. string.sub(name,6,8) .. " - " .. Tables.packs_list[name]["caption"] .." !", {r = 225, g = 11, b = 11})
+			game.print(">>>>> Pack has been changed to Pack#" .. string.sub(name,6,8) .. " - " .. Tables.packs_list[name]["caption"] .." !", {r = 175, g = 11, b = 11})
 			global.fill_starter_chests = true
 		end
 		draw_manager_gui(player)
@@ -581,49 +606,52 @@ local function team_manager_gui_click(event)
 	
 	
 	if name == "team_manager_freeze_players" then -- FREEZE/UNFREEZE
-		if not player.admin then player.print(">>>>> Only admins can switch freeze mode.", {r = 175, g = 0, b = 0}) return end
-		if global.bb_game_won_by_team then player.print(">>>>> You cannot switch freeze mode after match has finished.", {r = 175, g = 0, b = 0}) return end
+		if not player.admin then player.print(">>>>> Only admins can switch freeze mode.", {r = 175, g = 11, b = 11}) return end
+		if global.bb_game_won_by_team then player.print(">>>>> You cannot switch freeze mode after match has finished.", {r = 175, g = 11, b = 11}) return end
 		
 		if global.freeze_players then --EVL Players are frozen
 			if global.pack_choosen == "" then -- EVL dont start without pack choosen
-				game.print(">>>>> A pack must be choosen before starting the game / unfreezing the players !", {r = 225, g = 11, b = 11})
+				game.print(">>>>> A pack must be choosen before starting the game / unfreezing the players !", {r = 175, g = 11, b = 11})
 				return
 			end
 			if global.reroll_do_it then -- EVL dont start if reroll is on the way
-				game.print(">>>>> Reroll is not done yet, retry in a second...", {r = 225, g = 11, b = 11})
+				game.print(">>>>> Reroll is not done yet, retry in a second...", {r = 175, g = 11, b = 11})
 				return
 			end			
 			if not global.starter_chests_are_filled then -- EVL dont start before starter packs are filled
-				game.print(">>>>> Starter Packs are not filled yet, retry in a second...", {r = 225, g = 11, b = 11})
+				game.print(">>>>> Starter Packs are not filled yet, retry in a second...", {r = 175, g = 11, b = 11})
 				return
 			end
 			if not global.game_id then -- EVL dont start before game_id is registered (or ='training')
-				game.print(">>>>> Game Id has not been set, DO IT REFEREE (please) !", {r = 225, g = 11, b = 11})
+				game.print(">>>>> Game Id has not been set, DO IT REFEREE (please) !", {r = 175, g = 11, b = 11})
 				return
 			end
-			
+			--draw_manager_gui(player) -- Will be destroyed when starting match NOT NEEDED AT ALL?
 			if not global.match_running then --First unfreeze meaning match is starting
 				global.match_running=true 
 				--CODING-- 
-				global.bb_threat["north_biters"] = 900 --EVL we start at threat=9 to avoid weird sendings at the beginning
-				global.bb_threat["south_biters"] = 900--CODING-- was 9
-				global.bb_evolution["north_biters"] = 0.80 --FOR TESTING (change bullets in turrets next to silo in terrain.lua)
-				global.bb_evolution["south_biters"] = 0.80
-				
+				global.bb_threat["north_biters"] = 9 --EVL we start at threat=9 to avoid weird sendings at the beginning
+				global.bb_threat["south_biters"] = 9 --CODING-- was 9
+				--global.bb_evolution["north_biters"] = 0.80 --FOR TESTING (change bullets in turrets next to silo in terrain.lua)
+				--global.bb_evolution["south_biters"] = 0.80
+				game.surfaces[global.bb_surface_name].daytime = 0.6 -- we set time to dawn
 				game.print(">>>>> Match is starting shortly. Good luck ! Have Fun !", {r = 11, g = 255, b = 11})
+				if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
 			end  	
 			--global.reroll_left=0		-- Match has started, no more reroll -> changed via match_running (so wee save #rerolls for export stats)
 			
 			global.freeze_players = false
 			if global.match_countdown < 0 then -- First unfreeze depends on init, then we use 3 seconds timer (after pause)
 				global.match_countdown = 3
+				game.print(">>>>> Match will resume very shortly !", {r = 11, g = 255, b = 11})
+				if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
 			end
-			draw_manager_gui(player)
+			
 			return
 		end
 		--EVL We're PAUSING the game, no change in global.match_running nor in global.pack_choosen (the game was initiated with global.freeze_players=true)
 		if global.match_countdown >= 0 then --WAIT FOR UNFREEZE BEFORE FREEZE AGAIN
-			game.print(">>>>> Please wait "..(global.match_countdown+1).."s (game is currently in ~unfreezing~ process) ...", {r = 225, g = 11, b = 11})
+			game.print(">>>>> Please wait "..(global.match_countdown+1).."s (game is currently in ~unfreezing~ process) ...", {r = 175, g = 11, b = 11})
 			return
 		end
 		global.freeze_players = true
@@ -635,21 +663,21 @@ local function team_manager_gui_click(event)
 	end
 	
 	if name == "team_manager_activate_training" then 
-		if not player.admin then player.print(">>>>> Only admins can switch training mode.", {r = 175, g = 0, b = 0}) return end
-		if global.match_running then player.print(">>>>> Cannot modify Game Mode [training] after match has started.", {r = 175, g = 0, b = 0}) return end
+		if not player.admin then player.print(">>>>> Only admins can switch training mode.", {r = 175, g = 11, b = 11}) return end
+		if global.match_running then player.print(">>>>> Cannot modify Game Mode [training] after match has started.", {r = 175, g = 11, b = 11}) return end
 		if global.training_mode then
 			global.training_mode = false
 			global.game_lobby_active = true
 			global.game_id=nil --EVL Remove GAME_ID if not training mode
 			draw_manager_gui(player)
-			game.print(">>>>> Training Mode has been disabled.", {r = 225, g = 22, b = 22})
+			game.print(">>>>> Training Mode has been disabled.", {r = 175, g = 11, b = 11})
 			return
 		end
 		global.training_mode = true
 		global.game_lobby_active = false
 		global.game_id="training" --EVL Add special GAME_ID if training mode
 		draw_manager_gui(player)
-		game.print(">>>>> Training Mode has been enabled!", {r = 22 , g = 225, b = 22})
+		game.print(">>>>> Training Mode has been enabled!", {r = 11 , g = 225, b = 11})
 		return
 	end
 	
@@ -658,11 +686,11 @@ local function team_manager_gui_click(event)
 	if not element.parent then return end
 	local element = element.parent
 	if element.name ~= "team_manager_root_table" then return end		
-	if not player.admin then player.print(">>>>> Only admins can manage teams.", {r = 175, g = 0, b = 0}) return end
+	if not player.admin then player.print(">>>>> Only admins can manage teams.", {r = 175, g =11, b = 11}) return end
 	
 	local listbox = player.gui.center["team_manager_gui"]["team_manager_root_table"]["team_manager_list_box_" .. tonumber(name)]
 	local selected_index = listbox.selected_index
-	if selected_index == 0 then player.print("No player selected.", {r = 175, g = 0, b = 0}) return end
+	if selected_index == 0 then player.print("No player selected.", {r = 175, g = 11, b = 11}) return end
 	local player_name = listbox.items[selected_index]
 	
 	local m = -1
