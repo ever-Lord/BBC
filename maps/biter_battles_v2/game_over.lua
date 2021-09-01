@@ -343,7 +343,7 @@ function Public.server_restart()
 		end
 		]]--
 		--EVL Starting reset
-		game.print(">>>>> Map is restarting !  (10s before reveal)", {r = 0.22, g = 0.88, b = 0.22}) --EVL BBC has a reveal of 100x100 for reroll purpose
+		game.print(">>>>> Map is restarting !  (10s before reveal)", {r = 0.22, g = 0.88, b = 0.22}) --EVL BBC has a reveal of 127x127 for reroll purpose
         local message = 'Map is restarting! '
         Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
 		-- REMOVE STATS BUTTON BEFORE RESTART (see main.lua)

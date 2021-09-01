@@ -60,7 +60,8 @@ function Public.init_player_table(player)
 			kills_behemoth = 0,
 			kills_spawner = 0,
 			kills_worm = 0, --EVL
-			mined_entities = 0
+			mined_entities = 0,
+			placed_path = 0 --the # of tiles (concrete, stone brick, landfill) placed
         }
     end
 end
@@ -511,14 +512,49 @@ local function on_built_entity(event)
 	if _typ=="assembling-machine" or _ent=="pumpjack" or _ent=="beacon"		 			then score.built_machines = 1 + (score.built_machines or 0) return end
 	if _ent=="lab"							 											then score.built_labs = 1 + (score.built_labs or 0) return end
 	if _ent=="gun-turret" or _ent=="flamethrower-turret" or _ent=="laser-turret" or _ent=="radar" then score.built_turrets = 1 + (score.built_turrets or 0) return end	
-	
+	if global.bb_debug then game.print("debug: entity is not tracked : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
 end
+
+
+local function on_player_built_tile(event)
+    --if not event.created_entity.valid then
+     --   return
+    --end
+    local player = game.players[event.player_index]
+    Public.init_player_table(player)
+	local score = this.score_table[player.force.name].players[player.name]
+	--EVL YES WE WANT STATS
+	local _ent=event.item.name
+	local _typ=event.tile.name
+	local _count=0
+	for _x,_y in pairs(event.tiles) do --We go down one level
+		for _pos_old,_data in pairs(_y) do --we count #position (but there is also .old_tile)
+			if _pos_old=="position" then _count=_count+1 end
+		end
+	end
+	--game.print("   proto=".._typ.." entity=".._ent.." count=".._count)
+	
+	if _ent=="stone-brick" or _ent=="concrete" or _ent=="concrete" or _ent=="landfill"	then 
+		score.placed_path = _count + (score.placed_path or 0) 
+		--game.print("placed_path="..score.placed_path.."   proto=".._typ.." entity=".._ent.." count=".._count)
+		return
+	end
+	if _ent=="hazard-concrete" or _ent=="refined-concrete" or _ent=="refined-hazard-concrete" then --DEBUG--
+		score.placed_path = _count + (score.placed_path or 0) 
+		--game.print("placed_path="..score.placed_path.."   proto=".._typ.." entity=".._ent.." count=".._count)
+		return
+	end
+	if global.bb_debug then game.print("debug: tile is not tracked : proto=".._typ.." tile=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
+end
+
+
 
 comfy_panel_tabs['Scoreboard'] = {gui = show_score, admin = false}
 
 Event.add(defines.events.on_player_mined_entity, on_player_mined_entity)
 Event.add(defines.events.on_player_died, on_player_died)
 Event.add(defines.events.on_built_entity, on_built_entity)
+Event.add(defines.events.on_player_built_tile, on_player_built_tile)
 Event.add(defines.events.on_entity_died, on_entity_died)
 Event.add(defines.events.on_gui_click, on_gui_click)
 Event.add(defines.events.on_player_joined_game, on_player_joined_game)

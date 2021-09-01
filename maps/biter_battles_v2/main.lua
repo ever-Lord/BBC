@@ -22,6 +22,15 @@ require "modules.spawners_contain_biters" -- is this used ?
 
 --require 'spectator_zoom' -- EVL Zoom for spectators -> Moved to GUI.LEFT
 
+--FUNCTION TO CHANGE NUMBER IN KILOS (840 -> 0k8 or 12345 -> 12k3)
+--TODO MAKE IT BETTER
+local function inkilos(value)
+	if not value then return -9999 end
+	local _value=tonumber(value)
+	if _value > 800 then _value=math.floor(_value/1000).."k"..math.floor((_value%1000)/100,0) end
+	return _value
+end
+
 --EVL A BEAUTIFUL COUNTDOWN (WAS IN ASCII ART) (limited to 9 -> 1)
 local function show_countdown(_second)
 	if not _second or _second<1 then return end
@@ -90,11 +99,18 @@ end
 --EVL EXPORTING DATAS TO FRAME AND TO JSON FILE
 --local _stats_are_set = false --First we set the datas moved to init global.export_stats_are_set
 local _guit = ""	--_GUI_TITLE FULL WIDTH
-local _guil = ""	--_GUI_LEFT
+local _guitl = ""	--_GUI_TOP_LEFT	(Global)
+local _json_global = {}	-- JSON GLOBAL STATS
+local _guitm = ""	--_GUI_TOP_MID	(North recap)
+local _json_north = {}	-- JSON NORTH STATS
+local _guitr = ""	--_GUI_TOP_RIGHT	(South recap)
+local _json_south = {}	-- JSON SOUTH STATS
 local _guin = ""	--_GUI_NORTH
+local _json_players_north = {}	-- JSON NORTH PLAYERS STATS
 local _guis = ""	--_GUI_SOUTH
+local _json_players_south = {}-- JSON SOUTH PLAYERS STATS
 local _guib = ""	--_GUI_BOTTOM
-local _jsont = {}	-- JSON TITLE TABLE
+
 local _jsonl = {}	-- JSON LEFT TABLE
 local _jsonn = {}	-- JSON NORTH TABLE
 local _jsons = {}	-- JSON SOUTH TABLE
@@ -103,7 +119,6 @@ local _jsonb = {}	-- JSON RIGHT TABLE
 --SETTINGS STATS ONCE FOR ALL TO USE IN EXPORT JSON AND DRAW RESULTS
 local function set_stats_title() --fill up string "local _guit" and table "local _jsont"
 	
-	--_guit=_guit.."                   [font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
 	_guit=_guit.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
 	_guit=_guit.."see all results at [color=#DDDDDD]https://www.bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
 	_guit=_guit.."[font=default-bold][color=#77DD77]ADD the result [/color][color=#999999](gameId)[/color][color=#77DD77] to the website [/color][color=#999999](referee)[/color]"
@@ -122,7 +137,7 @@ local function set_stats_bottom() --fill up string "local _guib" and table "loca
 			_guib=string.sub(_guib, 1, string.len(_guib)-2)
 		end
 end
-local function set_stats_left() --fill up string "local _guil" and table "local _jsonl"
+local function set_stats_top() --fill up string "local _guil" and table "local _jsonl"
 	
 	
 	--GUI_LEFT, LEFT COLUMN
@@ -134,26 +149,42 @@ local function set_stats_left() --fill up string "local _guil" and table "local 
 	--
 	--GLOBAL STATS
 	--
-	_guil=_guil.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
-	_guil=_guil.."     GAME_ID="..global.game_id.."\n"
-	_guil=_guil.."     REFEREE=".."tbd".."\n"
-	_guil=_guil.."     TEAM_ATHOME=".."tbd".."  [Outside: ".."tbd".."]\n"
-	_guil=_guil.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
-	_guil=_guil.."     REROLL="..(global.reroll_max-global.reroll_left).."\n"
-	_guil=_guil.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
+	_guitl=_guitl.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
+	_guitl=_guitl.."     GAME_ID="..global.game_id..""
+	_guitl=_guitl.." | REFEREE=".."tbd".."\n"
+	_guitl=_guitl.."     ATHOME=".."tbd"..""
+	_guitl=_guitl.." | REROLL="..(global.reroll_max-global.reroll_left).."\n"
+	_guitl=_guitl.."     STARTER PACK="..Tables.packs_list[global.pack_choosen]["caption"].."\n"
+	_guitl=_guitl.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
+		_guitl=_guitl.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
 	local _bb_game_won_by_team=global.bb_game_won_by_team
 	local _bb_game_loss_by_team = Tables.enemy_team_of[_bb_game_won_by_team]
-	_guil=_guil.."     WINNER=".._bb_game_won_by_team.."  |  LOOSER=".._bb_game_loss_by_team.."\n"
+	_guitl=_guitl.."     [color=#97FF40]WINNER=".._bb_game_won_by_team.."[/color]  |  [color=#FF9740]LOOSER=".._bb_game_loss_by_team.."[/color]\n"
 
-
-	for i=1,2,1 do
+	_json_global={ --THE JSON GLOBAL STATS (topleft)
+		["GAME_ID"]	= global.game_id, 
+		["REFEREE"]	= "tbd", 
+		["ATHOME"]		= "tbd", 
+		["REROLL"]		= global.reroll_max-global.reroll_left, 
+		["DIFFICULTY"]= diff_vote.difficulties[global.difficulty_vote_index].name, 
+		["PACK"]		= Tables.packs_list[global.pack_choosen]["title"],
+		["DURATION"]	= game.ticks_played-global.freezed_time,
+		["PAUSED"]		= global.freezed_time, 
+		["WINNER"]		= _bb_game_won_by_team, 
+		["LOOSER"]		= _bb_game_loss_by_team
+	}
+	--game.print("JSON GLOBAL STATS:"..serpent.block(_json_global))
+	--game.print("TOP LEFT OK")
+	
+	for _side=1,2,1 do
+		local _guit=""
 		--NORTH SIDE --
 		local team_name = "Team North"
 		if global.tm_custom_name["north"] then team_name = global.tm_custom_name["north"]	end
 		local biter_name = "north_biters"
 		local force_name = "north"
 		local total_science_of_force  = global.science_logs_total_north
-		if i==2 then --SOUTH SIDE --
+		if _side==2 then --SOUTH SIDE --
 			team_name = "Team South"
 			if global.tm_custom_name["south"] then team_name = global.tm_custom_name["south"]	end
 			biter_name = "south_biters"
@@ -163,45 +194,61 @@ local function set_stats_left() --fill up string "local _guil" and table "local 
 
 
 
-		_guil=_guil.."[font=default-bold][color=#FF9740]>>"..string.upper(force_name).." STATS>>[/color][/font]\n"
-		--local north_name = "Team North"
-		--if global.tm_custom_name["north"] then north_name = global.tm_custom_name["north"]	end
-		_guil=_guil.."     TEAM_NAME="..team_name.."\n"
+		_guit=_guit.."[font=default-bold][color=#FF9740]>>"..string.upper(force_name).." STATS>>[/color][/font]  "
+		_guit=_guit.."[font=default-small][color=#999999]"..#game.forces[force_name].connected_players.." players[/color][/font] \n"
+		--TODO add specs that have played / or that are in the team (need info from website or lobby)
+
+		_guit=_guit.."     "..team_name.."\n"
 		local team_evo = math.floor(1000 * global.bb_evolution[biter_name]) * 0.1
 		local team_threat = math.floor(global.bb_threat[biter_name])
-		_guil=_guil.."     EVOLUTION="..team_evo.." | THREAT="..team_threat.."\n"
-		_guil=_guil.."     ROCKETS LAUNCHED="..game.forces[force_name].rockets_launched.."\n"
+		_guit=_guit.."     EVO="..team_evo.." | THREAT="..team_threat..""
+		_guit=_guit.." | ROCKETS="..game.forces[force_name].rockets_launched.."\n"
 		
+		_json_team = { --THE JSON FORCE/TEAM STATS (topleft) side/force is not know yet
+			["FORCE"]=force_name,
+			["NAME"]=team_name,
+			["CONNECTED"]=#game.forces[force_name].connected_players,
+			["EVO"]=team_evo,
+			["THREAT"]=team_threat,
+			["ROCKETS"]=game.forces[force_name].rockets_launched,
+			["BITERS"]={["small-biter"]=0,["medium-biter"]=0,["big-biter"]=0,["behemoth-biter"]=0},
+			["WORMS"]={["small-worm-turret"]=0,["medium-worm-turret"]=0,["big-worm-turret"]=0}, --remove behemoth ,'behemoth-worm-turret'},
+			["SCRAPS"]=0,
+			["SPAWNERS"]={["biter-spawner"]=0, ["spitter-spawner"]=0},
+			["SCIENCE"]={["automation"]=0,["logistic"]=0,["military"]=0,["chemical"]=0,["production"]=0,["utility"]=0,["space"]=0}
+
+			
+		}
 		--BITERS WITH DETAILS --EVL DOING SOME FIORITURES
 		local _b = 0 
 		local _b_details = {["small-biter"]=0,["medium-biter"]=0,["big-biter"]=0,["behemoth-biter"]=0}
 		for _, _biter in pairs(biters) do 
-			_b = _b + game.forces[force_name].kill_count_statistics.get_input_count(_biter) 
-			--local _bshort=string.sub(biter, 1, string.find(biter,"-")-1)
-			--if _bshort=="medium" then _bshort="med" end
-			--if _bshort=="behemoth" then _bshort="behe" end
+			local _count = game.forces[force_name].kill_count_statistics.get_input_count(_biter) 
+			_b = _b + _count
 			local biter=_biter
-			if biter=="small-spitter" then biter="small-biter" end
-			if biter=="medium-spitter" then biter="medium-biter" end
-			if biter=="big-spitter" then biter="big-biter" end
-			if biter=="behemoth-spitter" then biter="behemoth-biter" end
-			_b_details[biter]=_b_details[biter]+game.forces[force_name].kill_count_statistics.get_input_count(_biter)
+			if biter=="small-spitter" then biter="small-biter"
+			elseif biter=="medium-spitter" then biter="medium-biter"
+			elseif biter=="big-spitter" then biter="big-biter"
+			elseif biter=="behemoth-spitter" then biter="behemoth-biter"
+			end
+			_b_details[biter]=_b_details[biter]+_count
 		end
-		_guil=_guil.."     BITERS: ".._b
-		--adding details if exist
+		_guit=_guit.."     BITERS: ".._b
+		--formatting and adding details if exist
 		if _b > 0 then 
 			local _b_str="\n     "
 			--USE Kilos when > 800
 			for _biter,_count in pairs(_b_details) do 
 				local count=_count
+				--JSON ADD KILLS FOR EACH TIER OF BITER 
+				_json_team["BITERS"][_biter]= _count
 				if count > 800 then count=math.floor(count/1000).."k"..math.floor((count%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 990 -> 0k9 TODO
 				_b_str=_b_str..count.." [entity=".._biter.."], " 
 			end
-			
 			_b_str=string.sub(_b_str, 1, string.len(_b_str)-2)
-			_guil=_guil.._b_str
+			_guit=_guit.._b_str
 		end
-		_guil=_guil.."\n"
+		_guit=_guit.."\n"
 
 		--WORMS WITH DETAILS
 		local _w = 0
@@ -210,15 +257,17 @@ local function set_stats_left() --fill up string "local _guil" and table "local 
 			local _count = game.forces[force_name].kill_count_statistics.get_input_count(worm) 
 			_w = _w + _count
 			_w_details = _w_details.._count.." [entity="..worm.."], "
+			--JSON ADD EACH WORM
+			_json_team["WORMS"][worm]= _count 
 		end
 		_w_details=string.sub(_w_details, 1, string.len(_w_details)-2)
-		_guil=_guil.."     WORMS: ".._w
-		if _w > 0 then _guil=_guil.." ► ".._w_details end
-		_guil=_guil.."\n"
+		_guit=_guit.."     WORMS: ".._w
+		if _w > 0 then _guit=_guit.." ► ".._w_details end
+		_guit=_guit.."\n"
 		
 		--SCRAPS
-		_guil=_guil.."     SCRAPS: "..global.scraps_mined[force_name].."\n"
-
+		_guit=_guit.."     SCRAPS: "..global.scraps_mined[force_name]..""
+		_json_team["SCRAPS"]= global.scraps_mined[force_name] 
 		--SPAWNERS WITH DETAILS
 		local _s = 0
 		local _s_details = ""
@@ -226,26 +275,43 @@ local function set_stats_left() --fill up string "local _guil" and table "local 
 			local _count = game.forces[force_name].kill_count_statistics.get_input_count(spawner) 
 			_s = _s + _count
 			_s_details = _s_details.._count.." [entity="..spawner.."], "
+			--JSON ADD EACH SPAWNER
+			_json_team["SPAWNERS"][spawner]= _count 
 		end
 		_s_details=string.sub(_s_details, 1, string.len(_s_details)-2)
-		_guil=_guil.."     SPAWNERS: ".._s
-		if _w > 0 then _guil=_guil.." ► ".._s_details end
-		_guil=_guil.."\n"
+		_guit=_guit.." | SPAWNERS: ".._s
+		if _w > 0 then _guit=_guit.." ► ".._s_details end
+		_guit=_guit.."\n"
 
 		--SCIENCE
 		if total_science_of_force then
 			local _science=""
-			for i = 1, 7 do 
-				local _this_science=total_science_of_force[i]
+			for _science_nb = 1, 7 do 
+				local _this_science=total_science_of_force[_science_nb]
+				----JSON ADD EACH SCIENCE
+				_json_team["SCIENCE"][Tables.food_long_and_short[_science_nb].short_name]= _this_science
 				if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 990 -> 0k9 TODO
-				_science=_science.._this_science.."[item="..Tables.food_long_and_short[i].long_name.."]"..", "
-				if i==3 then _science=_science.."\n     " end
+				_science=_science.._this_science.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..", "
+				if _science_nb==3 then _science=_science.."\n     " end
+				
 			end
 			_science=string.sub(_science, 1, string.len(_science)-2)
-			_guil=_guil.."     SCIENCE: ".._science.."\n"
+			_guit=_guit.."     SCIENCE: ".._science.."\n"
 		else
-			_guil=_guil.."     NO SCIENCE SENT\n"
+			_guit=_guit.."     NO SCIENCE SENT\n"
 		end
+		--put the gui and the json_team into the correct side
+		if _side==1 then --NORTH SIDE --
+			_guitm = _guit	--_GUI_TOP_MID	(North recap)
+			-- PUT _JSON_TEAM IN THE NORTH TABLE
+			_json_north=_json_team
+		elseif _side==2 then --SOUTH SIDE --
+			_guitr = _guit	--_GUI_TOP_RIGHT	(South recap)
+			-- PUT _JSON_TEAM IN THE SOUTH TABLE
+			_json_south=_json_team
+		else
+			game.print("WTF HOW CAN THIS HAPPEN ?")
+		end		
 	end
 		
 	--OTHER DATAS
@@ -265,8 +331,8 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 		return
 	end
 	local _score = { ["north"]={}, ["south"]={}}
-	--we'll have to check if player were in a force at some time
 	
+
 	if not get_score["north"] then 
 		_guin=_guin.."[font=default-small][color=#999999][Unable to get scores at north][/color][/font]\n"
 		if global.bb_debug then game.print(">>>>> Unable to get score table for north.", {r = 0.88, g = 0.22, b = 0.22}) end
@@ -288,15 +354,17 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 	for _, player in pairs(game.players) do
 		local _force=player.force.name
 		local _name=player.name
-		
 		--INITIALIZE DATAS
 		local _killscore = 0
 		local _deaths =  0
 		local _entities = 0
 		local _mined = 0
+
+		local _turrets = 0
 		local _walls = 0
-		local _chests = 0
-		local _belts = 0
+		local _paths = 0
+
+		local _belts = 0 --add chests ?
 		local _pipes = 0
 		local _powers = 0
 		local _inserters = 0
@@ -304,7 +372,14 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 		local _furnaces = 0
 		local _machines = 0
 		local _labs = 0
-		local _turrets = 0
+
+		local _smalls = 0
+		local _mediums = 0
+		local _bigs = 0
+		local _behemoths = 0
+		local _spawners = 0
+		local _worms = 0
+		
 
 		-- IF PLAYER WAS IN A TEAM AND BUILT BEFORE MOVED TO SPEC
 		if (_force=="spectator" or _force=="spec_god") then
@@ -316,14 +391,15 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 		if (_force=="north" or _force=="south") then
 			if _score[_force].players and _score[_force].players[_name] then 
 				local score_player= _score[_force].players[_name]
-
 				_killscore = score_player.killscore
 				_deaths = score_player.deaths
 				_entities = score_player.built_entities
 				_mined = score_player.mined_entities
 				-- EVL MORE STATS !
 				_walls = score_player.built_walls
-				_chests = score_player.built_chests
+				_paths = score_player.placed_path
+				_turrets = score_player.built_turrets
+				
 				_belts = score_player.built_belts
 				_pipes = score_player.built_pipes
 				_powers = score_player.built_powers
@@ -332,7 +408,7 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 				_furnaces = score_player.built_furnaces
 				_machines = score_player.built_machines
 				_labs = score_player.built_labs
-				_turrets = score_player.built_turrets
+
 				--EVL EVEN MORE STATS !
 				_smalls = score_player.kills_small
 				_mediums = score_player.kills_medium
@@ -342,15 +418,17 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 				_worms = score_player.kills_worm
 			end
 		end
+		local _guif="" --DEBUG
+		--[[
 		--WHICH PLAYER
 		local _guif="" --we dont specify force for now
 		_guif=_guif.."[font=default-bold][color=#FF9740]>>"..string.upper(_name)..">>[/color][/font]"
 		_guif=_guif.."  (".._force
 		if player.admin then _guif=_guif..":Admin" end
 		_guif=_guif..")\n"
-		
 		--SHOW THE DATAS
 		if _force=="spectator" or _force=="spec_god" then
+			game.print("2220000")
 			_guif=_guif.."     NO STATISTICS\n"
 		else
 			_guif=_guif.."     [font=default][color=#FF9999]DEATHS=".._deaths.."[/color] | [color=#99FF99]KILLSCORE=".._killscore.."[/color][/font]\n"
@@ -361,43 +439,82 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 			_guif=_guif.."     ".._worms.."[entity=small-worm-turret], ".._spawners.."[entity=biter-spawner], ".._smalls.."[entity=small-biter]\n"
 			_guif=_guif.."     ".._mediums.."[entity=medium-biter], ".._bigs.."[entity=big-biter], ".._behemoths.."[entity=behemoth-biter]\n"		
 
-
 			
 		end
-	
+		]]--
+		local _json_player={
+			["NAME"] =_name,
+			["ADMIN"] = player.admin,
+			["FORCE"] = _force,
+			
+			["KILLSCORE"] = _killscore,
+			["DEATHS"] = _deaths,
+			["BUILT"] = _entities,
+			["MINED"] = _mined,
+			
+			["TURRETS"] = _turrets,			
+			["WALLS"] = _walls,
+			["PATHS"] = _paths,
+			
+			--["CHESTS"] = _chests,
+			["BELTS"] = _belts,
+			["PIPES"] = _pipes,
+			["POWERS"] = _powers,
+			["INSERTERS"] = _inserters,
+			["MINERS"] = _miners,
+			["FURNACES"] = _furnaces,
+			["MACHINES"] = _machines,
+			["LABS"] = _labs,
+
+			["SMALLS"] = _smalls,
+			["MEDIUMS"] = _mediums,
+			["BIGS"] = _bigs,
+			["BEHEMOTHS"] = _behemoths,
+			["SPAWNERS"] = _spawners,
+			["WORMS"] = _worms,
+			
+			["SCIENCE"]={["automation"]=0,["logistic"]=0,["military"]=0,["chemical"]=0,["production"]=0,["utility"]=0,["space"]=0}
+		}
 		--SCIENCE
+		--[[
 		if global.science_per_player[player.name] then
 			local _science=""
-			--local _crlf=0
-			for _index = 1, 7 do 
+
+			for _science_nb = 1, 7 do 
 				local _this_science=0
-				if global.science_per_player[player.name][_index] then _this_science = global.science_per_player[player.name][_index] end
+				if global.science_per_player[player.name][_science_nb] then _this_science = global.science_per_player[player.name][_science_nb] end
 				if _this_science > 0 then 
-					--_crlf=_crlf+1 
+					_json_player["SCIENCE"][Tables.food_long_and_short[_science_nb].short_name]=_this_science
 					if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 999->0k9 TODO
-					_science=_science.._this_science.."[item="..Tables.food_long_and_short[_index].long_name.."]"..", "
+					_science=_science.._this_science.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..", "
 				end
-				--if _index==3 then _science=_science.."\n     " end
-				--if _crlf==3 then _science=_science.."\n" end
+				--if _science_nb==3 then _science=_science.."\n     " end
 			end
 			_science=string.sub(_science, 1, string.len(_science)-2)
 			_guif=_guif.."     ".._science.."\n"
 		else
 			_guif=_guif.."     NO SCIENCE SENT\n"
 		end
-		if _force=="north" then _guin=_guin.._guif 
-		elseif _force=="south" then _guis=_guis.._guif
+		]]--
+		--FILL to the right side
+		if _force=="north" then 
+			_guin=_guin.._guif 
+			table.insert(_json_players_north,_json_player)
+		elseif _force=="south" then 
+			_guis=_guis.._guif
+			table.insert(_json_players_south,_json_player)
 		end --if force = spec or god, we forget (they did nothing, if they had they would be switched to north (in prio) or south, see above
-			
-
+		--still we could add the fourth player of the team, nothing done yet (waiting for infos from the lobby or the website)
 	end		
 	--OTHER DATAS
+	--[[
 	local _s=""
 	if #game.forces["north"].connected_players > 1 then _s="S" end
 	_guin=_guin.."[font=default-bold][color=#FF9740]<<"..#game.forces["north"].connected_players.." PLAYER".._s.." ONLINE<<[/color][/font]"	
 	_s=""	
 	if #game.forces["south"].connected_players > 1 then _s="S" end
 	_guis=_guis.."[font=default-bold][color=#FF9740]<<"..#game.forces["south"].connected_players.." PLAYER".._s.." ONLINE<<[/color][/font]"	
+	]]--
 end
 
 --DRAWING EXPORT FRAME (Global / North / South)
@@ -415,24 +532,331 @@ local function draw_results(player)
 	.."[item=electric-mining-drill] include elec and burners\n"
 	.."[item=assembling-machine-1] also include oil refining, beacon etc.[/color]"
 
-	--TOP / TITLE
+	--TITLE
 	--LOGO AND FIRST PART
-	local t= frame.add {type = "table", name = "bb_export_top", column_count = 2}
-	t.vertical_centering=false
+	--EVL removed for now until reveal --CODING--
+	local _title= frame.add {type = "table", name = "bb_export_title", column_count = 2}
+	_title.vertical_centering=false
 
-	local t1 = t.add {type = "sprite", name = "bb_export_top_left", sprite = "file/png/logo_100.png"}
+	local t1 = _title.add {type = "sprite", name = "bb_export_title_left", sprite = "file/png/logo_100.png"}
 	t1.style.minimal_width = 125
 	t1.style.maximal_width = 125
-	local t2 = t.add {type = "label", name = "bb_export_top_right", caption = _guit, tooltip=_tooltip}
+	local t2 = _title.add {type = "label", name = "bb_export_title_right", caption = _guit, tooltip=_tooltip}
 	t2.style.single_line = false
 	t2.style.horizontal_align = 'center'
 	t2.style.font = "default"
 	t2.style.font_color = {r=0.7, g=0.6, b=0.99}
 	
-	--CENTER
-	local _table = frame.add {type = "table", name = "bb_export_table", column_count = 5}
+	--TOP (GLOBAL/NORTH/SOUTH)
+	local _tabletop = frame.add {type = "table", name = "bb_export_top", column_count = 5}
+	_tabletop.vertical_centering=false
+
+	-- TOPLEFT:GLOBAL STATS
+	local _ttl = _tabletop.add {type = "label", name = "bb_export_topleft", caption = _guitl}
+	_ttl.style.single_line = false
+	_ttl.style.font = "default"
+	_ttl.style.font_color = {r=0.7, g=0.6, b=0.99}
+	--ttl.style.minimal_width = 250
+	--ttl.style.maximal_width = 500
+	local sep = _tabletop.add {type = "label", caption = "   "} --EVL SEPARATOR
+
+	-- TOPMIDDLE:NORTH STATS
+	local _ttm = _tabletop.add {type = "label", name = "bb_export_topmid", caption = _guitm}
+	_ttm.style.single_line = false
+	_ttm.style.font = "default"
+	_ttm.style.font_color = {r=0.7, g=0.6, b=0.99}
+	--ttm.style.minimal_width = 250
+	--ttm.style.maximal_width = 500
+	local sep = _tabletop.add {type = "label", caption = "   "} --EVL SEPARATOR
+
+	-- TOPRIGHT:SOUTH STATS
+	local _ttr = _tabletop.add {type = "label", name = "bb_export_topright", caption = _guitr}
+	_ttr.style.single_line = false
+	_ttr.style.font = "default"
+	_ttr.style.font_color = {r=0.7, g=0.6, b=0.99}
+	--ttr.style.minimal_width = 250
+	--ttr.style.maximal_width = 500
+
+	frame.add { type = "line", caption = "this line", direction = "horizontal" }
+	
+	--#####OK THE BIG UGLY TABLE TO SCREEN##############
+	local _tp = frame.add {type = "table", name = "bb_export_players", column_count = 27} --_tp for table players
+	_tp.vertical_centering=false
+	
+	-- TITLE LINE
+	
+	local _col_name="\n[font=default-bold][color=#5555FF]NORTH[/color][/font]\n"
+	local _col_death="[font=default-small][color=#FF9999]Death[/color][/font]\n\n"
+	local _col_score="[font=default-small][color=#99FF99]  Score[/color][/font]\n\n"
+	local _col_built="[item=blueprint]\n\n"
+	local _col_mined="[item=deconstruction-planner]\n\n"
+	local _col_wall="[item=stone-wall]\n\n"
+	local _col_path="[item=concrete]\n\n"
+	local _col_belt="[item=transport-belt]\n\n"
+	local _col_pipe="[item=pipe]\n\n"
+	local _col_power="[item=steam-engine]\n\n"
+	local _col_inserter="[item=inserter]\n\n"
+	local _col_miner="[item=electric-mining-drill]\n\n"
+	local _col_furnace="[item=stone-furnace]\n\n"
+	local _col_machine="[item=assembling-machine-1]\n\n"
+	local _col_lab="[item=lab]\n\n"
+	local _col_turret="[item=gun-turret]\n\n"
+	local _col_small="[entity=small-biter]\n\n"
+	local _col_medium="[entity=medium-biter]\n\n"
+	local _col_big="[entity=big-biter]\n\n"
+	local _col_behemoth="[entity=behemoth-biter]\n\n"
+	local _col_spawner="[entity=biter-spawner]\n\n"
+	local _col_worm="[entity=small-worm-turret]\n\n"
+	local _col_science="[font=default-bold][color=#FF9740]Science[/color][/font]\n\n"
+	
+	--NORTH
+
+	
+	if table_size(_json_players_north)>0 then 
+		for _index,_player in pairs(_json_players_north) do
+			--game.print("index=".._index)
+			--SPECIAL CASE FOR NAME (we want to see if admin)
+			local _p = game.players[_player["NAME"]]
+			local r = math.floor((_p.color.r * 0.6 + 0.4)*255)
+			local g = math.floor((_p.color.g * 0.6 + 0.4)*255)
+			local b = math.floor((_p.color.b * 0.6 + 0.4)*255)
+			local _player_color = r..","..g..","..b
+			_col_name=_col_name.."[color=".._player_color.."]".._player["NAME"].."[/color]"
+			if _player["ADMIN"] then _col_name=_col_name..":A" end
+			_col_name=_col_name.."\n"
+
+			--DEATH AND KILLSCORE
+			_col_death=_col_death.."[color=#FF9999]".._player["DEATHS"].."[/color]\n"
+			_col_score=_col_score.."[color=#99FF99]".._player["KILLSCORE"].."[/color]\n"
+			--BUILT AND MINED
+
+			_col_built=_col_built.."[color=#88CCFF]"..(inkilos(_player["BUILT"])).."[/color]\n"
+			_col_mined=_col_mined.."[color=#FF7777]"..(inkilos(_player["MINED"])).."[/color]\n"
+
+			--TURRETS , WALLS AND PATHS/TILES
+			_col_turret=_col_turret.._player["TURRETS"].."\n" --NO KILOS
+			_col_wall=_col_wall.."[color=#CCCCCC]"..(inkilos(_player["WALLS"])).."[/color]\n"			
+			_col_path=_col_path..(inkilos(_player["PATHS"])).."\n"
+
+			--THINGS
+			_col_belt=_col_belt..(inkilos(_player["BELTS"])).."\n"
+			_col_pipe=_col_pipe.."[color=#CCCCCC]"..(inkilos(_player["PIPES"])).."[/color]\n"
+			_col_power=_col_power..(inkilos(_player["POWERS"])).."\n"
+			_col_inserter=_col_inserter.."[color=#CCCCCC]"..(inkilos(_player["INSERTERS"])).."[/color]\n"
+
+			_col_miner=_col_miner..(inkilos(_player["MINERS"])).."\n"
+			_col_furnace=_col_furnace.."[color=#CCCCCC]"..(inkilos(_player["FURNACES"])).."[/color]\n"
+			_col_machine=_col_machine..(inkilos(_player["MACHINES"])).."\n"
+			_col_lab=_col_lab.."[color=#CCCCCC]".._player["LABS"].."[/color]\n"	--NO KILOS
+
+			--BITERS
+			_col_small=_col_small..(inkilos(_player["SMALLS"])).."\n"
+			_col_medium=_col_medium.."[color=#CCCCCC]"..(inkilos(_player["MEDIUMS"])).."[/color]\n"
+			_col_big=_col_big..(inkilos(_player["BIGS"])).."\n"
+			_col_behemoth=_col_behemoth.."[color=#CCCCCC]".._player["BEHEMOTHS"].."[/color]\n"	--NO KILOS
+			_col_spawner=_col_spawner.._player["SPAWNERS"].."\n"	--NO KILOS
+			_col_worm=_col_worm.."[color=#CCCCCC]".._player["WORMS"].."[/color]\n"	--NO KILOS
+
+			--SPECIAL CASE FOR SCIENCE
+			local _science=""
+			local _has_science=false
+			for _science_nb = 1, 7 do 
+				local _this_science=_player["SCIENCE"][Tables.food_long_and_short[_science_nb].short_name]
+				if _this_science>0 then 
+					_has_science=true
+					if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 999->0k9 TODO
+					_science=_science.._this_science.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..", "
+				end
+			end
+			if _has_science then
+				_science=string.sub(_science, 1, string.len(_science)-2)
+			else
+				_science="-"
+			end			
+			_col_science=_col_science.._science.."\n"
+			
+		end
+	end
+			
+	--SOUTH
+	_col_name=_col_name.."[font=default-bold][color=#CC2222]SOUTH[/color][/font]\n"
+	_col_death=_col_death.."\n"
+	_col_score=_col_score.."\n"
+	_col_built=_col_built.."\n"
+	_col_mined=_col_mined.."\n"
+	_col_wall=_col_wall.."\n"
+	_col_path=_col_path.."\n"
+	_col_belt=_col_belt.."\n"
+	_col_pipe=_col_pipe.."\n"
+	_col_power=_col_power.."\n"
+	_col_inserter=_col_inserter.."\n"
+	_col_miner=_col_miner.."\n"
+	_col_furnace=_col_furnace.."\n"
+	_col_machine=_col_machine.."\n"
+	_col_lab=_col_lab.."\n"
+	_col_turret=_col_turret.."\n"
+	_col_small=_col_small.."\n"
+	_col_medium=_col_medium.."\n"
+	_col_big=_col_big.."\n"
+	_col_behemoth=_col_behemoth.."\n"
+	_col_spawner=_col_spawner.."\n"
+	_col_worm=_col_worm.."\n"
+	_col_science=_col_science.."\n"			
+
+	if table_size(_json_players_south)>0 then 
+		for _index,_player in pairs(_json_players_south) do
+			--game.print("index=".._index)
+			--SPECIAL CASE FOR NAME (we want to see if admin)
+			local _p = game.players[_player["NAME"]]
+			local r = math.floor((_p.color.r * 0.6 + 0.4)*255)
+			local g = math.floor((_p.color.g * 0.6 + 0.4)*255)
+			local b = math.floor((_p.color.b * 0.6 + 0.4)*255)
+			local _player_color = r..","..g..","..b
+			_col_name=_col_name.."[color=".._player_color.."]".._player["NAME"].."[/color]"
+			if _player["ADMIN"] then _col_name=_col_name..":A" end
+			_col_name=_col_name.."\n"
+
+			--DEATH AND KILLSCORE
+			_col_death=_col_death.."[color=#FF9999]".._player["DEATHS"].."[/color]\n"
+			_col_score=_col_score.."[color=#99FF99]".._player["KILLSCORE"].."[/color]\n"
+			--BUILT AND MINED
+
+			_col_built=_col_built.."[color=#88CCFF]"..(inkilos(_player["BUILT"])).."[/color]\n"
+			_col_mined=_col_mined.."[color=#FF7777]"..(inkilos(_player["MINED"])).."[/color]\n"
+
+			--TURRETS , WALLS AND PATHS/TILES
+			_col_turret=_col_turret.._player["TURRETS"].."\n" --NO KILOS
+			_col_wall=_col_wall.."[color=#CCCCCC]"..(inkilos(_player["WALLS"])).."[/color]\n"			
+			_col_path=_col_path..(inkilos(_player["PATHS"])).."\n"
+
+			--THINGS
+			_col_belt=_col_belt..(inkilos(_player["BELTS"])).."\n"
+			_col_pipe=_col_pipe.."[color=#CCCCCC]"..(inkilos(_player["PIPES"])).."[/color]\n"
+			_col_power=_col_power..(inkilos(_player["POWERS"])).."\n"
+			_col_inserter=_col_inserter.."[color=#CCCCCC]"..(inkilos(_player["INSERTERS"])).."[/color]\n"
+
+			_col_miner=_col_miner..(inkilos(_player["MINERS"])).."\n"
+			_col_furnace=_col_furnace.."[color=#CCCCCC]"..(inkilos(_player["FURNACES"])).."[/color]\n"
+			_col_machine=_col_machine..(inkilos(_player["MACHINES"])).."\n"
+			_col_lab=_col_lab.."[color=#CCCCCC]".._player["LABS"].."[/color]\n"	--NO KILOS
+
+			--BITERS
+			_col_small=_col_small..(inkilos(_player["SMALLS"])).."\n"
+			_col_medium=_col_medium.."[color=#CCCCCC]"..(inkilos(_player["MEDIUMS"])).."[/color]\n"
+			_col_big=_col_big..(inkilos(_player["BIGS"])).."\n"
+			_col_behemoth=_col_behemoth.."[color=#CCCCCC]".._player["BEHEMOTHS"].."[/color]\n"	--NO KILOS
+			_col_spawner=_col_spawner.._player["SPAWNERS"].."\n"	--NO KILOS
+			_col_worm=_col_worm.."[color=#CCCCCC]".._player["WORMS"].."[/color]\n"	--NO KILOS
+
+			--SPECIAL CASE FOR SCIENCE
+			local _science=""
+			local _has_science=false
+			for _science_nb = 1, 7 do 
+				local _this_science=_player["SCIENCE"][Tables.food_long_and_short[_science_nb].short_name]
+				if _this_science>0 then 
+					_has_science=true
+					if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 999->0k9 TODO
+					_science=_science.._this_science.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..", "
+				end
+			end
+			if _has_science then
+				_science=string.sub(_science, 1, string.len(_science)-2)
+			else
+				_science="-"
+			end			
+			_col_science=_col_science.._science.."\n"
+			
+		end
+	end
+
+	--insert the columns
+	--TODO the tooltips, colors etc.
+	local _tp_name		= _tp.add {type = "label", caption = _col_name, name = "tp_name"}
+	_tp_name.style.single_line = false
+	local _tp_death	= _tp.add {type = "label", caption = _col_death, name = "tp_death", tooltip="Number of deaths"}
+	_tp_death.style.single_line = false
+	_tp_death.style.horizontal_align="center"
+	local _tp_score	= _tp.add {type = "label", caption = _col_score, name = "tp_score", tooltip="Kill score"}
+	_tp_score.style.single_line = false
+	_tp_score.style.horizontal_align="right"
+
+	local _tp_built	= _tp.add {type = "label", caption = _col_built, name = "tp_built", tooltip="Built entities"}
+	_tp_built.style.single_line = false
+	_tp_built.style.horizontal_align="right"
+	local _tp_mined	= _tp.add {type = "label", caption = _col_mined, name = "tp_mined", tooltip="Mined entities"}
+	_tp_mined.style.single_line = false
+	_tp_mined.style.horizontal_align="right"	
+
+	local _tp_turret	= _tp.add {type = "label", caption = _col_turret, name = "tp_turret", tooltip="Turrets and radar"}
+	_tp_turret.style.single_line = false	
+	_tp_turret.style.horizontal_align="right"	
+	local _tp_wall		= _tp.add {type = "label", caption = _col_wall, name = "tp_wall", tooltip="Walls and gates"}
+	_tp_wall.style.single_line = false
+	_tp_wall.style.horizontal_align="right"	
+	local _tp_path		= _tp.add {type = "label", caption = _col_path, name = "tp_path", tooltip="Paths and landfill"}
+	_tp_path.style.single_line = false
+	_tp_path.style.horizontal_align="right"		
+
+	local _separation = _tp.add {type = "label", caption = "   "}
+
+	local _tp_science	= _tp.add {type = "label", caption = _col_science, name = "tp_science", tooltip="Science sent"}
+	_tp_science.style.single_line = false
+
+	local _separation = _tp.add {type = "label", caption = "   "}
+	
+	local _tp_small	= _tp.add {type = "label", caption = _col_small, name = "tp_small", tooltip="Smalls"}
+	_tp_small.style.single_line = false
+	_tp_small.style.horizontal_align="right"	
+	local _tp_medium	= _tp.add {type = "label", caption = _col_medium, name = "tp_medium", tooltip="Mediums"}
+	_tp_medium.style.single_line = false
+	_tp_medium.style.horizontal_align="right"	
+	local _tp_big		= _tp.add {type = "label", caption = _col_big, name = "tp_big", tooltip="Bigs"}
+	_tp_big.style.single_line = false
+	_tp_big.style.horizontal_align="right"	
+	local _tp_behemoth	= _tp.add {type = "label", caption = _col_behemoth, name = "tp_behemoth", tooltip="Behemoths"}
+	_tp_behemoth.style.single_line = false
+	_tp_behemoth.style.horizontal_align="right"	
+	local _tp_spawner	= _tp.add {type = "label", caption = _col_spawner, name = "tp_spawner", tooltip="Spawners"}
+	_tp_spawner.style.single_line = false
+	_tp_spawner.style.horizontal_align="right"	
+	local _tp_worm		= _tp.add {type = "label", caption = _col_worm, name = "tp_worm", tooltip="Worms"}
+	_tp_worm.style.single_line = false
+	_tp_worm.style.horizontal_align="right"	
+	
+	local _separation = _tp.add {type = "label", caption = "   "}
+	
+	local _tp_belt		= _tp.add {type = "label", caption = _col_belt, name = "tp_belt", tooltip="Belts\nUndergrounds\nSplitters"}
+	_tp_belt.style.single_line = false
+	_tp_belt.style.horizontal_align="right"	
+	local _tp_pipe		= _tp.add {type = "label", caption = _col_pipe, name = "tp_pipe", tooltip="Pipes\nTanks\nPumps"}
+	_tp_pipe.style.single_line = false
+	_tp_pipe.style.horizontal_align="right"		
+	local _tp_power	= _tp.add {type = "label", caption = _col_power, name = "tp_power", tooltip="Offshore\nBoilers\nSteam\nSolar\nAccus"}
+	_tp_power.style.single_line = false
+	_tp_power.style.horizontal_align="right"		
+	local _tp_inserter	= _tp.add {type = "label", caption = _col_inserter, name = "tp_inserter", tooltip="Inserters"}
+	_tp_inserter.style.single_line = false
+	_tp_inserter.style.horizontal_align="right"		
+	local _tp_miner	= _tp.add {type = "label", caption = _col_miner, name = "tp_miner", tooltip="Burners\nElectric"}
+	_tp_miner.style.single_line = false
+	_tp_miner.style.horizontal_align="right"		
+	local _tp_furnace	= _tp.add {type = "label", caption = _col_furnace, name = "tp_furnace", tooltip="Furnaces"}
+	_tp_furnace.style.single_line = false
+	_tp_furnace.style.horizontal_align="right"		
+	local _tp_machine	= _tp.add {type = "label", caption = _col_machine, name = "tp_machine", tooltip="Machines\nPumpJacks\nRefining\nBeacon etc."}
+	_tp_machine.style.single_line = false
+	_tp_machine.style.horizontal_align="right"		
+	local _tp_lab		= _tp.add {type = "label", caption = _col_lab, name = "tp_lab"}
+	_tp_lab.style.single_line = false
+	_tp_lab.style.horizontal_align="right"	
+
+
+
+--[[	
 	--CENTER LEFT : GLOBAL
-	_table.vertical_centering=false
+	local _tablemid = frame.add {type = "table", name = "bb_export_mid", column_count = 5}	
+	_tablemid.vertical_centering=false
+	
 	--_table.style.vertical_align = "top"		
 	local ll = _table.add {type = "label", caption = _guil, name = "bb_export_left"}
 	ll.style.single_line = false
@@ -440,23 +864,27 @@ local function draw_results(player)
 	ll.style.font_color = {r=0.7, g=0.6, b=0.99}
 	ll.style.minimal_width = 250
 	ll.style.maximal_width = 500
-	local sep = _table.add {type = "label", caption = "   "} --EVL SEPARATOR
+	local sep = _tabletop.add {type = "label", caption = "   "} --EVL SEPARATOR
+	
+	
+	
+	
 	--CENTER MID : NORTH
-	local ln = _table.add {type = "label", caption = _guin, name = "bb_export_north"}
+	local ln = _tablemid.add {type = "label", caption = _guin, name = "bb_export_north"}
 	ln.style.single_line = false
 	ln.style.font = "default"
 	ln.style.font_color = {r=0.7, g=0.6, b=0.99}
 	ln.style.minimal_width = 250
 	ln.style.maximal_width = 500
-	local sep = _table.add {type = "label", caption = "   "} --EVL SEPARATOR
+	local sep = _tablemid.add {type = "label", caption = "   "} --EVL SEPARATOR
 	--CENTER RIGHT : SOUTH
-	local ls = _table.add {type = "label", caption = _guis, name = "bb_export_south"}
+	local ls = _tablemid.add {type = "label", caption = _guis, name = "bb_export_south"}
 	ls.style.single_line = false
 	ls.style.font = "default"
 	ls.style.font_color = {r=0.7, g=0.6, b=0.99}
 	ls.style.minimal_width = 250
 	ls.style.maximal_width = 500
-
+]]--
 	--BOTTOM
 	local lb = frame.add {type = "label", caption = _guib, name = "bb_export_bottom"}
 	lb.style.single_line = false
@@ -478,21 +906,29 @@ local function export_results(export_to_json)
 	end
 
 	if not global.export_stats_are_set then
-		_guit = ""	--_GUI_TITLE FULL WIDTH
-		_guil = ""	--_GUI_LEFT
-		_guin = ""	--_GUI_RIGHT
-		_guis = ""	--_GUI_RIGHT
-		_guib = ""	--_GUI_RIGHT
-		_jsont = {}	-- JSON TITLE TABLE
-		_jsonl = {}	-- JSON LEFT TABLE
-		_jsonn = {}	-- JSON RIGHT TABLE
-		_jsons = {}	-- JSON RIGHT TABLE
-		_jsonb = {}	-- JSON RIGHT TABLE
+	--CODING-- change these when finished
+		_guit = ""			--_GUI_TITLE FULL WIDTH
+		_guitl = ""		--_GUI_TOP_LEFT	(Global)
+		_json_global = {}	-- JSON TITLE TABLE
+		_guitm = ""		--_GUI_TOP_MID	(North recap)
+		_json_north = {}	-- JSON NORTH RECAP
+		_guitr = ""		--_GUI_TOP_RIGHT	(South recap)
+		_json_south = {}	-- JSON SOUTH RECAP
+		_guin = ""			--_GUI_NORTH PLAYERS
+		_json_players_north = {} --JSON WITH ALL NORTH PLAYERS (including spec that have played in north)
+		_guis = ""			--_GUI_SOUTH PLAYERS
+		_json_players_south = {} --JSON WITH ALL SOUTH PLAYERS (including spec that have played in south)
+		_guib = ""			--_GUI_BOTTOM
+		
 		if global.bb_debug then game.print(">>>>> Setting results and stats.", {r = 0.22, g = 0.22, b = 0.22}) end
 		set_stats_title()	--Will fill up string "local _guit" and table "local _jsont"
-		set_stats_left()	--Will fill up string "local _guil" and table "local _jsonl"
+		game.print("TITLE OK")
+		set_stats_top()	--Will fill up string "local _guil" and table "local _jsonl"
+		game.print("TOP OK")
 		set_stats_north_and_south()	--Will fill up string "local _guin and guis" and table "local _jsonr???"
+		game.print("N&S OK")
 		set_stats_bottom()	--Will fill up string "local _guib" and table "local _jsonb"
+		game.print("BOTTOM OK")
 		global.export_stats_are_set=true		
 	else 
 		if global.bb_debug then game.print(">>>>> Results and stats are already set.", {r = 0.22, g = 0.22, b = 0.22}) end
@@ -517,7 +953,20 @@ local function export_results(export_to_json)
 
 	--EXPORTING TO FILE JSON
 	if export_to_json then
-		if global.bb_debug then game.print(">>>>> TODO : export results and stats to json.") end
+		if global.bb_debug then game.print(">>>>> TODO : exporting results and stats to json.") end
+		local _json={
+			["GAME_ID"]=global.game_id,
+			["GLOBAL"]=_json_global,
+			["NORTH"]=_json_north,
+			["SOUTH"]=_json_south,
+			["NORTH_PLAYERS"]=_json_players_north,
+			["SOUTH_PLAYERS"]=_json_players_south
+		}
+		local _output_txt="game_"..global.game_id..".txt"
+		local _output_json="game_"..global.game_id..".json"
+		local _append=true -- we need this in case of /force-map-reset
+		game.write_file(_output_txt, serpent.block(_json), _append)
+		game.write_file(_output_json, game.table_to_json(_json), _append)
 	else
 		if global.bb_debug then game.print(">>>>> Results and stats have already been exported.") end
 	end
@@ -617,6 +1066,8 @@ local function on_player_joined_game(event)
 	
 	--EVL SET the countdown for intro animation
 	global.player_anim[player.name]=20
+	--global.player_anim[player.name]=0 --CODING--
+	
 	
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
@@ -631,7 +1082,7 @@ local function on_gui_click(event)
 	--Do we need to see the clicks ?
 	if false and global.bb_debug then game.print("      ON GUI CLICK : elem="..element.name.."       parent="..element.parent.name, {r = 0.22, g = 0.22, b = 0.22}) end
 	--EVL Not beautiful but it works
-	if element.parent.name == "bb_export_frame" or element.parent.name == "bb_export_table" or element.name == "bb_export_button" then 
+	if element.parent.name == "bb_export_frame" or element.parent.name == "bb_export_top" or element.name == "bb_export_button" then 
 		frame_export_click(player, element)
 		return
 	end	
@@ -869,7 +1320,7 @@ local function on_tick()
 		local key = tick % 3600
 		if tick_minute_functions[key] then tick_minute_functions[key]() end
 	elseif not global.match_running and tick % 30 == 0 then	
-		-- SHOW THE INTRO IMAGES
+		-- SHOW THE INTRO IMAGES 
 		for player,countdown in pairs(global.player_anim) do
 			if countdown>0 then
 				show_anim_player(game.players[player],countdown)

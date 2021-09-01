@@ -15,6 +15,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 
 	global.bb_debug = false --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
 	global.bb_biters_debug = false --EVL ADD MUCH VERBOSE TO BITERS AI
+	--global.debug_ore = {} --EVL record debug messages since they dont show with game.print (too early in the procedure) USE REROLL INSTEAD
 	-- EVL change for map restart (/force-map-reset)
 	local _first_init=true --EVL for disabling nauvis (below)
 	if not game.forces["north"] then 
@@ -151,6 +152,7 @@ end
 function Public.draw_structures()
 	local surface = game.surfaces[global.bb_surface_name]
 	Terrain.draw_spawn_area(surface)
+	--Terrain.check_ore_in_main(surface) --EVL --CODING--
 	Terrain.clear_ore_in_main(surface) --EVL --CODING--
 	Terrain.generate_spawn_ore(surface)
 	Terrain.generate_additional_rocks(surface)
@@ -260,12 +262,12 @@ function Public.tables()
 	
 	
 	global.game_id=nil --EVL Game Identificator from website (via lobby?)
-	--global.game_id=12423 --CODING--
+	--global.game_id=12546 --CODING--
 	
 	global.player_anim={}
 	
 	global.reroll_max=2 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
-	--global.reroll_max=1 --EVL TO be removed  --CODING-- 2 or 3 ???????
+	--global.reroll_max=100 --EVL TO be removed  --CODING-- 2 or 3 ???????
 	global.reroll_left=global.reroll_max --EVL = global.reroll_max as we init (will be set to real value after a reroll has been asked)
 	global.reroll_do_it=false --EVL (none)
 

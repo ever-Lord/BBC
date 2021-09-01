@@ -171,11 +171,11 @@ Public.food_value_table_version = { Public.food_values["automation-science-pack"
 -- EVL PACKS LIST
 
 	Public.packs_list = {
-		["pack_01"] = {name = "pack_01", caption = "[img=item.iron-gear-wheel] Regular", tooltip = "Raw materials, free for crafting", item_list=nil },
-		["pack_02"] = {name = "pack_02", caption = "[img=item.lab] Science", tooltip = "Labs, red potions & power", item_list=nil },
-		["pack_03"] = {name = "pack_03", caption = "[img=item.construction-robot] Robots", tooltip = "One personal robotport", item_list=nil }, -- THIS PACK HAS BONUS (bot speed) -see terrain.lua-
-		["pack_04"] = {name = "pack_04", caption = "[img=item.grenade] Combat", tooltip = "One heavy armor, fishes, grenades...", item_list=nil } --,
-		--["pack_05"] = {name = "pack_05", caption = "[img=item.assembling-machine-2] Advanced", tooltip = "Electric miners & machines MK2", item_list=nil }
+		["pack_01"] = {name = "pack_01", title = "Regular", caption = "[img=item.iron-gear-wheel] Regular", tooltip = "Raw materials, free for crafting", item_list=nil },
+		["pack_02"] = {name = "pack_02", title = "Science", caption = "[img=item.lab] Science", tooltip = "Labs, red potions & power", item_list=nil },
+		["pack_03"] = {name = "pack_03", title = "Robots", caption = "[img=item.construction-robot] Robots", tooltip = "One personal robotport", item_list=nil }, -- THIS PACK HAS BONUS (bot speed) -see terrain.lua-
+		["pack_04"] = {name = "pack_04", title = "Combat", caption = "[img=item.grenade] Combat", tooltip = "One heavy armor, fishes, grenades...", item_list=nil } --,
+		--["pack_05"] = {name = "pack_05", title = "Advanced", caption = "[img=item.assembling-machine-2] Advanced", tooltip = "Electric miners & machines MK2", item_list=nil }
 	}
 	Public.packs_total_nb = table_size(Public.packs_list)
 	
@@ -400,6 +400,12 @@ Public.packs_contents= {
 				["small-electric-pole"]=30,
 				["assembling-machine-1"]=15,
 				["pistol"]=1,
+				["landfill"]=100, --EVL for testing
+				["stone-brick"]=20,
+				["concrete"]=30,
+				["refined-concrete"]=40,
+				["hazard-concrete"]=50,
+				["refined-hazard-concrete"]=60, --EVL for testing
 				["firearm-magazine"]=10
 			},
 			["center"] = {
@@ -546,7 +552,12 @@ Public.packs_item_value = {
 	["exoskeleton-equipment"]=999,
 	["energy-shield-mk2-equipment"]=999,
 	["battery-mk2-equipment"]=999,
-	["personal-laser-defense-equipment"]=999
+	["personal-laser-defense-equipment"]=999,
+	["landfill"]=999, --EVL for testing
+	["concrete"]=999,
+	["refined-concrete"]=999,
+	["hazard-concrete"]=999,
+	["refined-hazard-concrete"]=999 --EVL for testing	
 
 }		
 --EVL FIN

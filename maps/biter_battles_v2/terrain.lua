@@ -14,7 +14,8 @@ local math_sqrt = math.sqrt
 
 local GetNoise = require "utils.get_noise"
 local simplex_noise = require 'utils.simplex_noise'.d2
-local spawn_circle_size = 39
+local spawn_circle_size = 39 --EVL SIZE OF THE ISLAND
+local spawn_wall_radius = 116 --EVL SIZE OF THE SPAWN
 local ores = {"copper-ore", "iron-ore", "stone", "coal"}
 -- mixed_ore_multiplier order is based on the ores variable
 local mixed_ore_multiplier = {1, 1, 1, 1}
@@ -186,7 +187,7 @@ end
 
 local function generate_starting_area(pos, distance_to_center, surface)
 	-- assert(distance_to_center >= spawn_circle_size) == true
-	local spawn_wall_radius = 116
+	-- local spawn_wall_radius = 116 move to top of this file (with island radius)
 	local noise_multiplier = 15 
 	local min_noise = -noise_multiplier * 1.25
 
@@ -428,7 +429,7 @@ function Public.generate(event)
 	generate_extra_worm_turrets(surface, left_top)
 end
 
-function Public.draw_spawn_circle(surface)
+function Public.draw_spawn_circle(surface) --THE ISLAND
 	local tiles = {}
 	for x = spawn_circle_size * -1, -1, 1 do
 		for y = spawn_circle_size * -1, -1, 1 do
@@ -457,7 +458,7 @@ function Public.draw_spawn_circle(surface)
 	
 	for i = 1, #tiles, 1 do
 		if tiles[i].name == "deepwater" then
-			if math_random(1, 48) == 1 then --EVL we want want to change this value
+			if math_random(1, 48) == 1 then --EVL we want want to change this value ?
 				local e = surface.create_entity({name = "fish", position = tiles[i].position})
 			end
 		end
@@ -497,6 +498,91 @@ local function draw_grid_ore_patch(count, grid, name, surface, size, density)
 		draw_noise_ore_patch(pos, name, surface, size, density)
 	end
 end
+
+function Public.check_ore_in_main(surface)
+	
+	--game.print("CHECKING ORES IN SPAWN")
+
+	--We search for large area (crude-oil) 
+	local ores_large = {
+		["iron-ore"]={["amount"]=0,["size"]=0},
+		["copper-ore"]={["amount"]=0,["size"]=0},
+		["coal"]={["amount"]=0,["size"]=0},
+		["stone"]={["amount"]=0,["size"]=0},
+		["crude-oil"]={["amount"]=0,["size"]=0}
+	}
+	local search_area = {
+		left_top = { -200, -200 }, --EVL 200s WERE 150
+		right_bottom = { 200, 0 }
+	}
+	local resources = surface.find_entities_filtered {
+		area = search_area,
+		type = "resource"
+	}
+	--We also search for spawn area 
+	local _spawn=100 -- (spawn_wall_radius=116)
+	local ores_spawn = {
+		["iron-ore"]={["amount"]=0,["size"]=0},
+		["copper-ore"]={["amount"]=0,["size"]=0},
+		["coal"]={["amount"]=0,["size"]=0},
+		["stone"]={["amount"]=0,["size"]=0},
+		["crude-oil"]={["amount"]=0,["size"]=0}
+	}
+	
+
+	for _, res in pairs(resources) do
+		if res.name=="iron-ore" or res.name=="copper-ore" or res.name=="coal" or res.name=="stone" or res.name=="crude-oil" then
+			local _x=res.position.x
+			local _y=res.position.y
+			--game.print(serpent.block(res.position))
+			--game.print("X="..res.position.x..", Y="..res.position.y)
+			--SEARCH IN LARGE (for oil)
+			ores_large[res.name].amount=ores_large[res.name].amount+res.amount
+			ores_large[res.name].size=ores_large[res.name].size+1
+			--SEARCH IN SPAWN 
+			if math.abs(_x) < _spawn and math.abs(_y) < _spawn then
+				ores_spawn[res.name].amount=ores_spawn[res.name].amount+res.amount
+				ores_spawn[res.name].size=ores_spawn[res.name].size+1
+			end
+			
+			
+			--if res.name=="crude-oil" then game.print("oil:"..res.name.."="..res.amount) end
+			--game.print(serpent.block(res.position))
+		else 
+			if global.bb_debug then game.print(res.name.." is not measured") end
+		end
+	end
+		
+	--PRINT the quantities
+	if global.bb_debug then game.print("DEBUG : Resources generation in Large=200x200 and Spawn=100x100",{r = 175, g = 175, b = 0}) end
+	for _res, _qtity in pairs(ores_large) do
+		local _name=_res
+		if _name=="iron-ore" then _name="iron " end
+		if _name=="copper-ore" then _name="copper" end
+		if _name=="coal" then _name="coal " end
+		if _name=="crude-oil" then _name="crude" end
+		local _unit="m²"
+		if _res=="crude-oil" then _unit="well.s" end
+		
+		local msg="    ".._name
+		for _=string.len(msg), 12, 1 do msg=msg.."  " end -- more readable
+		msg=msg.." |Large="..math.round(_qtity.amount/1000,0).."k (".._qtity.size.." ".._unit..")"
+		for _=string.len(msg), 50, 1 do msg=msg.."  " end -- more readable
+		msg=msg.."|Spawn="..math.round(ores_spawn[_res].amount/1000,0).."k ("..ores_spawn[_res].size.." ".._unit..")"
+		if global.bb_debug then game.print(msg,{r = 200, g = 200, b = 100}) end
+		--game.print(_res.." |L=".._qtity["amount"].."(".._qtity["size"].." m²) |S="..ores_spawn[_res]["amount"]).."("..ores_spawn[_res]["size"].." m²)")
+	end
+
+
+	
+--	if surface.can_place_entity({name = name, position = pos, amount = a}) then
+--		surface.create_entity{name = name, position = pos, amount = a}
+--		for _, e in pairs(surface.find_entities_filtered({position = pos, name = {"wooden-chest", "stone-wall", "gun-turret"}})) do					
+--			e.destroy()
+--		end
+--	end
+end
+
 
 function Public.clear_ore_in_main(surface)
 	local search_area = {
@@ -552,6 +638,7 @@ function Public.generate_additional_rocks(surface)
 	end
 end
 
+-- GENERATE SILO AND ITS TURRETS
 function Public.generate_silo(surface)
 	local pos = {x = -32 + math_random(0, 64), y = -72}
 	local mirror_position = {x = pos.x * -1, y = pos.y * -1}

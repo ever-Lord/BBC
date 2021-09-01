@@ -544,7 +544,7 @@ local function on_gui_click(event)
 	local _name=string.sub(name,0,6)
 	if _name=="plist_" then
 		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
-		--if true then -- EVL  --CODING-- Switch lines 
+		--if true then -- EVL  --CODING-- Switch lines to test in any condition
 			local _target_name = event.element.caption
 			if not game.players[_target_name] then
 				if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist)") end

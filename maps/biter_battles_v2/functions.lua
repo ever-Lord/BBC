@@ -412,7 +412,9 @@ function Public.show_intro(player)
 	if player.gui.center["map_intro_frame"] then player.gui.center["map_intro_frame"].destroy() end
 	local frame = player.gui.center.add {type = "frame", name = "map_intro_frame", direction = "vertical"}
 	local frame = frame.add {type = "frame", direction = "vertical" }
-	if false then --CODING-- (we're still secret)
+	local old_game_intro=false  --CODING-- (we're still secret, set to false to see the new BBC map intro)
+		
+	if old_game_intro then
 		local l = frame.add {type = "label", caption = {"biter_battles.map_info"}, name = "biter_battles_map_intro"} 
 		l.style.single_line = false
 		l.style.font = "default"
@@ -568,7 +570,7 @@ function Public.show_bbc_packs(player)
 			
 		end
 
-		tt.add({type = "label", caption = "       "}) 
+		tt.add({type = "label", caption = "  "}) 
 		
 		--EVL CONCAT THE CHESTS and get the score/value of the pack		
 		local pack_tot_content = {}
@@ -598,6 +600,7 @@ function Public.show_bbc_packs(player)
 
 		-- EVL SHOW THE SCORE/VALUE OF THE PACK
 		local ttt= tt.add({type = "table", name = "bbc_c_"..pack_name, column_count = 2}) -- bbc_c for column
+		ttt.style.minimal_width = 175 
 		local i = ttt.add({type = "label", caption = "Score:"}) 
 		i.style.font = "count-font"
 		local q = ttt.add({type = "label", caption = math.floor(_pack_score[pack_name])}) 		

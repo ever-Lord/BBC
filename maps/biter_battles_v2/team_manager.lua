@@ -495,7 +495,7 @@ local function procedure_game_gui(player)
 	_text=_text.."\n"
 	_text=_text.."- [font=default-bold]Game Identificator has to be set (and [color=#55FF55]green[/color])[/font].\n"
 	_text=_text.."   [font=default-small][color=#999999]Note: use [/color][color=#55FF55]scrim[/color][color=#999999] for showmatch, "
-	_text=_text.."or [/color][color=#55FF55]train[/color][color=#999999] for training mode[/color][/font]\n"	
+	_text=_text.."or [/color][color=#55FF55]training[/color][color=#999999] for training mode[/color][/font]\n"	
 	_text=_text.."\n"
 	_text=_text.."During the game you can [color=#5555FF]pause/freeze[/color] if asked, use it wisely.\n\n"
 	_text=_text.."[font=default-bold][color=#FF9740]AFTER THE MATCH :[/color][/font]"
