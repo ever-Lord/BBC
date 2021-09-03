@@ -9,10 +9,10 @@ local function force_map_reset(reason)
 	
     if player and player ~= nil then
         if not player.admin then
-			player.print("[ERROR] Command is admin-only. Please ask an admin.",Color.warning)
+			player.print(">>>>> [ERROR] Command is admin-only. Please ask an admin.",Color.warning)
 			return
         elseif not reason or string.len(reason) <= 5 then
-           player.print("[ERROR] Please enter reason, min length of 5")
+           player.print(">>>>> [ERROR] Please enter reason, min length of 6", Color.warning)
 			return
         else
 			if not global.confirm_map_reset_exceptional then
@@ -37,7 +37,7 @@ local function force_map_reset(reason)
 			end
 			--EVL game has not ended, we can even so ask for reset (but what for ?)
 			msg =">>>>> Admin/Referee " .. player.name .. " initiated exceptional map reset (before end). Reason: " .. reason --EVL shouldnt be used in BBC
-			msg_gui="Admin/Referee " .. player.name .. " initiated exceptional map reset (before end). Reason: " .. reason --EVL remember (manual validation on website ?)
+			msg_gui= player.name .. " initiated exceptional map reset (before end). Reason: " .. reason --EVL remember (manual validation on website ?)
 			game.print(msg, Color.fail)
 			Server.to_discord_embed(msg)
 			--local p = global.rocket_silo["north"].position

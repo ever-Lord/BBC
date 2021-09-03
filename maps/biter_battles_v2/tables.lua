@@ -288,7 +288,8 @@ Public.packs_contents= {
 				["light-armor"]=1,
 				["shotgun"]=1,
 				["shotgun-shell"]=10,
-				["firearm-magazine"]=100
+				["firearm-magazine"]=100,
+				["grenade"]=5
 			},
 			["center"] = {
 				["raw-fish"]=50,
@@ -303,7 +304,8 @@ Public.packs_contents= {
 				["light-armor"]=1,
 				["submachine-gun"]=1,
 				["firearm-magazine"]=100,
-				["piercing-rounds-magazine"]=50
+				["piercing-rounds-magazine"]=50,
+				["grenade"]=5
 			},
 			["right"] = {
 				["raw-fish"]=200,
@@ -327,7 +329,7 @@ Public.packs_contents= {
 				--["battery-mk2-equipment"]=2,
 				--["personal-laser-defense-equipment"]=7, --EVL for testing 
 				
-				["grenade"]=300 --was 30
+				["grenade"]=20
 			}
 		},
 		--[[{ --ORIGINAL VERSION
@@ -400,12 +402,12 @@ Public.packs_contents= {
 				["small-electric-pole"]=30,
 				["assembling-machine-1"]=15,
 				["pistol"]=1,
-				["landfill"]=100, --EVL for testing
-				["stone-brick"]=20,
-				["concrete"]=30,
-				["refined-concrete"]=40,
-				["hazard-concrete"]=50,
-				["refined-hazard-concrete"]=60, --EVL for testing
+				--["landfill"]=100, --EVL for testing
+				--["stone-brick"]=20,
+				--["concrete"]=30,
+				--["refined-concrete"]=40,
+				--["hazard-concrete"]=50,
+				--["refined-hazard-concrete"]=60, --EVL for testing
 				["firearm-magazine"]=10
 			},
 			["center"] = {

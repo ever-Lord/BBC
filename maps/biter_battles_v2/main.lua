@@ -130,11 +130,16 @@ end
 local function set_stats_bottom() --fill up string "local _guib" and table "local _jsonb"
 
 		local fmr_nb=table_size(global.force_map_reset_export_reason) --EVL number of frece-map-reset
+		_json_global["MAP_RESET"]={}
 		if fmr_nb>0 then
 			_guib=_guib.."\n[font=default-bold][color=#FF9740]>>FORCE MAP RESETS>>[/color][/font] [font=default-small][color=#999999]"
-			_guib=_guib.."   (organisators will double check this match)[/color][/font]\n"
-			for _index=1,fmr_nb,1 do _guib=_guib.." [".._index.."] "..global.force_map_reset_export_reason[_index].."\n" end
-			_guib=string.sub(_guib, 1, string.len(_guib)-2)
+			_guib=_guib.."   (organisators will double check this)[/color][/font]\n"
+			for _index=1,fmr_nb,1 do 
+				_guib=_guib.." [".._index.."] "..global.force_map_reset_export_reason[_index].."\n" 
+				table.insert(_json_global["MAP_RESET"],global.force_map_reset_export_reason[_index])
+			end
+			_guib=string.sub(_guib, 1, string.len(_guib)-1)
+			
 		end
 end
 local function set_stats_top() --fill up string "local _guil" and table "local _jsonl"
@@ -159,10 +164,11 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 		_guitl=_guitl.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
 	local _bb_game_won_by_team=global.bb_game_won_by_team
 	local _bb_game_loss_by_team = Tables.enemy_team_of[_bb_game_won_by_team]
-	_guitl=_guitl.."     [color=#97FF40]WINNER=".._bb_game_won_by_team.."[/color]  |  [color=#FF9740]LOOSER=".._bb_game_loss_by_team.."[/color]\n"
+	_guitl=_guitl.."     [color=#97FF40]WINNER=".._bb_game_won_by_team.."[/color]  |  [color=#FF9740]LOSER=".._bb_game_loss_by_team.."[/color]\n"
 
 	_json_global={ --THE JSON GLOBAL STATS (topleft)
 		["GAME_ID"]	= global.game_id, 
+		["TICK"]		= game.tick, 
 		["REFEREE"]	= "tbd", 
 		["ATHOME"]		= "tbd", 
 		["REROLL"]		= global.reroll_max-global.reroll_left, 
@@ -171,7 +177,7 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 		["DURATION"]	= game.ticks_played-global.freezed_time,
 		["PAUSED"]		= global.freezed_time, 
 		["WINNER"]		= _bb_game_won_by_team, 
-		["LOOSER"]		= _bb_game_loss_by_team
+		["LOSER"]		= _bb_game_loss_by_team
 	}
 	--game.print("JSON GLOBAL STATS:"..serpent.block(_json_global))
 	--game.print("TOP LEFT OK")
@@ -199,7 +205,7 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 		--TODO add specs that have played / or that are in the team (need info from website or lobby)
 
 		_guit=_guit.."     "..team_name.."\n"
-		local team_evo = math.floor(1000 * global.bb_evolution[biter_name]) * 0.1
+		local team_evo = math.floor(1000 * global.bb_evolution[biter_name]) / 10 --BUG in exports 2,3 -> 2,2999999999999999 (1+16 digits)
 		local team_threat = math.floor(global.bb_threat[biter_name])
 		_guit=_guit.."     EVO="..team_evo.." | THREAT="..team_threat..""
 		_guit=_guit.." | ROCKETS="..game.forces[force_name].rockets_launched.."\n"
@@ -922,13 +928,9 @@ local function export_results(export_to_json)
 		
 		if global.bb_debug then game.print(">>>>> Setting results and stats.", {r = 0.22, g = 0.22, b = 0.22}) end
 		set_stats_title()	--Will fill up string "local _guit" and table "local _jsont"
-		game.print("TITLE OK")
 		set_stats_top()	--Will fill up string "local _guil" and table "local _jsonl"
-		game.print("TOP OK")
 		set_stats_north_and_south()	--Will fill up string "local _guin and guis" and table "local _jsonr???"
-		game.print("N&S OK")
 		set_stats_bottom()	--Will fill up string "local _guib" and table "local _jsonb"
-		game.print("BOTTOM OK")
 		global.export_stats_are_set=true		
 	else 
 		if global.bb_debug then game.print(">>>>> Results and stats are already set.", {r = 0.22, g = 0.22, b = 0.22}) end
