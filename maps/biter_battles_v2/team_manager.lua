@@ -592,7 +592,7 @@ local function team_manager_gui_click(event)
 		end
 		if not global.pack_choosen or global.pack_choosen=="" then 
 			global.pack_choosen = name
-			game.print(">>>>> Pack#" .. string.sub(name,6,8) .. " - " .. Tables.packs_list[name].caption .." has been choosen !", {r = 11, g = 225, b = 11})
+			game.print(">>>>> Pack#" .. string.sub(name,6,8) .. " - " .. Tables.packs_list[name].caption .." has been chosen !", {r = 11, g = 225, b = 11})
 			global.fill_starter_chests = true
 		else 
 			global.pack_choosen = name

@@ -205,7 +205,7 @@ function Public.tables()
 		}
 	}
 	global.difficulty_vote_value = 1
-	global.difficulty_vote_index = 2 --EVL We set to behemoth_league by default
+	global.difficulty_vote_index = 1 --EVL We set to biter_league by default
 
 	global.difficulty_votes_timeout = 72000
 
