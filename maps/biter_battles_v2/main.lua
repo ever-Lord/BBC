@@ -539,7 +539,6 @@ local function draw_results(player)
 
 	--TITLE
 	--LOGO AND FIRST PART
-	--EVL removed for now until reveal --CODING--
 	local _title= frame.add {type = "table", name = "bb_export_title", column_count = 2}
 	_title.vertical_centering=false
 
@@ -911,7 +910,6 @@ local function export_results(export_to_json)
 	end
 
 	if not global.export_stats_are_set then
-	--CODING-- change these when finished
 		_guit = ""			--_GUI_TITLE FULL WIDTH
 		_guitl = ""		--_GUI_TOP_LEFT	(Global)
 		_json_global = {}	-- JSON TITLE TABLE
@@ -1221,7 +1219,7 @@ local function on_tick()
 		--EVL but we keep possibility to reset for exceptional reasons 
 		if global.force_map_reset_exceptional then		 
 			if not global.server_restart_timer then 
-				global.server_restart_timer=5  --CODING-- was 20
+				global.server_restart_timer=20  --CODING-- was 20
 			end
 			Game_over.reveal_map() --EVL must be repeated
 			Game_over.server_restart()
@@ -1256,10 +1254,6 @@ local function on_tick()
 				if not global.evo_boost_active then -- EVO BOOST AFTER 2H (global.tick_evo_boost=60*60*60*2)
 					local real_played_time = game.ticks_played - global.freezed_time
 					if real_played_time >= global.evo_boost_tick then
-						-- EVL FOR TESTING/DEBUG, TO BE REMOVED --CODING--
-						--global.bb_evolution["north_biters"] = global.bb_evolution["north_biters"] + 0.05
-						--global.bb_evolution["south_biters"] = global.bb_evolution["south_biters"] + 0.10
-
 						--EVL Set boosts for north and south
 						local evo_north = global.bb_evolution["north_biters"]
 						if evo_north<0.001 then evo_north=0.001 end --!DIV0
@@ -1334,7 +1328,7 @@ local function on_tick()
 			for _, player in pairs(game.players) do		
 				if player.gui.center["bbc_cdf"] then	player.gui.center["bbc_cdf"].destroy() end
 			end
-			-- EVL SET global.next_attack = "north" / "south" and global.main_attack_wave_amount=0 --CODING--
+			-- EVL SET global.next_attack = "north" / "south" and global.main_attack_wave_amount=0 --DEBUG--
 			Team_manager.unfreeze_players()
 			game.print(">>>>> Players & Biters have been unfrozen !", {r = 255, g = 77, b = 77})
 		end
