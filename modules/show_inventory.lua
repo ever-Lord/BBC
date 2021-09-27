@@ -234,6 +234,7 @@ function Public.open_inventory(source, target)
     local inventory_gui = screen.inventory_gui
     if inventory_gui then
         close_player_inventory(source)
+		return -- EVL Click again on player will close inventory
     end
 
     local frame =
@@ -266,6 +267,8 @@ function Public.open_inventory(source, target)
     data.last_tab = 'Main'
 	
 	--EVL ADD TAB for Crafting queue
+	--CODING-- player.cursor_stack.name
+	--/c game.print("[item="..game.player.cursor_stack.name.."]")
 	local crafting={}
 	if target.crafting_queue ~= nil then
 		for _,item in pairs(target.crafting_queue) do
@@ -479,6 +482,18 @@ function Public.get(key)
         return this
     end
 end
+
+--on_player_crafted_item
+--Called when the player finishes crafting an item. This event fires just before the results are inserted into the player's inventory, not when the crafting is queued (see on_pre_player_crafted_item).
+--Contains
+--item_stack :: LuaItemStack: The item that has been crafted.
+--player_index :: uint: The player doing the crafting.
+--recipe :: LuaRecipe: The recipe used to craft this item.
+
+--on_player_cursor_stack_changed
+--Called after a players cursorstack changed in some way.
+--Contains
+--player_index :: uint
 
 Event.add(defines.events.on_player_main_inventory_changed, update_gui)
 Event.add(defines.events.on_gui_closed, gui_closed)

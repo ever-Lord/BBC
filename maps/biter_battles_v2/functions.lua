@@ -453,15 +453,15 @@ function Public.show_intro(player)
 	
 	--MAPINFO
 	local Minfo=""
-	Minfo=Minfo.."[font=default-bold][color=#FF9740]Biter Battles Championships (BBC)[/color][/font] consist on [font=default-bold]2 leagues[/font] where teams fight for their global ranking and the final trophy !\n"
+	Minfo=Minfo.."[font=default-bold][color=#FF9740]Biter Battles Championships (BBC)[/color][/font] consist of [font=default-bold]2 leagues[/font] where teams fight for their global ranking and the final trophy !\n"
 	Minfo=Minfo.."[font=default-bold][color=#5555FF]    [entity=big-biter] BITER[/color][/font] league is meant for ~casual~ players, with normal difficulty and where blueprints are allowed.\n"
 	Minfo=Minfo.."[font=default-bold][color=#55FF55]    [entity=behemoth-biter] BEHEMOTH[/color][/font] league is meant for ~pro~ players, with hard difficulty and where blueprints are disabled.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Matches[/color][/font] are 3[font=default-small][color=#999999](+1)[/color][/font] vs 3[font=default-small][color=#999999](+1)[/color][/font], the [font=default-small-bold][color=#999999](+1)[/color][/font] "
 	Minfo=Minfo.."meaning the coach/spy/substitute. One team is said [font=default-bold][color=#CCBBFF]ATHOME[/color][/font]\n"
-	Minfo=Minfo.."                and has advantages against other team said [font=default-bold][color=#BBAAFF]OUTSIDE[/color][/font] (visitors).\n"
+	Minfo=Minfo.."                and has advantages against other team said [font=default-bold][color=#BBAAFF]AWAY[/color][/font] (visitors).\n"
 	Minfo=Minfo.."     At the beginning, both teams get the same [item=repair-pack][font=default-bold][color=#CCBBFF]STARTER PACK[/color][/font][item=repair-pack] choosed among four, leading to a fast early game.\n"
-	Minfo=Minfo.."     Team [font=default-bold][color=#CCBBFF]ATHOME[/color][/font] chooses : 1/ Their side 2/ To reroll map (up to twice, no rollback) 3/ The starter pack 4/ Is not attacked first.\n"
+	Minfo=Minfo.."     Team [font=default-bold][color=#CCBBFF]ATHOME[/color][/font] chooses : 1/ Their side 2/ To reroll map (up to twice, no rollback) 3/ The starter pack.\n"--CODING-- 4/ Is not attacked first.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Be Careful : [/color][/font]Groups of biters will come from every side, there is no safe place !\n"
 	Minfo=Minfo.."          And time is running... Once reached 2h of playtime, [img=quantity-time][font=default-bold][color=#CCBBFF]ARMAGEDDON[/color][/font][img=quantity-time] mode will be activated, expect Behemoths sooner than later !\n"

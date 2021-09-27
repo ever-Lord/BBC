@@ -14,7 +14,7 @@ local bb_config = {
 	["max_active_biters"] = 2048,					--Maximum total amount of attacking units per side.
 	["max_group_size"] = 420,							--Maximum unit group size.
 	["biter_timeout"] = 108000,						--Time it takes in ticks for an attacking unit to be deleted. This prevents permanent stuck units.
-														-- EVL  Was 162000 (45min), SET to 108000 (30min)
+														-- EVL  Was 162000 (45min), SET to 108000 (30min),FreeBB is 5min woot :)
 	["bitera_area_distance"] = 512					--Distance to the biter area.
 }
 

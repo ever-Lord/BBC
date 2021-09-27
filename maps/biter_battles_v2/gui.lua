@@ -214,6 +214,8 @@ function Public.create_main_gui(player)
 		local l = t.add  { type = "label", caption = " - "}
 		local c = #game.forces[gui_value.force].connected_players .. " Player"
 		if #game.forces[gui_value.force].connected_players ~= 1 then c = c .. "s" end
+		if #game.forces[gui_value.force].connected_players == 0 then c = "No player" end --EVL 
+		
 		local l = t.add  { type = "label", caption = c}
 		l.style.font = "default"
 		l.style.font_color = { r=0.22, g=0.88, b=0.22}
@@ -577,6 +579,7 @@ local function on_gui_click(event)
 		
 		if player.admin then
 			if player.force.name == "spectator" then -- GO TO SPEC GOD MODE
+				player.close_map() -- EVL trying to close map view before
 				player.force = game.forces["spec_god"]
 				if player.character then player.character.destroy() end
 				player.character = nil
@@ -584,6 +587,7 @@ local function on_gui_click(event)
 				global.god_players[player.name] = true
 				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches to God mode") end
 			elseif player.force.name == "spec_god" then -- GO TO SPEC REAL MODE
+				
 				player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
 				player.create_character()
 				player.force = game.forces["spectator"]

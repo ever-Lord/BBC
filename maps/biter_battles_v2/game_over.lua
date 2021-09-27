@@ -72,7 +72,7 @@ local function silo_kaboom(entity)
         max_range = 1,
         speed = 0.1
     })
-
+	--TODO-- EVL Need to accelerate this (big lag at end of the game, not enough smooth
     local drops = {}
     for x = -32, 32, 1 do
         for y = -32, 32, 1 do

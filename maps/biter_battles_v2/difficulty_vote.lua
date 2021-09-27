@@ -19,8 +19,8 @@ local difficulties = {
 --CODING-- EVL BBC LEAGUES
 
 local difficulties = {
-	[1] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.0, g=0.0, b=0.7}},
-	[2] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.0, g=0.7, b=0.0}},
+	[1] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.4, g=0.4, b=1.0}},
+	[2] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.1, g=0.8, b=0.1}},
 }
 
 
@@ -33,7 +33,7 @@ local function difficulty_gui()
 		b.style.font = "heading-2"
 		b.style.font_color = difficulties[global.difficulty_vote_index].print_color
 		b.style.minimal_height = 38
-		b.style.minimal_width = 96
+		b.style.minimal_width = 127
 	end
 end
 
@@ -94,9 +94,27 @@ local function set_difficulty()
 	table.sort(a)
 	local new_index = a[v]
 	if global.difficulty_vote_index ~= new_index then
-		local message = table.concat({">>>>> Map difficulty has changed to ", difficulties[new_index].name, " difficulty!"})
+		local message_blueprint=""
+		if new_index==1 then
+           message_blueprint="[color=#FF9740](Blue print library opened)[/color]" 
+			game.permissions.get_group('Default').set_allows_action(defines.input_action.open_blueprint_library_gui,true)
+			game.permissions.get_group('Default').set_allows_action(defines.input_action.import_blueprint_string, true)
+		
+		elseif new_index==2 then
+           message_blueprint="[color=#FF9740](Blue print library closed)[/color]" 
+			game.permissions.get_group('Default').set_allows_action(defines.input_action.open_blueprint_library_gui, false)
+			game.permissions.get_group('Default').set_allows_action(defines.input_action.import_blueprint_string, false)
+		else
+		   game.print(">>>>> BBC ALERT : Vote difficulty is not available, switching to Biter league by default...", {r=0.98, g=0.11, b=0.11})
+           message_blueprint="[color=#FF9740](Blue print library opened)[/color]" 
+			game.permissions.get_group('Default').set_allows_action(defines.input_action.open_blueprint_library_gui,true)
+			game.permissions.get_group('Default').set_allows_action(defines.input_action.import_blueprint_string, true)
+		end
+		
+		local message = table.concat({">>>>> Map difficulty has changed to ", difficulties[new_index].name, " difficulty!   ", message_blueprint})
+	
 		game.print(message, difficulties[new_index].print_color)
-		--Server.to_discord_embed(message)
+		Server.to_discord_embed(message)
 	end
 	 global.difficulty_vote_index = new_index
 	 global.difficulty_vote_value = difficulties[new_index].value
@@ -105,7 +123,7 @@ end
 
 local function on_player_joined_game(event)
 	if not global.difficulty_vote_value then global.difficulty_vote_value = 1 end
-	if not global.difficulty_vote_index then global.difficulty_vote_index = 4 end
+	if not global.difficulty_vote_index then global.difficulty_vote_index = 1 end --was 4 EVL (probably not useful)
 	if not global.difficulty_player_votes then global.difficulty_player_votes = {} end
 	
 	local player = game.players[event.player_index]

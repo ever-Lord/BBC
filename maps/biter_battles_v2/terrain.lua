@@ -16,7 +16,7 @@ local GetNoise = require "utils.get_noise"
 local simplex_noise = require 'utils.simplex_noise'.d2
 local spawn_circle_size = 39 --EVL SIZE OF THE ISLAND
 local spawn_wall_radius = 116 --EVL SIZE OF THE SPAWN
-local ores = {"copper-ore", "iron-ore", "stone", "coal"}
+local ores = {"iron-ore", "copper-ore", "stone", "coal"}
 -- mixed_ore_multiplier order is based on the ores variable
 local mixed_ore_multiplier = {1, 1, 1, 1}
 local rocks = {"rock-huge", "rock-big", "rock-big", "rock-big", "sand-rock-big"}
@@ -50,6 +50,88 @@ local loot_blacklist = {
 	["fast-loader"] = true,
 	["express-loader"] = true,		
 }
+
+--EVL INIT WE TRACK DATAS IN ORDER TO ADJUST RESOURCES IN SPAWN
+--We search for spawn 
+local _spawn_radius=120 -- (spawn_wall_radius=116)
+local ores_spawn = {
+	["iron-ore"]={["amount"]=0,["size"]=0},
+	["copper-ore"]={["amount"]=0,["size"]=0},
+	["coal"]={["amount"]=0,["size"]=0},
+	["stone"]={["amount"]=0,["size"]=0},
+	["crude-oil"]={["amount"]=0,["size"]=0}
+}
+--We search also for large area (crude-oil) 
+local ores_large = {
+	["iron-ore"]={["amount"]=0,["size"]=0},
+	["copper-ore"]={["amount"]=0,["size"]=0},
+	["coal"]={["amount"]=0,["size"]=0},
+	["stone"]={["amount"]=0,["size"]=0},
+	["crude-oil"]={["amount"]=0,["size"]=0}
+}
+local _large_radius=200
+
+local search_area = {
+	left_top = { -1*_large_radius, -1*_large_radius }, --EVL 200s WERE 150
+	right_bottom = { _large_radius, -20 } -- was 200,0 -> bb_config["border_river_width"] = 44,
+}
+
+
+-- Table with info of which "chunks" are empty
+local _chunk_size=20 --EVL must be a integer fraction of _spawn_radius
+
+local _chunk_info={}
+
+local _chunk_minmax=math.floor(_spawn_radius/_chunk_size)
+local _chunk_y_max=-1  -- *math.floor(bb_config["border_river_width"]/_chunk_size)
+--[[ this will be done in function check_ores	 at init and each time we force-map-reset or reroll
+for _x=-1*_chunk_minmax-1,_chunk_minmax+1,1 do
+	_chunk_info[_x]={}
+	for _y=-1*_chunk_minmax-1,_chunk_y_max+1,1 do
+		_chunk_info[_x][_y]={["ore"]=0,["ore-next"]=0}
+	end
+end
+]]--
+local _chunk_totally_empty={} -- empty chunks with neighbors and neighbors of neighbors also empty
+local _chunk_very_empty={} -- empty chunks with neighbors also empty
+local _chunk_almost_empty={} -- empty chunks with one or more neighbor not empty
+--EVL END OF TRACK DATAS INIT
+
+
+
+-- Tracking ores in chunk (in order to know which chunk can be filled later)
+local function update_chunk_info(_chunk_x,_chunk_y,amount)
+	--CHUNK IS NOT EMPTY
+	if _chunk_info[_chunk_x][_chunk_y] then --CENTER (weight=4)
+		_chunk_info[_chunk_x][_chunk_y]["ore"]=_chunk_info[_chunk_x][_chunk_y]["ore"]+amount*4
+	end
+	--NEXT CHUNKS HAVE ORES NEXT TO THEM
+	if _chunk_info[_chunk_x-1][_chunk_y] then --LEFT (weight=2)
+		_chunk_info[_chunk_x-1][_chunk_y]["ore-next"]=_chunk_info[_chunk_x-1][_chunk_y]["ore-next"]+amount*2
+	end
+	if _chunk_info[_chunk_x+1][_chunk_y] then --RIGHT (weight=2)
+		_chunk_info[_chunk_x+1][_chunk_y]["ore-next"]=_chunk_info[_chunk_x+1][_chunk_y]["ore-next"]+amount*2
+	end
+	if _chunk_info[_chunk_x][_chunk_y-1] then --TOP (weight=2)
+		_chunk_info[_chunk_x][_chunk_y-1]["ore-next"]=_chunk_info[_chunk_x][_chunk_y-1]["ore-next"]+amount*2
+	end
+	if _chunk_info[_chunk_x][_chunk_y+1] then --BOTTOM (weight=2)
+		_chunk_info[_chunk_x][_chunk_y+1]["ore-next"]=_chunk_info[_chunk_x][_chunk_y+1]["ore-next"]+amount*2
+	end
+	--CORNER CHUNKS HAVE ORES NEXT TO THEM
+	if _chunk_info[_chunk_x-1][_chunk_y-1] then --TOP LEFT (weight=1)
+		_chunk_info[_chunk_x-1][_chunk_y-1]["ore-next"]=_chunk_info[_chunk_x-1][_chunk_y-1]["ore-next"]+amount
+	end
+	if _chunk_info[_chunk_x+1][_chunk_y-1] then --TOP RIGHT (weight=1)
+		_chunk_info[_chunk_x+1][_chunk_y-1]["ore-next"]=_chunk_info[_chunk_x+1][_chunk_y-1]["ore-next"]+amount
+	end
+	if _chunk_info[_chunk_x+1][_chunk_y+1] then --BOT RIGHT (weight=1)
+		_chunk_info[_chunk_x+1][_chunk_y+1]["ore-next"]=_chunk_info[_chunk_x+1][_chunk_y+1]["ore-next"]+amount
+	end
+	if _chunk_info[_chunk_x-1][_chunk_y+1] then --BOT LEFT (weight=1)
+		_chunk_info[_chunk_x-1][_chunk_y+1]["ore-next"]=_chunk_info[_chunk_x-1][_chunk_y+1]["ore-next"]+amount
+	end
+end
 
 local function shuffle(tbl)
 	local size = #tbl
@@ -139,15 +221,20 @@ local function get_replacement_tile(surface, position)
 	return "grass-1"
 end
 
-local function draw_noise_ore_patch(position, name, surface, radius, richness)
-	if not position then return end
-	if not name then return end
-	if not surface then return end
-	if not radius then return end
-	if not richness then return end
+local function draw_noise_ore_patch(position, name, surface, radius, richness, track_ore)
+	local msg=""
+	if not position then return msg end
+	if not name then return msg end
+	if not surface then return msg end
+	if not radius then return msg end
+	if not richness then return msg end
+	if not track_ore then track_ore=false end
+	
 	local seed = game.surfaces[global.bb_surface_name].map_gen_settings.seed
 	local noise_seed_add = 25000
 	local richness_part = richness / radius
+	local tot_amount=0 --EVL debug
+	local tot_size=0 --EVL debug
 	for y = radius * -3, radius * 3, 1 do
 		for x = radius * -3, radius * 3, 1 do
 			local pos = {x = x + position.x + 0.5, y = y + position.y + 0.5}			
@@ -155,17 +242,40 @@ local function draw_noise_ore_patch(position, name, surface, radius, richness)
 			local noise_2 = simplex_noise(pos.x * 0.1, pos.y * 0.1, seed + 25000)
 			local noise = noise_1 + noise_2 * 0.12
 			local distance_to_center = math_sqrt(x^2 + y^2)
-			local a = richness - richness_part * distance_to_center
-			if distance_to_center < radius - math_abs(noise * radius * 0.85) and a > 1 then
-				if surface.can_place_entity({name = name, position = pos, amount = a}) then
-					surface.create_entity{name = name, position = pos, amount = a}
+			local _amount = math.floor(richness - richness_part * distance_to_center) --EVL rounded amount
+			if distance_to_center < radius - math_abs(noise * radius * 0.85) and _amount > 1 then
+				if surface.can_place_entity({name = name, position = pos, amount = _amount}) then
+					surface.create_entity{name = name, position = pos, amount = _amount} --EVL should we use surface.set_tiles{{name="grass", position={1,1}}} ??? --CODING--
+					--Track ores
+					
+					
+					if track_ore then
+						tot_amount=tot_amount+_amount --EVL debug
+						tot_size=tot_size+1 --EVL debug
+						ores_large[name].amount=ores_large[name].amount+_amount
+						ores_large[name].size=ores_large[name].size+1
+						--IF IN SPAWN 
+						if math.abs(pos.x) < _spawn_radius and math.abs(pos.y) < _spawn_radius then
+							ores_spawn[name].amount=ores_spawn[name].amount+_amount
+							ores_spawn[name].size=ores_spawn[name].size+1
+							local _chunk_x=math.floor(pos.x/_chunk_size)
+							local _chunk_y=math.floor(pos.y/_chunk_size)
+							update_chunk_info(_chunk_x,_chunk_y,_amount)
+						end
+					end
+					
+					--[[ EVL we let the turrets/chests/walls as they were (unless there is a bug, save some ups)
 					for _, e in pairs(surface.find_entities_filtered({position = pos, name = {"wooden-chest", "stone-wall", "gun-turret"}})) do					
 						e.destroy()
 					end
+					]]--
 				end
 			end
 		end
 	end
+	 --EVL debug
+	--if track_ore and global.bb_debug then game.print("Added "..tot_amount.." "..name.." ores in "..tot_size.."m²",{r = 200, g = 200, b = 200}) end
+	return "Qtity="..math.floor(tot_amount/1000).."k Size="..tot_size.."m²"
 end
 
 function is_within_spawn_circle(pos)
@@ -406,7 +516,7 @@ local function mixed_ore(surface, left_top_x, left_top_y)
 				if noise > 0.72 then
 					local i = math_floor(noise * 25 + math_abs(pos.x) * 0.05) % 4 + 1
 					local amount = (math_random(800, 1000) + math_sqrt(pos.x ^ 2 + pos.y ^ 2) * 3) * mixed_ore_multiplier[i]
-					surface.create_entity({name = ores[i], position = pos, amount = amount})
+					surface.create_entity({name = ores[i], position = pos, amount = amount}) --EVL should we use surface.set_tiles{{name="grass", position={1,1}}} ???
 				end
 			end
 		end
@@ -481,8 +591,115 @@ function Public.draw_spawn_area(surface)
 	surface.regenerate_decorative()
 end
 
+--Rewrite function for a more suitable generation of mixed ore patch
+local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track_ore)
+	if not size then size=32 end
+	if not track_ore then track_ore=false end
+
+	local seed = game.surfaces[global.bb_surface_name].map_gen_settings.seed
+	local _radius=math.floor(size/2)
+	local center_x = left_top_x + _radius
+	local center_y = left_top_y + _radius
+	local noise_center = GetNoise("bb_ore", {x = center_x, y = center_y}, seed)
+	--if track_ore and global.bb_debug then game.print("Noise="..noise_center.." Size="..size.." Seed="..seed,{r = 200, g = 200, b = 200}) end
+	--Draw noise text values to determine which chunks are valid for mixed ore.
+	--rendering.draw_text{text = noise, surface = game.surfaces.biter_battles, target = {x = left_top_x + 16, y = left_top_y + 16}, color = {255, 255, 255}, scale = 2, font = "default-game"}
+
+	--Skip chunks that are too far off the ore noise value.
+	--if noise < 0.42 then return -1 end
+
+	--Draw the mixed ore patches.
+	local tot_amount=0 --EVL debug
+	local tot_size=0 --EVL debug
+	
+	local _radius_by_angle={}
+	local _radius_motion=math.random(0.7,1)*_radius
+	local _radius_sign=1
+	
+	local msg=""
+	for _angle=-180,180,6 do
+		msg=msg.."|"..math.floor(_radius_motion)
+		_radius_by_angle[_angle]=_radius_motion
+		_radius_change=math.random(0,10)*_radius/100
+		_radius_motion=_radius_motion+_radius_change*_radius_sign
+		
+		if _radius_motion>_radius then _radius_motion=_radius end
+		if _radius_motion<_radius*0.7 then _radius_motion=_radius*0.7 end
+		--Do we change continue same progression (larger/thiner)?
+		if math.random(1,5)==1 then _radius_sign=_radius_sign*-1 end 
+		
+	end
+	--game.print(msg)	
+
+	
+	for y = 0, size, 1 do
+		local msg=""
+		for x = 0, size, 1 do
+			local pos = {x = left_top_x + x, y = left_top_y + y}
+
+			
+			
+			--test is we are in the river bb_config["border_river_width"] = 44
+			if pos.y<-20 and surface.can_place_entity({name = "iron-ore", position = pos}) then
+
+				local ore_radius=math.sqrt((x-(size/2))^2 + (y-(size/2))^2)
+				
+				local add_this_ore=false-- Do we add this ore ?
+				
+				if ore_radius<=_radius*0.7 then --We are sure to place this ore
+					add_this_ore=true
+				else --We check if we are inside the definition of the border of the match
+					local ore_angle=math.floor(math.atan2(y-(size/2),x-(size/2))*180/math.pi)
+					ore_angle=ore_angle-ore_angle%6
+					--if ore_angle<-180 then ore_angle=-180 end
+					if not _radius_by_angle[ore_angle] and global.bb_debug then game.print("DEBUG [color=#FF0000]this angle does not exist : [/color]"..ore_angle) end
+					if _radius_by_angle[ore_angle] and ore_radius<=_radius_by_angle[ore_angle] then
+						add_this_ore=true
+						--msg=msg.."|"..ore_angle.."=".._radius_by_angle[ore_angle]
+					end
+				end
 
 
+				if add_this_ore then
+					--msg=msg.."|[color=#00FF00]"..math.floor(ore_radius).."[/color]"
+					local noise = GetNoise("bb_ore", pos, seed)
+					local i = math_floor(noise * 25 + math_abs(pos.x) * 0.05) % 5 + 1 --was % 4
+					if i==5 then i=1 end --we double the iron
+					local _name=ores[i]
+					--local _amount = math.floor((math_random(800, 1000) + math_sqrt(pos.x ^ 2 + pos.y ^ 2) * 3) * mixed_ore_multiplier[i]) --EVL was 800,1000
+					local _amount = math.floor(math_random(500, 750) * mixed_ore_multiplier[i] - ore_radius*12) -- No need to add distance we're in spawn
+					if _amount<100 then _amount=100 end --EVL DEBUG
+					surface.create_entity({name = _name, position = pos, amount = _amount}) --EVL should we use surface.set_tiles{{name="grass", position={1,1}}} ???
+					if track_ore then
+						tot_amount=tot_amount+_amount --EVL debug
+						tot_size=tot_size+1 --EVL debug
+						ores_large[_name].amount=ores_large[_name].amount+_amount
+						ores_large[_name].size=ores_large[_name].size+1
+						--IF IN SPAWN 
+						if math.abs(pos.x) < _spawn_radius and math.abs(pos.y) < _spawn_radius then
+							ores_spawn[_name].amount=ores_spawn[_name].amount+_amount
+							ores_spawn[_name].size=ores_spawn[_name].size+1
+							local _chunk_x=math.floor(pos.x/_chunk_size)
+							local _chunk_y=math.floor(pos.y/_chunk_size)
+							--game.print("update chunks ("..pos.x..","..pos.y..")-(".._chunk_x..",".._chunk_y..")")
+							update_chunk_info(_chunk_x,_chunk_y,_amount)							
+							--game.print("update chunks done ("..pos.x..","..pos.y..")-(".._chunk_x..",".._chunk_y..")")
+						end
+
+					end	
+				else
+					--msg=msg.."|[color=#FF0000]"..math.floor(ore_radius).."[/color]"
+				end
+			end
+		end
+		--game.print("Y"..y)--..msg)
+	end
+	--if track_ore and global.bb_debug then game.print("Added "..tot_amount.." mixed ores in "..tot_size.."m²",{r = 200, g = 200, b = 200}) end	
+	if left_top_y == -32 and math_abs(left_top_x) <= 32 then
+		for _, e in pairs(surface.find_entities_filtered({name = 'character', invert = true, area = {{-12, -12},{12, 12}}})) do e.destroy() end
+	end
+	return tot_amount
+end
 
 local function draw_grid_ore_patch(count, grid, name, surface, size, density)
 	-- Takes a random left_top coordinate from grid, removes it and draws
@@ -495,66 +712,15 @@ local function draw_grid_ore_patch(count, grid, name, surface, size, density)
 
 		-- The draw_noise_ore_patch expects position with x and y keys.
 		pos = { x = pos[1], y = pos[2] }
-		draw_noise_ore_patch(pos, name, surface, size, density)
+		draw_noise_ore_patch(pos, name, surface, size, density, false) --EVL add false
 	end
 end
 
-function Public.check_ore_in_main(surface)
-	
-	--game.print("CHECKING ORES IN SPAWN")
-
-	--We search for large area (crude-oil) 
-	local ores_large = {
-		["iron-ore"]={["amount"]=0,["size"]=0},
-		["copper-ore"]={["amount"]=0,["size"]=0},
-		["coal"]={["amount"]=0,["size"]=0},
-		["stone"]={["amount"]=0,["size"]=0},
-		["crude-oil"]={["amount"]=0,["size"]=0}
-	}
-	local search_area = {
-		left_top = { -200, -200 }, --EVL 200s WERE 150
-		right_bottom = { 200, 0 }
-	}
-	local resources = surface.find_entities_filtered {
-		area = search_area,
-		type = "resource"
-	}
-	--We also search for spawn area 
-	local _spawn=100 -- (spawn_wall_radius=116)
-	local ores_spawn = {
-		["iron-ore"]={["amount"]=0,["size"]=0},
-		["copper-ore"]={["amount"]=0,["size"]=0},
-		["coal"]={["amount"]=0,["size"]=0},
-		["stone"]={["amount"]=0,["size"]=0},
-		["crude-oil"]={["amount"]=0,["size"]=0}
-	}
-	
-
-	for _, res in pairs(resources) do
-		if res.name=="iron-ore" or res.name=="copper-ore" or res.name=="coal" or res.name=="stone" or res.name=="crude-oil" then
-			local _x=res.position.x
-			local _y=res.position.y
-			--game.print(serpent.block(res.position))
-			--game.print("X="..res.position.x..", Y="..res.position.y)
-			--SEARCH IN LARGE (for oil)
-			ores_large[res.name].amount=ores_large[res.name].amount+res.amount
-			ores_large[res.name].size=ores_large[res.name].size+1
-			--SEARCH IN SPAWN 
-			if math.abs(_x) < _spawn and math.abs(_y) < _spawn then
-				ores_spawn[res.name].amount=ores_spawn[res.name].amount+res.amount
-				ores_spawn[res.name].size=ores_spawn[res.name].size+1
-			end
-			
-			
-			--if res.name=="crude-oil" then game.print("oil:"..res.name.."="..res.amount) end
-			--game.print(serpent.block(res.position))
-		else 
-			if global.bb_debug then game.print(res.name.." is not measured") end
-		end
-	end
-		
-	--PRINT the quantities
-	if global.bb_debug then game.print("DEBUG : Resources generation in Large=200x200 and Spawn=100x100",{r = 175, g = 175, b = 0}) end
+--Display resources from "ores_large" and "ores_spawn"
+local function display_ores(info)
+	if not info then info=" - " end
+	local _tot_spawn=0
+	if global.bb_debug then game.print("INFO : Resources generation in Large=200x200 and Spawn=120x120 ("..info..")",{r = 125, g = 125, b = 0}) end
 	for _res, _qtity in pairs(ores_large) do
 		local _name=_res
 		if _name=="iron-ore" then _name="iron " end
@@ -566,21 +732,367 @@ function Public.check_ore_in_main(surface)
 		
 		local msg="    ".._name
 		for _=string.len(msg), 12, 1 do msg=msg.."  " end -- more readable
-		msg=msg.." |Large="..math.round(_qtity.amount/1000,0).."k (".._qtity.size.." ".._unit..")"
+		msg=msg.." |Large="..math.round(_qtity.amount/1000,1).."k (".._qtity.size.." ".._unit..")" --quantity (surface)
+		msg=msg.." ["..math.floor(_qtity.amount/_qtity.size) .."]" -- mean density
 		for _=string.len(msg), 50, 1 do msg=msg.."  " end -- more readable
-		msg=msg.."|Spawn="..math.round(ores_spawn[_res].amount/1000,0).."k ("..ores_spawn[_res].size.." ".._unit..")"
+		msg=msg.."|Spawn="..math.round(ores_spawn[_res].amount/1000,1).."k ("..ores_spawn[_res].size.." ".._unit..")" --quantity (surface)
+		_tot_spawn=_tot_spawn+ores_spawn[_res].amount
+		msg=msg.." ["..math.floor(ores_spawn[_res].amount/ores_spawn[_res].size) .."]" -- [mean density]
+		if global.bb_debug then game.print(msg,{r = 125, g = 125, b = 0}) end
+	end
+	if global.bb_debug then game.print("       > Total in spawn = ".._tot_spawn,{r = 125, g = 125, b = 0}) end
+end
+--Display chunks from "_chunk_info"
+local function display_chunks(info)
+	if not info then info=" - " end
+	local _tot_spawn=0
+	for _y=-1*_chunk_minmax+1,_chunk_y_max-1,1 do --from (top+1) to (bottom-1) ie close to river
+		local msg=" Line ".._y..": "
+		for _x=-1*_chunk_minmax+1,_chunk_minmax-1,1 do
+
+			--local _real_x=_x*_chunk_size
+			--local _real_y=_y*_chunk_size
+			--if surface.can_place_entity({name = "uranium-ore", position ={x=_real_x, y=_real_y}, amount = 9999}) then
+			--  	surface.create_entity({name = "uranium-ore", position = {x=_real_x, y=_real_y}, amount = 9999})
+			--else
+				--if global.bb_debug then game.print("cannot place chest at (".._real_x..",".._real_y..")",{r = 200, g = 200, b = 200}) end
+			--end
+			--Print CHUNKS TABLE
+			_tot_spawn=_tot_spawn+_chunk_info[_x][_y]["ore"]/4
+			local _ore=math.floor(_chunk_info[_x][_y]["ore"]/4000).."k"
+			if _chunk_info[_x][_y]["ore-next"]>0 then _ore=_ore.."*" end
+			for _=string.len(_ore), 8, 1 do _ore=_ore.."  " end -- more readable
+			msg=msg.._ore.."| "
+			
+		end
 		if global.bb_debug then game.print(msg,{r = 200, g = 200, b = 100}) end
-		--game.print(_res.." |L=".._qtity["amount"].."(".._qtity["size"].." m²) |S="..ores_spawn[_res]["amount"]).."("..ores_spawn[_res]["size"].." m²)")
+	end
+	if global.bb_debug then game.print("Total spawn (borders excluded) = ".._tot_spawn.."   ("..info..")",{r = 200, g = 200, b = 200}) end
+end
+
+-- Add a patch in spawn if needed (after mixed patch has been drawned)
+local function _add_patch_in_spawn_if_needed(surface,name,need_patch,target_qtity,richness,radius)
+	
+	local _need_patch=need_patch
+	local _name = name
+	local _msg="Added ".._name.." patch in "
+	local _target_qtity=math.random(target_qtity,target_qtity+100)*1000
+	if ores_spawn[_name].amount < _target_qtity then _need_patch=true	end
+	if _need_patch then
+		local _chosen_chunk={}
+		if #_chunk_very_empty>=1 then --We have a good candidate
+			local _index=math.random(1,#_chunk_very_empty)
+			_chosen_chunk=_chunk_very_empty[_index]
+			table.remove(_chunk_very_empty,_index)
+			_msg=_msg.."[color=#FF0000]{very}[/color]"
+		elseif #_chunk_almost_empty>=1 then   -- we have a not-so-good candidate
+			local _index=math.random(1,#_chunk_almost_empty)
+			_chosen_chunk=_chunk_almost_empty[_index]
+			table.remove(_chunk_almost_empty,_index)
+			_msg=_msg.."[color=#FF0000]{almost}[/color]"
+		else 
+			_chosen_chunk={math.random(1,9)-5,math.random(1,5)-6}	--TODO-- look closer to this, we may have a candidate (if we ever come here)		
+			_msg=_msg.."[color=#FF0000]{forced}[/color]"
+		end	
+		
+		local _delta = math.floor(_chunk_size/2) -- we center patch 
+		local _pos = {x = _chosen_chunk[1]*_chunk_size+_delta, y = _chosen_chunk[2]*_chunk_size-_delta}
+		--Calculate Qtity/Richness and Size/Radius
+		local _set_richness=(_target_qtity-ores_spawn[_name].amount)/_target_qtity 
+		if _set_richness<=0.1 then _set_richness=0.1 end -- from 0.1=10% (we're almost good) to 1=100% (we need lots of resource)
+		local _richness = math.floor(richness+richness*2*_set_richness) + math.random(0,richness)
+		local _radius = math.floor(8+radius*_set_richness) + math.random(1,5)
+	
+		_msg=_msg.." "..draw_noise_ore_patch(_pos,_name, surface,_radius,_richness, true).." "
+		_msg=_msg.." at (".._chosen_chunk[1]..",".._chosen_chunk[2]..")=>(".._pos.x..",".._pos.y..")"
+		_msg=_msg.." radius=".._radius.." richness=".._richness.." set_richness="..math.floor(_set_richness*100).."%"
+		if global.bb_debug then game.print(_msg,{r = 250, g = 150, b = 150}) end
+	else
+		if global.bb_debug then game.print("No need for ".._name.." patch",{r = 150, g = 250, b = 150}) end
+	end
+end	
+
+--Checking and adjusting resources in spawn
+function Public.check_ore_in_main(surface)
+	-- seed : 1856641362 bug ?
+	--game.print("CHECKING ORES IN SPAWN")
+	
+	--Reinit quantities (after force-map-reset or reroll)
+	ores_large = {
+		["iron-ore"]={["amount"]=0,["size"]=0},
+		["copper-ore"]={["amount"]=0,["size"]=0},
+		["coal"]={["amount"]=0,["size"]=0},
+		["stone"]={["amount"]=0,["size"]=0},
+		["crude-oil"]={["amount"]=0,["size"]=0}
+	}
+	ores_spawn = {
+		["iron-ore"]={["amount"]=0,["size"]=0},
+		["copper-ore"]={["amount"]=0,["size"]=0},
+		["coal"]={["amount"]=0,["size"]=0},
+		["stone"]={["amount"]=0,["size"]=0},
+		["crude-oil"]={["amount"]=0,["size"]=0}
+	}
+	_chunk_info={}
+	for _x=-1*_chunk_minmax-1,_chunk_minmax+1,1 do
+		_chunk_info[_x]={}
+		for _y=-1*_chunk_minmax-1,_chunk_y_max+1,1 do
+			_chunk_info[_x][_y]={["ore"]=0,["ore-next"]=0}
+		end
+	end	
+	--End of re-init
+	
+	local resources = surface.find_entities_filtered {
+		area = search_area,
+		type = "resource"
+	}
+
+	for _, res in pairs(resources) do
+		if res.name=="iron-ore" or res.name=="copper-ore" or res.name=="coal" or res.name=="stone" or res.name=="crude-oil" then
+			local _x=res.position.x
+			local _y=res.position.y
+			--SEARCH IN LARGE (for oil)
+			ores_large[res.name].amount=ores_large[res.name].amount+res.amount
+			ores_large[res.name].size=ores_large[res.name].size+1
+			--SEARCH IN SPAWN 
+			if math.abs(_x) < _spawn_radius and math.abs(_y) < _spawn_radius then
+				ores_spawn[res.name].amount=ores_spawn[res.name].amount+res.amount
+				ores_spawn[res.name].size=ores_spawn[res.name].size+1
+				--Set the info in _chunk_info (for later)
+				local _chunk_x=math.floor(_x/_chunk_size)
+				local _chunk_y=math.floor(_y/_chunk_size)
+				
+				if math.abs(_chunk_x)<=_chunk_minmax and math.abs(_chunk_y)<=_chunk_minmax then
+					update_chunk_info(_chunk_x,_chunk_y,res.amount)
+				end	
+				
+			end
+		else 
+			if global.bb_debug then game.print(res.name.." is not measured (uranium)") end
+		end
 	end
 
-
+	--PRINT the quantities
+	display_ores("Seed="..surface.map_gen_settings.seed)
+		
+	-- Search for candidates
+	_chunk_totally_empty={} -- empty chunks with neighbors and neighbors of neighbors also empty
+	_chunk_very_empty={} -- empty chunks with neighbors also empty
+	_chunk_almost_empty={} -- empty chunks with one or more neighbor not empty
+	--loop around spawn without borders (+1/-1)
+	for _y=-1*_chunk_minmax+1,_chunk_y_max-1,1 do --from (top+1) to (bottom-1) ie close to river
+		for _x=-1*_chunk_minmax+1,_chunk_minmax-1,1 do
+			if _chunk_info[_x][_y]["ore"]==0 then --we have an empty chunk
+				if _chunk_info[_x][_y]["ore-next"]==0 then	-- and all neighbors are empty
+					local _neighbor_of_not_empty=0
+					--NEXT CHUNKS HAVE ORES ?
+					if _chunk_info[_x-1][_y]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+					if _chunk_info[_x+1][_y]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+					if _chunk_info[_x][_y+1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+					if _chunk_info[_x][_y-1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+					--CORNER CHUNKS HAVE ORES ?
+					if _chunk_info[_x-1][_y-1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+					if _chunk_info[_x-1][_y+1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+					if _chunk_info[_x+1][_y+1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+					if _chunk_info[_x+1][_y-1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+					
+					
+					if _neighbor_of_not_empty==0 then -- and all neighbors of neighbors are  also empty
+						table.insert(_chunk_totally_empty, {_x, _y})
+					else 				
+						table.insert(_chunk_very_empty, {_x, _y})
+					end	
+				else
+					table.insert(_chunk_almost_empty, {_x, _y})
+				end
+			end
+		end
+	end
 	
---	if surface.can_place_entity({name = name, position = pos, amount = a}) then
---		surface.create_entity{name = name, position = pos, amount = a}
---		for _, e in pairs(surface.find_entities_filtered({position = pos, name = {"wooden-chest", "stone-wall", "gun-turret"}})) do					
---			e.destroy()
---		end
---	end
+	--[[ Silo we dont wan't ores to be on the silo chunk(s) --TODO--
+	--local pos = {x = -32 + math_random(0, 64), y = -72}
+	--global.rocket_silo["north"].position
+	-- if entity == global.rocket_silo.south or entity == global.rocket_silo.north then
+	--	local p = silo.position
+	--for _, entity in pairs(surface.find_entities({{p.x - 4, p.y - 4}, {p.x + 4, p.y + 4}})) do	
+	]]--
+	--display_chunks(surface.map_gen_settings.seed)
+	
+
+	--[[ PRINT THE LISTS OF EMPTY CHUNKS (candidate to add ore if needed)
+	local _msg="    ".._chunk_totally_empty_nb.." totally empty  : "
+	for _index=1,_chunk_totally_empty_nb,1 do 
+		_msg=_msg.." (".._chunk_totally_empty[_index][1]..",".._chunk_totally_empty[_index][2]..")   "
+	end
+	if global.bb_debug then game.print(_msg,{r = 200, g = 200, b = 100}) end
+	local _msg="    ".._chunk_very_empty_nb.." very empty  : "
+	for _index=1,_chunk_very_empty_nb,1 do 
+		_msg=_msg.." (".._chunk_very_empty[_index][1]..",".._chunk_very_empty[_index][2]..")   "
+	end
+	if global.bb_debug then game.print(_msg,{r = 200, g = 200, b = 100}) end
+	]]--
+	-- Adding one patch
+	
+	
+	--	ores_large[_name].amount=ores_large[_name].amount+_amount
+	--	ores_large[_name].size=ores_large[_name].size+1
+	-- ores_spawn[_name].amount=ores_spawn[_name].amount+_amount
+	--  ores_spawn[_name].size=ores_spawn[_name].size+1
+	
+	-- First do we need to add regular ore patch (regardless need of mixed patch)
+	local need_iron_patch=false
+	if ores_spawn["iron-ore"].amount<80000 or ores_spawn["iron-ore"].size<500 then need_iron_patch=true end
+	local need_copper_patch=false
+	if ores_spawn["copper-ore"].amount<50000 or ores_spawn["copper-ore"].size<250 then need_copper_patch=true end
+	local need_coal_patch=false
+	if ores_spawn["coal"].amount<40000 or ores_spawn["coal"].size<200 then need_coal_patch=true end
+	local need_stone_patch=false
+	if ores_spawn["stone"].amount<40000 or ores_spawn["stone"].size<200 then need_stone_patch=true end
+	
+	-- Second do we need a mix patch (if 2 or more resources are missing)
+	local not_enough_ore=0
+	local _msg=" Not enough of "
+	if ores_spawn["iron-ore"].amount < math.random(300000,500000) then not_enough_ore=not_enough_ore+1	_msg=_msg.."Iron | "	end
+	if ores_spawn["copper-ore"].amount < math.random(200000,250000) then not_enough_ore=not_enough_ore+1  _msg=_msg.."Copper | "	end
+	if ores_spawn["coal"].amount < math.random(150000,200000) then not_enough_ore=not_enough_ore+1 _msg=_msg.."Coal | " end
+	if ores_spawn["stone"].amount < math.random(150000,200000) then not_enough_ore=not_enough_ore+1 	_msg=_msg.."Stone"	end
+	--if global.bb_debug then game.print(_msg,{r = 200, g = 200, b = 200}) end
+	local _msg_type=""
+	if not_enough_ore >=2 then --Yes we need a mixed patch (happens very very often)
+		
+		local _chosen_chunk={}
+		if (#_chunk_totally_empty>=1) then --we have a excellent candidate
+			local _index=math.random(1,#_chunk_totally_empty)
+			_chosen_chunk=_chunk_totally_empty[_index]
+			_msg_type="[color=#FF0000]{totally}[/color]"
+
+		elseif (#_chunk_very_empty>=1) then   -- we have a not-so-good candidate
+			local _index=math.random(1,#_chunk_very_empty)
+			_chosen_chunk=_chunk_very_empty[_index]
+			_msg_type="[color=#FF0000]{very}[/color]"
+		elseif (#_chunk_almost_empty>=1) then   -- we have a not-so-good candidate
+			local _index=math.random(1,#_chunk_almost_empty)
+			_chosen_chunk=_chunk_almost_empty[_index]
+			_msg_type="[color=#FF0000]{almost}[/color]"
+		else --we didnt find a candidate
+			_chosen_chunk={math.random(1,9)-5,-5}	--TODO-- look closer to this, we may have a candidate (if we ever come here)
+			_msg_type="[color=#FF0000]{forced}[/color]"
+		end
+	
+		local _delta_x = -1*_chunk_size -- we shift patch left from center (since we know that chunk is also empty and patch will be set from top left)
+		--if _chosen_chunk[1]>0 then _delta_x=-1*_delta_x end
+		local _delta_y = -1*_chunk_size -- we shift patch slightly upper (farther from river)
+		local _posX = _chosen_chunk[1]*_chunk_size+_delta_x
+		local _posY = _chosen_chunk[2]*_chunk_size+_delta_y
+		local _size=math.random(60,80)
+		local _qtity_mixed_ores=draw_mixed_ore_patch(surface, _posX, _posY, _size, true)
+		if global.bb_debug then game.print("Added mixed ".._msg_type.." patch at (".._chosen_chunk[1]..",".._chosen_chunk[2]..")=>(".._posX..",".._posY..") size=".._size.." QTITY=".._qtity_mixed_ores.."  (".._msg..")",{r = 250, g = 150, b = 150}) end	
+		
+		-- Search again for candidates now we have a mixed patch (we dont care about totally empty anymore)
+		_chunk_very_empty={} -- empty chunks with neighbors also empty
+		_chunk_almost_empty={} -- empty chunks with one or more neighbor not empty
+		--loop around spawn without borders (+1/-1)
+		for _y=-1*_chunk_minmax+1,_chunk_y_max-1,1 do --from (top+1) to (bottom-1) ie close to river
+			for _x=-1*_chunk_minmax+1,_chunk_minmax-1,1 do
+				if _chunk_info[_x][_y]["ore"]==0 then --we have an empty chunk
+					if _chunk_info[_x][_y]["ore-next"]==0 then	-- and all neighbors are empty
+						table.insert(_chunk_very_empty, {_x, _y})
+					else
+						table.insert(_chunk_almost_empty, {_x, _y})
+					end
+				end
+			end
+		end	
+
+	else
+		if global.bb_debug then game.print("No need for mixed patch",{r = 150, g = 250, b = 150}) end
+	end
+		
+	--Print the chunks very and almost empty
+	--[[
+	local _msg="    "..#_chunk_very_empty.." very empty  : "
+	for _index=1,#_chunk_very_empty,1 do _msg=_msg.." (".._chunk_very_empty[_index][1]..",".._chunk_very_empty[_index][2]..") " end
+	if global.bb_debug then game.print(_msg,{r = 200, g = 200, b = 100}) end
+	local _msg="    "..#_chunk_almost_empty.." almost empty  : "
+	for _index=1,#_chunk_almost_empty,1 do _msg=_msg.." (".._chunk_almost_empty[_index][1]..",".._chunk_almost_empty[_index][2]..") "	end
+	if global.bb_debug then game.print(_msg,{r = 200, g = 200, b = 100}) end
+	]]--
+	
+	display_ores("before adding new patches")
+	
+	-- Adding regular patches (iron, copper, coal, stone) if we had very few at the beginning or if mixed patch didnt put enough
+	
+	_add_patch_in_spawn_if_needed(surface, "iron-ore", need_iron_patch, 500, 350, 20) 
+	--500 means we target 500000 to 600000 ore in total (but we'll have less), 
+	--350 is richness, depends on quantities existing, from richness to ricness*4
+	--16 means size/radius "range", depends on quantities existing, from 8+0+1 to 8+richness+5
+	
+	_add_patch_in_spawn_if_needed(surface, "copper-ore", need_copper_patch, 200, 200, 12) 
+	_add_patch_in_spawn_if_needed(surface, "coal", need_coal_patch, 150, 200, 10) 
+	_add_patch_in_spawn_if_needed(surface, "stone", need_stone_patch, 150, 200, 10) 
+
+	-- Here add more patches if needed (above may put very few ores)
+	-- But it seems it is good enough like that (randomness of spawns is nice according to EVL)
+	
+	-- We give a few free wells of crude-oil if there was noned (or not enough) in the "large" research
+	-- They will be placed somehow "close" to the river
+	local _number=math.random(2,5) --2 to 5 wells in total
+	if ores_large["crude-oil"].size<_number then
+		_number=_number-ores_spawn["crude-oil"].size -- number left to place
+		local _angle=math.random(5,30) -- in degrees
+		local _distance=math.random(0,150)+150 
+		
+		local _posX = math.floor(_distance*math.cos(_angle*math.pi/180))
+		if math.random(0,1)==1 then _posX=-1*_posX end
+		local _posY = math.floor(_distance*math.sin(_angle*math.pi/180))*-1 - 30 -- -30 to be out of the river
+
+		local _msg="Added crude-oil at "
+		local _delta=0
+		local _try=200 -- lets keep safe, we dont want to loop infinitly
+		while _number>0 and _try>0 do
+			_try=_try-1
+			if surface.can_place_entity({name = "crude-oil", position = {x=_posX,y=_posY}}) then
+				local _amount=math.random(100000,150000)
+				surface.create_entity{name = "crude-oil", position = {x=_posX,y=_posY}, amount = _amount}
+				ores_large["crude-oil"].amount=ores_large["crude-oil"].amount+_amount
+				ores_large["crude-oil"].size=ores_large["crude-oil"].size+1				
+				_number=_number-1
+				_msg=_msg.." (".._posX..",".._posY..") "
+			else -- are we in water ? if so we need to move far away
+				_tile_name=surface.get_tile({x=_posX,y=_posY}).name
+				if _tile_name == "water" or _tile_name== "water" then
+					if global.bb_debug then game.print("Shit we're in water !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",{r = 250, g = 0, b = 0})  end
+					--Try to get out of water
+					_posX=_posX+math.random(20,40)
+					_posY=_posY-math.random(10,20)
+				end
+			end
+			_delta=math.random(1,6)
+			if _delta==1 then 
+				_posX=_posX+math.random(3,5)
+				_posY=_posY-math.random(2,3)
+			elseif _delta==2 then 
+				_posX=_posX+math.random(3,5)
+				_posY=_posY+math.random(2,3)
+			elseif _delta==3 then 
+				_posX=_posX+math.random(2,3)
+				_posY=_posY+math.random(3,5)
+			elseif _delta==4 then 
+				_posX=_posX-math.random(3,5)
+				_posY=_posY+math.random(2,3)
+			else
+				_posX=_posX-math.random(3,5)
+				_posY=_posY-math.random(3,5)
+			end
+		end
+		if global.bb_debug then game.print(_msg,{r = 250, g = 150, b = 150}) end
+	else
+		if global.bb_debug then game.print("No need for more oil",{r = 150, g = 250, b = 150}) end
+	end
+	
+	
+	display_ores("after adding new patches")
+	--display_chunks("after adding new patch")
+	
 end
 
 
@@ -729,8 +1241,7 @@ function Public.generate_silo(surface)
 	
 end
 
---[[
-function Public.generate_spawn_goodies(surface)
+--[[function Public.generate_spawn_goodies(surface)
 	local tiles = surface.find_tiles_filtered({name = "stone-path"})
 	table.shuffle_table(tiles)
 	local budget = 1500

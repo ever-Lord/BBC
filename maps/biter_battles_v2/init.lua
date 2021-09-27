@@ -15,7 +15,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 
 	global.bb_debug = false --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
 	global.bb_biters_debug = false --EVL ADD MUCH VERBOSE TO BITERS AI
-	--global.debug_ore = {} --EVL record debug messages since they dont show with game.print (too early in the procedure) USE REROLL INSTEAD
+
 	-- EVL change for map restart (/force-map-reset)
 	local _first_init=true --EVL for disabling nauvis (below)
 	if not game.forces["north"] then 
@@ -38,9 +38,9 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 
 
 	game.forces.spectator.research_all_technologies()
-
-	game.permissions.get_group("Default").set_allows_action(defines.input_action.open_blueprint_library_gui, false)
-	game.permissions.get_group("Default").set_allows_action(defines.input_action.import_blueprint_string, false)
+	--EVL since biter league is set by default, we authorize blueprint library and import
+	game.permissions.get_group("Default").set_allows_action(defines.input_action.open_blueprint_library_gui, true)
+	game.permissions.get_group("Default").set_allows_action(defines.input_action.import_blueprint_string, true)
 
 	local p = game.permissions.create_group("spectator")
 	for action_name, _ in pairs(defines.input_action) do
@@ -97,7 +97,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 			surface.delete_chunk({chunk.x, chunk.y})
 		end
 	end
-	--game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 175, b = 00}) --EVL
+	--game.print(">>>>> WELCOME TO BBChampions ! Tournament mode is active, Players are frozen, Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 175, b = 00}) --EVL
 	global.tournament_mode = true -- EVL (none)
 	
 	
@@ -126,7 +126,14 @@ function Public.playground_surface()
 	local map_gen_settings = {}
 	local int_max = 2 ^ 31
 	map_gen_settings.seed = math.random(1, int_max) --EVL first math.random send always same value (since tick=0) ???
-	map_gen_settings.water = math.random(15, 65) * 0.01
+	--map_gen_settings.seed = 1354075952 --CODING--
+	--[[ SEEDS TO BE VERIFIED
+		996357343
+		1354075952
+		1497223384
+		1152708049
+	]]--
+	map_gen_settings.water = math.random(15, 60) * 0.01 --EVL was 15,65
 	map_gen_settings.starting_area = 2.5
 	map_gen_settings.terrain_segmentation = math.random(30, 40) * 0.1
 	map_gen_settings.cliff_settings = {cliff_elevation_interval = 0, cliff_elevation_0 = 0}
@@ -152,12 +159,13 @@ end
 function Public.draw_structures()
 	local surface = game.surfaces[global.bb_surface_name]
 	Terrain.draw_spawn_area(surface)
-	--Terrain.check_ore_in_main(surface) --EVL --CODING--
-	Terrain.clear_ore_in_main(surface) --EVL --CODING--
-	Terrain.generate_spawn_ore(surface)
+	--Terrain.clear_ore_in_main(surface) --EVL --CODING--
+	--Terrain.generate_spawn_ore(surface)
+	Terrain.check_ore_in_main(surface) --EVL --CODING--
 	Terrain.generate_additional_rocks(surface)
-	Terrain.generate_silo(surface)
 	Terrain.draw_spawn_circle(surface)
+	Terrain.generate_silo(surface)	
+	
 	--Terrain.generate_spawn_goodies(surface)
 end
 
@@ -207,7 +215,7 @@ function Public.tables()
 	global.difficulty_vote_value = 1
 	global.difficulty_vote_index = 1 --EVL We set to biter_league by default
 
-	global.difficulty_votes_timeout = 72000
+	global.difficulty_votes_timeout = 216000 -- EVL 60 minutes before vote close (choose difficulty)
 
 	-- A FIFO that holds dead unit positions. It is used by unit
 	-- reanimation logic. This container is to be accessed by force index.
@@ -264,8 +272,10 @@ function Public.tables()
 	global.game_id=nil --EVL Game Identificator from website (via lobby?)
 	--global.game_id=12546 --CODING--
 	
-	global.player_anim={}
-	
+	global.player_init_timer=20 -- 20 half seconds for intro animation
+	--global.player_init_timer=0 --CODING--
+	global.player_anim={} -- each player has his countdown when joined in
+
 	global.reroll_max=2 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
 	--global.reroll_max=100 --EVL TO be removed  --CODING-- 2 or 3 ???????
 	global.reroll_left=global.reroll_max --EVL = global.reroll_max as we init (will be set to real value after a reroll has been asked)
@@ -276,20 +286,22 @@ function Public.tables()
 	global.fill_starter_chests = false  --EVL 
 	global.starter_chests_are_filled = false  --EVL (none)
 	global.match_countdown = 9 --EVL time of the countdown in seconds before match starts (unpause will have a 3 seconds countdown)
-	--global.match_countdown = 2 --CODING--
+	--global.match_countdown = 1 --CODING--
 	global.match_running = false  --EVL determine if this is first unfreeze (start match) or nexts (pause/unpause)
 
 	global.freezed_time=0 --EVL (none)
 	global.freezed_start=game.ticks_played --EVL we save tick when players started to be frozen (none)
 	global.reveal_init_map=true --EVL (none)
-	global.evo_boost_tick=2*60*60*60 --EVL We boost evo starting at 2h=120m 
-	--global.evo_boost_tick=1*60*60 --EVL  --CODING--
+	global.evo_boost_tick=2*60*60*60 --EVL ARMAGEDDON We boost evo starting at 2h=120m 
+	--global.evo_boost_tick=2*60*60 --EVL  --CODING--
+	global.evo_boost_duration=30 -- Duration before evo goes to 90 (in minutes)
 	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
 	global.evo_boost_values={ 	-- EVL set to boost values after global.evo_boost_tick (1%=0.01)
 		--["north_biters"]=0.001, --CODING--
 		["north_biters"]=0.00, 
 		["south_biters"]=0.00
 	}	
+	
 	global.force_map_reset_exceptional=false -- set to true if a map reset is called via chat command
 	global.force_map_reset_export_reason={} -- we save infos about force-map-resets
 	

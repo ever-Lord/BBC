@@ -482,7 +482,7 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 			["SCIENCE"]={["automation"]=0,["logistic"]=0,["military"]=0,["chemical"]=0,["production"]=0,["utility"]=0,["space"]=0}
 		}
 		--SCIENCE
-		--[[
+		
 		if global.science_per_player[player.name] then
 			local _science=""
 
@@ -491,17 +491,16 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 				if global.science_per_player[player.name][_science_nb] then _this_science = global.science_per_player[player.name][_science_nb] end
 				if _this_science > 0 then 
 					_json_player["SCIENCE"][Tables.food_long_and_short[_science_nb].short_name]=_this_science
-					if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 999->0k9 TODO
-					_science=_science.._this_science.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..", "
+					--if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 999->0k9 TODO
+					--_science=_science.._this_science.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..", "
 				end
-				--if _science_nb==3 then _science=_science.."\n     " end
 			end
-			_science=string.sub(_science, 1, string.len(_science)-2)
-			_guif=_guif.."     ".._science.."\n"
+			--_science=string.sub(_science, 1, string.len(_science)-2)
+			--_guif=_guif.."     ".._science.."\n"
 		else
-			_guif=_guif.."     NO SCIENCE SENT\n"
+			--_guif=_guif.."     NO SCIENCE SENT\n"
 		end
-		]]--
+		
 		--FILL to the right side
 		if _force=="north" then 
 			_guin=_guin.._guif 
@@ -1067,13 +1066,13 @@ local function on_player_joined_game(event)
 	Team_manager.draw_top_toggle_button(player)
 	
 	--EVL SET the countdown for intro animation
-	global.player_anim[player.name]=20
-	--global.player_anim[player.name]=0 --CODING--
-	
+	global.player_anim[player.name]=global.player_init_timer
+
 	
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
-	player.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 225, b = 00})
+	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 225, b = 00})
+	player.print(">>>>> (09-27-21) New map generation, report unplayable maps and send us the seed : /c game.print(game.player.surface.map_gen_settings.seed)",{r = 00, g = 175, b = 00})
 end
 
 local function on_gui_click(event)
@@ -1219,10 +1218,10 @@ local function on_tick()
 			end
 		end
 		
-		--EVL but we keep possibility to reset for exceptionnal reasons 
+		--EVL but we keep possibility to reset for exceptional reasons 
 		if global.force_map_reset_exceptional then		 
 			if not global.server_restart_timer then 
-				global.server_restart_timer=20
+				global.server_restart_timer=5  --CODING-- was 20
 			end
 			Game_over.reveal_map() --EVL must be repeated
 			Game_over.server_restart()
@@ -1244,12 +1243,14 @@ local function on_tick()
 			end
 			Game_over.reveal_map() --EVL timing seems perfect
 			Game_over.server_restart() -- EVL WILL NEVER HAPPEN (global.server_restart_timer=999999)
+			global.reroll_left=global.reroll_max --EVL Reinit #Nb reroll
+			global.pack_choosen = "" --EVL Reinit Starter pack			
 			return
 		end
 
 
 		if tick % 1200 == 0 then --EVL monitoring game times every 20s for EVO BOOST/ARMAGEDDON
-			-- Check for AFK players 
+			--TODO-- Check for AFK players ?
 			
 			if global.freezed_start == 999999999 then -- players are unfreezed
 				if not global.evo_boost_active then -- EVO BOOST AFTER 2H (global.tick_evo_boost=60*60*60*2)
@@ -1264,10 +1265,10 @@ local function on_tick()
 						if evo_north<0.001 then evo_north=0.001 end --!DIV0
 						local evo_south = global.bb_evolution["south_biters"]
 						if evo_south<0.001 then evo_south=0.001 end --!DIV0
-						
+						-- Regular boost (both team are active)
 						if evo_north < evo_south then
-							-- WE WANT NORTH TO GO UP TO 90% UNTIL global.evo_boost_active+30min (PLUS NATURAL AND SENDINGS)
-							local boost_north = (0.9-evo_north) / 30
+							-- WE WANT NORTH TO GO UP TO 90% UNTIL global.evo_boost_active+global.evo_boost_duration=30min (PLUS NATURAL AND SENDINGS)
+							local boost_north = (0.9-evo_north) / global.evo_boost_duration
 							if boost_north < 0.01 then boost_north = 0.01 end -- MINIMUM SET AT 1% per MIN
 							local evo_ratio = evo_south / evo_north -- NORTH KEEPS ADVANTAGE
 							local evo_corr = (evo_south-evo_north)/(evo_south+evo_north) --ARBITRARY
@@ -1277,8 +1278,8 @@ local function on_tick()
 							global.evo_boost_values["north_biters"] = boost_north
 							global.evo_boost_values["south_biters"] = boost_south
 						else
-							-- WE WANT SOUTH TO GO UP TO 90% UNTIL global.evo_boost_active+30min (PLUS NATURAL AND SENDINGS)
-							local boost_south = (0.9-evo_south) / 30
+							-- WE WANT SOUTH TO GO UP TO 90% UNTIL global.evo_boost_active+global.evo_boost_duration=30min (PLUS NATURAL AND SENDINGS)
+							local boost_south = (0.9-evo_south) / global.evo_boost_duration
 							if boost_south < 0.01 then boost_south = 0.01 end -- MINIMUM SET AT 1% per MIN
 							local evo_ratio = evo_north / evo_south -- SOUTH KEEPS ADVANTAGE
 							local evo_corr = (evo_north-evo_south)/(evo_south+evo_north) --ARBITRARY CORRECTION
@@ -1288,10 +1289,33 @@ local function on_tick()
 							global.evo_boost_values["north_biters"] = boost_north
 							global.evo_boost_values["south_biters"] = boost_south
 						end
+						-- Correction if training mode and only one team
+						if global.training_mode and evo_north>0.01 and evo_south<0.01 then
+							--North is in training mode
+							local boost_north = (0.9-evo_north) / global.evo_boost_duration
+							global.evo_boost_values["north_biters"] = boost_north
+							global.evo_boost_values["south_biters"] = 0
+							game.print(">>>>> Training mode detected, boost will only apply to north...", {r = 77, g = 77, b = 192})
+						elseif global.training_mode and evo_north<0.01 and evo_south>0.01 then
+							--South is in training mode
+							global.evo_boost_values["north_biters"] = 0
+							local boost_south = (0.9-evo_south) / global.evo_boost_duration
+							global.evo_boost_values["south_biters"] = boost_south
+							game.print(">>>>> Training mode detected, boost will only apply to south...", {r = 77, g = 77, b = 192})
+						elseif global.training_mode and evo_north>0.01 and evo_south>0.01 then
+							--Both team are in training mode, we apply boost independently
+							local boost_north = (0.9-evo_north) / global.evo_boost_duration
+							global.evo_boost_values["north_biters"] = boost_north
+							local boost_south = (0.9-evo_south) / global.evo_boost_duration
+							global.evo_boost_values["south_biters"] = boost_south
+							game.print(">>>>> Training mode detected, boost will apply independently to both teams...", {r = 77, g = 77, b = 192})
+						end
+						
 						global.evo_boost_active = true --We wont come here again
+					
 						local _b_north=math.floor(global.evo_boost_values["north_biters"]*10000)/100
 						local _b_south=math.floor(global.evo_boost_values["south_biters"]*10000)/100
-						game.print(">>>>> TIME HAS PASSED !!! EVOLUTION IS NOW BOOSTED !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] IS PROCLAIMED !!! (%n=".._b_north.."  | %s=".._b_south..")", {r = 192, g = 77, b = 77})
+						game.print(">>>>> TIME HAS PASSED !!! EVOLUTION IS NOW BOOSTED !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] IS PROCLAIMED !!! (%n=".._b_north.."  | %s=".._b_south.." | duration="..global.evo_boost_duration.."min)", {r = 192, g = 77, b = 77})
 					end
 				end
 				--game.print("UNFREEZ : ticks="..tick.." | played="..game.ticks_played.." (freezed="..global.freezed_time.." & FS="..global.freezed_start..")") 

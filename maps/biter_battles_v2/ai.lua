@@ -158,7 +158,7 @@ Public.destroy_inactive_biters = function()
 	for _, group in pairs(global.unit_groups) do
 		set_active_biters(group)
 	end
-	msg="" --EVL DEBUG/TEST/UNDERSTAND?
+	local msg="" --EVL DEBUG/TEST/UNDERSTAND?
 	for unit_number, biter in pairs(global.active_biters[biter_force_name]) do
 		if is_biter_inactive(biter, unit_number, biter_force_name) then
 			msg=msg..unit_number.." | "

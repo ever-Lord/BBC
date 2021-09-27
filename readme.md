@@ -23,7 +23,7 @@ TEAM MANAGER :
 
 - No need for trusting players, everyone can use deconstruction planner and cut/copy/paste
 - Behemoth league (150%) : importing blue prints from personal library is disabled
-- Biter League (100%) : use admin panel (the fish icon top left, 5th tab) to activate BPs
+- Biter League (100%) : importing blue prints from personal library is enabled (automatically)
 - Both leagues : you still can create and use BPs during the game
 
 GAME :
@@ -37,7 +37,7 @@ GAME :
 - Groups of biters come from all side and will use same waypoints to attack other side (slighlty randomized)
 
 PAUSE/SUBSTITUTE :
-- Freezing/Pausing also freeze biters, but not turrets
+- Freezing/Pausing also freeze biters, but not turrets, nor factory, nor personal craftings ... no idea to change this unfortunately
 - Team can ask for a pause to the referee once per hour
 - For any reason (e.g. player disconnects or cant keep up with the game), after moving this player to spectators, referee can switch 4th team mate to the team. When player reconnects, he can go back to the field after 4th was removed.
 One rule : never more than 3 players on one side !
@@ -54,3 +54,8 @@ SPECIAL COMMAND
 - Command to reset the map at any time : be careful ! 
 /force-map-reset 'reason' (useful for training, forbidden in official matches)
 
+
+PATCH NOTE  :
+date :
+- Biter League (100%) : importing blue prints from personal library is enabled (automatically)
+- Training mode : Armageddon boost depends on own team
