@@ -27,8 +27,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 		for _, player in pairs(game.players) do
 			if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
 		end
-		--CODING--
-		--REINIT SCORE ? NOT NEEDED IT SEEMS
+		--DEBUG-- REINIT SCORE ? NOT NEEDED IT SEEMS
 		_first_init=false
 	end
 	if not game.forces["south"] then game.create_force("south") end
@@ -297,7 +296,6 @@ function Public.tables()
 	global.evo_boost_duration=30 -- Duration before evo goes to 90 (in minutes)
 	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
 	global.evo_boost_values={ 	-- EVL set to boost values after global.evo_boost_tick (1%=0.01)
-		--["north_biters"]=0.001, --CODING--
 		["north_biters"]=0.00, 
 		["south_biters"]=0.00
 	}	

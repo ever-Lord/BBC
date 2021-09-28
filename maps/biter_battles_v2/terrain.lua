@@ -245,7 +245,7 @@ local function draw_noise_ore_patch(position, name, surface, radius, richness, t
 			local _amount = math.floor(richness - richness_part * distance_to_center) --EVL rounded amount
 			if distance_to_center < radius - math_abs(noise * radius * 0.85) and _amount > 1 then
 				if surface.can_place_entity({name = name, position = pos, amount = _amount}) then
-					surface.create_entity{name = name, position = pos, amount = _amount} --EVL should we use surface.set_tiles{{name="grass", position={1,1}}} ??? --CODING--
+					surface.create_entity{name = name, position = pos, amount = _amount} --EVL should we use surface.set_tiles{{name="grass", position={1,1}}} ??? --DEBUG--
 					--Track ores
 					
 					
@@ -613,19 +613,19 @@ local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track
 	local tot_size=0 --EVL debug
 	
 	local _radius_by_angle={}
-	local _radius_motion=math.random(0.7,1)*_radius
+	local _radius_motion=math.random(0.8,0.9)*_radius
 	local _radius_sign=1
 	
 	local msg=""
 	for _angle=-180,180,6 do
 		msg=msg.."|"..math.floor(_radius_motion)
 		_radius_by_angle[_angle]=_radius_motion
-		_radius_change=math.random(0,10)*_radius/100
+		_radius_change=math.random(2,10)*_radius/100
 		_radius_motion=_radius_motion+_radius_change*_radius_sign
 		
 		if _radius_motion>_radius then _radius_motion=_radius end
 		if _radius_motion<_radius*0.7 then _radius_motion=_radius*0.7 end
-		--Do we change continue same progression (larger/thiner)?
+		--Do we continue the same progression (larger/thiner)?
 		if math.random(1,5)==1 then _radius_sign=_radius_sign*-1 end 
 		
 	end
@@ -801,7 +801,7 @@ local function _add_patch_in_spawn_if_needed(surface,name,need_patch,target_qtit
 		local _set_richness=(_target_qtity-ores_spawn[_name].amount)/_target_qtity 
 		if _set_richness<=0.1 then _set_richness=0.1 end -- from 0.1=10% (we're almost good) to 1=100% (we need lots of resource)
 		local _richness = math.floor(richness+richness*2*_set_richness) + math.random(0,richness)
-		local _radius = math.floor(8+radius*_set_richness) + math.random(1,5)
+		local _radius = math.floor(8+radius*_set_richness) + math.random(1,5) --DEBUG-- Add a limit to radius ? (depending on ore...)
 	
 		_msg=_msg.." "..draw_noise_ore_patch(_pos,_name, surface,_radius,_richness, true).." "
 		_msg=_msg.." at (".._chosen_chunk[1]..",".._chosen_chunk[2]..")=>(".._pos.x..",".._pos.y..")"
@@ -1182,7 +1182,7 @@ function Public.generate_silo(surface)
 		end
 	end
 	--EVL we put 3 turrets next to silo with 12 bullets in each
-	local _count=12 --CODING-- count=1(debug) or 12
+	local _count=12 -- 12 magazines in each 3 bonus turrets
 	--local _count=1
 	
 	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
@@ -1192,7 +1192,7 @@ function Public.generate_silo(surface)
 	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
 	turret3.insert({name = "firearm-magazine", count = _count})
 	
-	local add_turrets=false --CODING--
+	local add_turrets=false 
 	if add_turrets then --EVL SOME MORE TURRETS FOR TESTING IN SOLO
 		--local bullet="firearm-magazine"
 		local bullet="uranium-rounds-magazine"

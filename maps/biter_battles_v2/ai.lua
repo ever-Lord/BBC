@@ -53,7 +53,7 @@ end
 
 local size_of_way_points = #way_points.north
 
-local unit_type_raffle = {"biter", "mixed", "mixed", "spitter", "spitter"}
+local unit_type_raffle = {"biter", "biter", "biter", "mixed", "mixed", "mixed", "mixed", "spitter", "spitter"}
 local size_of_unit_type_raffle = #unit_type_raffle
 
 local threat_values = {
@@ -274,7 +274,7 @@ local function select_units_around_spawner(spawner, force_name, side_target)
 		end
 	end
 	get_active_biter_count(biter_force_name, true) -- game.print in the function
-	--if global.bb_biters_debug then game.print("         info: "..get_active_biter_count(biter_force_name, true) .. " active units for " .. biter_force_name,{50, 50, 50}) end --CODING-- DEBUGS CAREFUL
+	--if global.bb_biters_debug then game.print("         info: "..get_active_biter_count(biter_force_name, true) .. " active units for " .. biter_force_name,{50, 50, 50}) end --DEBUG-- CAREFUL
 	return valid_biters
 end
 

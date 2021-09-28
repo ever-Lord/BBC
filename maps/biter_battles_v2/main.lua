@@ -400,7 +400,7 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 				_killscore = score_player.killscore
 				_deaths = score_player.deaths
 				_entities = score_player.built_entities
-				_mined = score_player.mined_entities
+				_mined = score_player.mined_entities-score_player.built_walls
 				-- EVL MORE STATS !
 				_walls = score_player.built_walls
 				_paths = score_player.placed_path
@@ -530,7 +530,7 @@ local function draw_results(player)
 	local frame = player.gui.center.add {type = "frame", name = "bb_export_frame", direction = "vertical"}
 	--Some infos about what icons are meaning
 	local _tooltip="[color=#CCCCCC]Killscore[/color] [color=#999999]is your score at fighting biters\n"
-	.."[item=blueprint] entities built, [item=deconstruction-planner] entities mined\n"
+	.."[item=blueprint] entities built (walls are deduced), [item=deconstruction-planner] entities mined\n"
 	.."[item=gun-turret] include gun, flame, laser and radars\n"
 	.."[item=stone-wall] include gates\n" -- and paths of bricks/concrete\n" TODO
 	.."[item=steam-engine] include offshore, boiler, steam, solar, accu\n"
@@ -1070,7 +1070,7 @@ local function on_player_joined_game(event)
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
 	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 225, b = 00})
-	player.print(">>>>> (09-27-21) New map generation, report unplayable maps and send us the seed : /c game.print(game.player.surface.map_gen_settings.seed)",{r = 00, g = 175, b = 00})
+	player.print(">>>>> (09-27-21) New map generation, report unplayable maps and send us the seed : \n       /c game.print(game.player.surface.map_gen_settings.seed)",{r = 00, g = 175, b = 00})
 end
 
 local function on_gui_click(event)
@@ -1185,7 +1185,7 @@ local function on_tick()
 		if not global.match_running then 
 			diff_vote.difficulty_gui()	
 		else
-			if global.match_running and tick % 18000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 5 minutes
+			if global.match_running and tick % 54000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 15 minutes
 			--Still players should be able to use /clear-corpses <radius> from their position
 		end
 		

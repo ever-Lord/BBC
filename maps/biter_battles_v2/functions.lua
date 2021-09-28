@@ -412,15 +412,6 @@ function Public.show_intro(player)
 	if player.gui.center["map_intro_frame"] then player.gui.center["map_intro_frame"].destroy() end
 	local frame = player.gui.center.add {type = "frame", name = "map_intro_frame", direction = "vertical"}
 	local frame = frame.add {type = "frame", direction = "vertical" }
-	local old_game_intro=false  --CODING-- (we're still secret, set to false to see the new BBC map intro)
-		
-	if old_game_intro then
-		local l = frame.add {type = "label", caption = {"biter_battles.map_info"}, name = "biter_battles_map_intro"} 
-		l.style.single_line = false
-		l.style.font = "default"
-		l.style.font_color = {r=0.7, g=0.6, b=0.99}
-		return
-	end
 		
 	--TITLE
 	local Mtitle=""
@@ -461,7 +452,7 @@ function Public.show_intro(player)
 	Minfo=Minfo.."meaning the coach/spy/substitute. One team is said [font=default-bold][color=#CCBBFF]ATHOME[/color][/font]\n"
 	Minfo=Minfo.."                and has advantages against other team said [font=default-bold][color=#BBAAFF]AWAY[/color][/font] (visitors).\n"
 	Minfo=Minfo.."     At the beginning, both teams get the same [item=repair-pack][font=default-bold][color=#CCBBFF]STARTER PACK[/color][/font][item=repair-pack] choosed among four, leading to a fast early game.\n"
-	Minfo=Minfo.."     Team [font=default-bold][color=#CCBBFF]ATHOME[/color][/font] chooses : 1/ Their side 2/ To reroll map (up to twice, no rollback) 3/ The starter pack.\n"--CODING-- 4/ Is not attacked first.\n"
+	Minfo=Minfo.."     Team [font=default-bold][color=#CCBBFF]ATHOME[/color][/font] chooses : 1/ Their side 2/ To reroll map (up to twice, no rollback) 3/ The starter pack.\n"--DEBUG-- 4/ Is not attacked first.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Be Careful : [/color][/font]Groups of biters will come from every side, there is no safe place !\n"
 	Minfo=Minfo.."          And time is running... Once reached 2h of playtime, [img=quantity-time][font=default-bold][color=#CCBBFF]ARMAGEDDON[/color][/font][img=quantity-time] mode will be activated, expect Behemoths sooner than later !\n"

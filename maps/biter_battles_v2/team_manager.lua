@@ -629,11 +629,9 @@ local function team_manager_gui_click(event)
 			--draw_manager_gui(player) -- Will be destroyed when starting match NOT NEEDED AT ALL?
 			if not global.match_running then --First unfreeze meaning match is starting
 				global.match_running=true 
-				--CODING-- 
+				 
 				global.bb_threat["north_biters"] = 9 --EVL we start at threat=9 to avoid weird sendings at the beginning
-				global.bb_threat["south_biters"] = 9 --CODING-- was 9
-				--global.bb_evolution["north_biters"] = 0.80 --FOR TESTING (change bullets in turrets next to silo in terrain.lua)
-				--global.bb_evolution["south_biters"] = 0.80
+				global.bb_threat["south_biters"] = 9 
 				game.surfaces[global.bb_surface_name].daytime = 0.6 -- we set time to dawn
 				game.print(">>>>> Match is starting shortly. Good luck ! Have Fun !", {r = 11, g = 255, b = 11})
 				if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end

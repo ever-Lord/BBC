@@ -134,11 +134,18 @@ local function get_mvps(force)
             if score.players[p.name].mined_entities then
                 mined_entities = score.players[p.name].mined_entities
             end
+			--EVL ADD Built walls in MVPs
+            local built_walls = 0
+            if score.players[p.name].built_walls then
+                built_walls = score.players[p.name].built_walls
+            end			
+			
             table.insert(score_list, {
                 name = p.name,
                 killscore = killscore,
                 deaths = deaths,
-                built_entities = built_entities,
+                built_entities = built_entities-built_walls, -- Deduce walls
+                built_walls = built_walls,--EVL ADD Built walls in MVPs
                 mined_entities = mined_entities
             })
         end
@@ -153,6 +160,12 @@ local function get_mvps(force)
         name = score_list[1].name,
         score = score_list[1].built_entities
     }
+    --EVL ADD Built walls in MVPs
+	score_list = get_sorted_list("built_walls", score_list)
+    mvp.built_walls = {
+        name = score_list[1].name,
+        score = score_list[1].built_walls
+    }	
     return mvp
 end
 
@@ -165,7 +178,11 @@ local function show_mvps(player)
         name = "mvps",
         direction = "vertical"
     })
-    local l = frame.add({type = "label", caption = "MVPs - North:"})
+    local name_North="North"
+	if global.tm_custom_name[global.bb_game_won_by_team] then
+        name_North = global.tm_custom_name[global.bb_game_won_by_team]
+    end
+	local l = frame.add({type = "label", caption = "MVPs - "..name_North..":"})
     l.style.font = "default-listbox"
     l.style.font_color = {r = 0.55, g = 0.55, b = 0.99}
 
@@ -178,56 +195,67 @@ local function show_mvps(player)
         l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
         local l = t.add({
             type = "label",
-            caption = mvp.killscore.name .. " with a score of " ..
-                mvp.killscore.score
+            caption = mvp.killscore.name .. " with a score of " .. mvp.killscore.score
         })
         l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
-
+		--EVL score is built-walls (deducing walls from built entities)
         local l = t.add({type = "label", caption = "Builder >> "})
         l.style.font = "default-listbox"
         l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
         local l = t.add({
             type = "label",
-            caption = mvp.built_entities.name .. " built " ..
-                mvp.built_entities.score .. " things"
+            caption = mvp.built_entities.name .. " built " .. mvp.built_entities.score .. " things"
         })
         l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
-
+		--EVL ADD Built walls in MVPs
+        local l = t.add({type = "label", caption = "Waller >> "})
+        l.style.font = "default-listbox"
+        l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
+        local l = t.add({
+            type = "label",
+            caption = mvp.built_walls.name .. " built " .. mvp.built_walls.score .. " walls"
+        })
+        l.style.font = "default-bold"
+        l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
+		
         local l = t.add({type = "label", caption = "Deaths >> "})
         l.style.font = "default-listbox"
         l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
         local l = t.add({
             type = "label",
-            caption = mvp.deaths.name .. " died " .. mvp.deaths.score ..
-                " times"
+            caption = mvp.deaths.name .. " died " .. mvp.deaths.score .. " times"
         })
         l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
 
         if not global.results_sent_north then
-            local result = {}
-            table.insert(result, 'NORTH: \\n')
-            table.insert(result, 'MVP Defender: \\n')
-            table.insert(result, mvp.killscore.name .. " with a score of " .. mvp.killscore.score .. "\\n")
-            table.insert(result, '\\n')
-            table.insert(result, 'MVP Builder: \\n')
-            table.insert(result,
-                         mvp.built_entities.name .. " built " ..
-                             mvp.built_entities.score .. " things\\n")
-            table.insert(result, '\\n')
-            table.insert(result, 'MVP Deaths: \\n')
-            table.insert(result,
-                         mvp.deaths.name .. " died " .. mvp.deaths.score ..
-                             " times")
-            local message = table.concat(result)
-            Server.to_discord_embed(message)
-            global.results_sent_north = true
+			local result = {}
+			table.insert(result, 'NORTH: \\n')
+			table.insert(result, 'MVP Defender: \\n')
+			table.insert(result, mvp.killscore.name .. " with a score of " .. mvp.killscore.score .. "\\n")
+			table.insert(result, '\\n')
+			table.insert(result, 'MVP Builder: \\n')
+			table.insert(result, mvp.built_entities.name .. " built " .. mvp.built_entities.score .. " things\\n")
+			table.insert(result, '\\n')
+			--EVL ADD Built walls in MVPs
+			table.insert(result, 'MVP Waller: \\n')
+			table.insert(result, mvp.built_walls.name .. " built " .. mvp.built_walls.score .. " walls\\n")
+			table.insert(result, '\\n')
+			table.insert(result, 'MVP Deaths: \\n')
+			table.insert(result, mvp.deaths.name .. " died " .. mvp.deaths.score .. " times")
+			local message = table.concat(result)
+			Server.to_discord_embed(message)
+			global.results_sent_north = true
         end
     end
-
-    local l = frame.add({type = "label", caption = "MVPs - South:"})
+	--SOUTH
+    local name_South="South"
+	if global.tm_custom_name[global.bb_game_won_by_team] then
+        name_South = global.tm_custom_name[global.bb_game_won_by_team]
+    end
+	local l = frame.add({type = "label", caption = "MVPs - "..name_South..":"})
     l.style.font = "default-listbox"
     l.style.font_color = {r = 0.99, g = 0.33, b = 0.33}
 
@@ -239,53 +267,58 @@ local function show_mvps(player)
         l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
         local l = t.add({
             type = "label",
-            caption = mvp.killscore.name .. " with a score of " ..
-                mvp.killscore.score
+            caption = mvp.killscore.name .. " with a score of " .. mvp.killscore.score
         })
         l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
-
+		
+		--EVL score is built-walls (deducing walls from built entities)
         local l = t.add({type = "label", caption = "Builder >> "})
         l.style.font = "default-listbox"
         l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
         local l = t.add({
             type = "label",
-            caption = mvp.built_entities.name .. " built " ..
-                mvp.built_entities.score .. " things"
+            caption = mvp.built_entities.name .. " built " .. mvp.built_entities.score .. " things"
         })
         l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
-
+		
+		--EVL ADD Built walls in MVPs
+        local l = t.add({type = "label", caption = "Waller >> "})
+        l.style.font = "default-listbox"
+        l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
+        local l = t.add({
+            type = "label",
+            caption = mvp.built_walls.name .. " built " .. mvp.built_walls.score .. " walls"
+        })
         local l = t.add({type = "label", caption = "Deaths >> "})
         l.style.font = "default-listbox"
         l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
         local l = t.add({
             type = "label",
-            caption = mvp.deaths.name .. " died " .. mvp.deaths.score ..
-                " times"
+            caption = mvp.deaths.name .. " died " .. mvp.deaths.score .." times"
         })
         l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
 
         if not global.results_sent_south then
-            local result = {}
-            table.insert(result, 'SOUTH: \\n')
-            table.insert(result, 'MVP Defender: \\n')
-            table.insert(result, mvp.killscore.name .. " with a score of " ..
-                             mvp.killscore.score .. "\\n")
-            table.insert(result, '\\n')
-            table.insert(result, 'MVP Builder: \\n')
-            table.insert(result,
-                         mvp.built_entities.name .. " built " ..
-                             mvp.built_entities.score .. " things\\n")
-            table.insert(result, '\\n')
-            table.insert(result, 'MVP Deaths: \\n')
-            table.insert(result,
-                         mvp.deaths.name .. " died " .. mvp.deaths.score ..
-                             " times")
-            local message = table.concat(result)
-            Server.to_discord_embed(message)
-            global.results_sent_south = true
+			local result = {}
+			table.insert(result, 'SOUTH: \\n')
+			table.insert(result, 'MVP Defender: \\n')
+			table.insert(result, mvp.killscore.name .. " with a score of " .. mvp.killscore.score .. "\\n")
+			table.insert(result, '\\n')
+			table.insert(result, 'MVP Builder: \\n')
+			table.insert(result, mvp.built_entities.name .. " built " .. mvp.built_entities.score .. " things\\n")
+			table.insert(result, '\\n')
+			--EVL ADD Built walls in MVPs
+			table.insert(result, 'MVP Waller: \\n')			
+			table.insert(result, mvp.built_walls.name .. " built " .. mvp.built_walls.score .. " walls\\n")
+			table.insert(result, '\\n')							 
+			table.insert(result, 'MVP Deaths: \\n')
+			table.insert(result, mvp.deaths.name .. " died " .. mvp.deaths.score .. " times")
+			local message = table.concat(result)
+			Server.to_discord_embed(message)
+			global.results_sent_south = true
         end
     end
 end
