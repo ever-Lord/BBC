@@ -3,7 +3,7 @@ local ai = require "maps.biter_battles_v2.ai"
 local event = require 'utils.event'
 local Server = require 'utils.server'
 
- --CODING-- EVL Changing difficulties for BBC 
+-- EVL Changing difficulties for BBC 
 --[[
 local difficulties = {
 	
@@ -16,8 +16,8 @@ local difficulties = {
 	[7] = {name = "Fun and Fast", str = "500%", value = 5, color = {r=0.55, g=0.00, b=0.00}, print_color = {r=0.9, g=0.0, b=0.00}}
 }
 ]]--
---CODING-- EVL BBC LEAGUES
 
+-- EVL BBC LEAGUES
 local difficulties = {
 	[1] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.4, g=0.4, b=1.0}},
 	[2] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.1, g=0.8, b=0.1}},

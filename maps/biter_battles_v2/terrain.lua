@@ -591,7 +591,7 @@ function Public.draw_spawn_area(surface)
 	surface.regenerate_decorative()
 end
 
---Rewrite function for a more suitable generation of mixed ore patch
+--Rewrite function for a more suitable generation of mixed ore patch in Spawn
 local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track_ore)
 	if not size then size=32 end
 	if not track_ore then track_ore=false end
@@ -667,8 +667,8 @@ local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track
 					if i==5 then i=1 end --we double the iron
 					local _name=ores[i]
 					--local _amount = math.floor((math_random(800, 1000) + math_sqrt(pos.x ^ 2 + pos.y ^ 2) * 3) * mixed_ore_multiplier[i]) --EVL was 800,1000
-					local _amount = math.floor(math_random(500, 750) * mixed_ore_multiplier[i] - ore_radius*12) -- No need to add distance we're in spawn
-					if _amount<100 then _amount=100 end --EVL DEBUG
+					local _amount = math.floor(math_random(750, 950) * mixed_ore_multiplier[i] - ore_radius*10) -- No need to add distance we're in spawn
+					if _amount<250 then _amount=250 end --EVL DEBUG
 					surface.create_entity({name = _name, position = pos, amount = _amount}) --EVL should we use surface.set_tiles{{name="grass", position={1,1}}} ???
 					if track_ore then
 						tot_amount=tot_amount+_amount --EVL debug
@@ -799,9 +799,9 @@ local function _add_patch_in_spawn_if_needed(surface,name,need_patch,target_qtit
 		local _pos = {x = _chosen_chunk[1]*_chunk_size+_delta, y = _chosen_chunk[2]*_chunk_size-_delta}
 		--Calculate Qtity/Richness and Size/Radius
 		local _set_richness=(_target_qtity-ores_spawn[_name].amount)/_target_qtity 
-		if _set_richness<=0.1 then _set_richness=0.1 end -- from 0.1=10% (we're almost good) to 1=100% (we need lots of resource)
-		local _richness = math.floor(richness+richness*2*_set_richness) + math.random(0,richness)
-		local _radius = math.floor(8+radius*_set_richness) + math.random(1,5) --DEBUG-- Add a limit to radius ? (depending on ore...)
+		if _set_richness<=0.25 then _set_richness=0.25 end -- from 0.25=25% (we're almost good) to 1=100% (we need lots of resource)
+		local _richness = math.floor(richness+richness*3*_set_richness) + math.random(0,richness)
+		local _radius = math.floor(9+radius*_set_richness) + math.random(1,6) --DEBUG-- Add a limit to radius ? (depending on ore...)
 	
 		_msg=_msg.." "..draw_noise_ore_patch(_pos,_name, surface,_radius,_richness, true).." "
 		_msg=_msg.." at (".._chosen_chunk[1]..",".._chosen_chunk[2]..")=>(".._pos.x..",".._pos.y..")"
@@ -836,7 +836,7 @@ function Public.check_ore_in_main(surface)
 	for _x=-1*_chunk_minmax-1,_chunk_minmax+1,1 do
 		_chunk_info[_x]={}
 		for _y=-1*_chunk_minmax-1,_chunk_y_max+1,1 do
-			_chunk_info[_x][_y]={["ore"]=0,["ore-next"]=0}
+			_chunk_info[_x][_y]={["ore"]=0,["ore-next"]=0,["water"]=0}
 		end
 	end	
 	--End of re-init
@@ -879,35 +879,53 @@ function Public.check_ore_in_main(surface)
 	_chunk_very_empty={} -- empty chunks with neighbors also empty
 	_chunk_almost_empty={} -- empty chunks with one or more neighbor not empty
 	--loop around spawn without borders (+1/-1)
+	local _water_str="Water found in chunks : "
 	for _y=-1*_chunk_minmax+1,_chunk_y_max-1,1 do --from (top+1) to (bottom-1) ie close to river
 		for _x=-1*_chunk_minmax+1,_chunk_minmax-1,1 do
-			if _chunk_info[_x][_y]["ore"]==0 then --we have an empty chunk
-				if _chunk_info[_x][_y]["ore-next"]==0 then	-- and all neighbors are empty
-					local _neighbor_of_not_empty=0
-					--NEXT CHUNKS HAVE ORES ?
-					if _chunk_info[_x-1][_y]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
-					if _chunk_info[_x+1][_y]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
-					if _chunk_info[_x][_y+1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
-					if _chunk_info[_x][_y-1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
-					--CORNER CHUNKS HAVE ORES ?
-					if _chunk_info[_x-1][_y-1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
-					if _chunk_info[_x-1][_y+1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
-					if _chunk_info[_x+1][_y+1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
-					if _chunk_info[_x+1][_y-1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
-					
-					
-					if _neighbor_of_not_empty==0 then -- and all neighbors of neighbors are  also empty
-						table.insert(_chunk_totally_empty, {_x, _y})
-					else 				
-						table.insert(_chunk_very_empty, {_x, _y})
-					end	
-				else
-					table.insert(_chunk_almost_empty, {_x, _y})
+			--LOOK FOR WATER INSIDE CHUNKS (we check 49 tiles, see below)
+			for _inY = 1,_chunk_size-1,3 do -- we check {1,4,7,10,13,16,19} assuming _chunk_size=20
+				for _inX = 1,_chunk_size-1,3 do -- we check {1,4,7,10,13,16,19} assuming _chunk_size=20
+					local _tile_name=surface.get_tile({x = _x*_chunk_size + _inX, y =  _y*_chunk_size + _inY}).name
+					if _tile_name == "water" or _tile_name == "deepwater" then
+						_chunk_info[_x][_y]["water"]=_chunk_info[_x][_y]["water"]+1
+						if global.bb_debug then 
+							surface.set_tiles({{name = "deepwater-green", position = {x = _x*_chunk_size + _inX, y =  _y*_chunk_size + _inY}}})
+						end
+					end
 				end
+			end
+
+			if _chunk_info[_x][_y]["water"]<5 then 	-- If we dont have more than 5 tiles of water out of 49 (around 10%)
+														-- Then we can place ore in this chunk
+				if _chunk_info[_x][_y]["ore"]==0 then --we have an empty chunk
+					if _chunk_info[_x][_y]["ore-next"]==0 then	-- and all neighbors are empty
+						local _neighbor_of_not_empty=0
+						--NEXT CHUNKS HAVE ORES ?
+						if _chunk_info[_x-1][_y]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+						if _chunk_info[_x+1][_y]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+						if _chunk_info[_x][_y+1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+						if _chunk_info[_x][_y-1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+						--CORNER CHUNKS HAVE ORES ?
+						if _chunk_info[_x-1][_y-1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+						if _chunk_info[_x-1][_y+1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+						if _chunk_info[_x+1][_y+1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+						if _chunk_info[_x+1][_y-1]["ore-next"]>0 then _neighbor_of_not_empty=_neighbor_of_not_empty+1 end
+						
+						if _neighbor_of_not_empty==0 then -- and all neighbors of neighbors are  also empty
+							table.insert(_chunk_totally_empty, {_x, _y})
+						else 				
+							table.insert(_chunk_very_empty, {_x, _y})
+						end	
+					else
+						table.insert(_chunk_almost_empty, {_x, _y})
+					end
+				end
+			else
+				_water_str=_water_str.." [".._x..",".._y.."] "
 			end
 		end
 	end
-	
+	if global.bb_debug then game.print(_water_str,{r = 150, g = 150, b = 250}) end
 	--[[ Silo we dont wan't ores to be on the silo chunk(s) --TODO--
 	--local pos = {x = -32 + math_random(0, 64), y = -72}
 	--global.rocket_silo["north"].position
@@ -940,21 +958,21 @@ function Public.check_ore_in_main(surface)
 	
 	-- First do we need to add regular ore patch (regardless need of mixed patch)
 	local need_iron_patch=false
-	if ores_spawn["iron-ore"].amount<80000 or ores_spawn["iron-ore"].size<500 then need_iron_patch=true end
+	if ores_spawn["iron-ore"].amount<200000 or ores_spawn["iron-ore"].size<750 then need_iron_patch=true end
 	local need_copper_patch=false
-	if ores_spawn["copper-ore"].amount<50000 or ores_spawn["copper-ore"].size<250 then need_copper_patch=true end
+	if ores_spawn["copper-ore"].amount<100000 or ores_spawn["copper-ore"].size<350 then need_copper_patch=true end
 	local need_coal_patch=false
-	if ores_spawn["coal"].amount<40000 or ores_spawn["coal"].size<200 then need_coal_patch=true end
+	if ores_spawn["coal"].amount<80000 or ores_spawn["coal"].size<300 then need_coal_patch=true end
 	local need_stone_patch=false
-	if ores_spawn["stone"].amount<40000 or ores_spawn["stone"].size<200 then need_stone_patch=true end
+	if ores_spawn["stone"].amount<80000 or ores_spawn["stone"].size<300 then need_stone_patch=true end
 	
 	-- Second do we need a mix patch (if 2 or more resources are missing)
 	local not_enough_ore=0
 	local _msg=" Not enough of "
-	if ores_spawn["iron-ore"].amount < math.random(300000,500000) then not_enough_ore=not_enough_ore+1	_msg=_msg.."Iron | "	end
-	if ores_spawn["copper-ore"].amount < math.random(200000,250000) then not_enough_ore=not_enough_ore+1  _msg=_msg.."Copper | "	end
-	if ores_spawn["coal"].amount < math.random(150000,200000) then not_enough_ore=not_enough_ore+1 _msg=_msg.."Coal | " end
-	if ores_spawn["stone"].amount < math.random(150000,200000) then not_enough_ore=not_enough_ore+1 	_msg=_msg.."Stone"	end
+	if ores_spawn["iron-ore"].amount < math.random(500000,600000) then not_enough_ore=not_enough_ore+1	_msg=_msg.."Iron | "	end
+	if ores_spawn["copper-ore"].amount < math.random(250000,300000) then not_enough_ore=not_enough_ore+1  _msg=_msg.."Copper | "	end
+	if ores_spawn["coal"].amount < math.random(200000,250000) then not_enough_ore=not_enough_ore+1 _msg=_msg.."Coal | " end
+	if ores_spawn["stone"].amount < math.random(200000,250000) then not_enough_ore=not_enough_ore+1 	_msg=_msg.."Stone"	end
 	--if global.bb_debug then game.print(_msg,{r = 200, g = 200, b = 200}) end
 	local _msg_type=""
 	if not_enough_ore >=2 then --Yes we need a mixed patch (happens very very often)
@@ -987,21 +1005,25 @@ function Public.check_ore_in_main(surface)
 		local _qtity_mixed_ores=draw_mixed_ore_patch(surface, _posX, _posY, _size, true)
 		if global.bb_debug then game.print("Added mixed ".._msg_type.." patch at (".._chosen_chunk[1]..",".._chosen_chunk[2]..")=>(".._posX..",".._posY..") size=".._size.." QTITY=".._qtity_mixed_ores.."  (".._msg..")",{r = 250, g = 150, b = 150}) end	
 		
-		-- Search again for candidates now we have a mixed patch (we dont care about totally empty anymore)
+		-- SEARCH AGAIN again for candidates now we have a mixed patch (we dont care about totally empty anymore)
 		_chunk_very_empty={} -- empty chunks with neighbors also empty
 		_chunk_almost_empty={} -- empty chunks with one or more neighbor not empty
 		--loop around spawn without borders (+1/-1)
 		for _y=-1*_chunk_minmax+1,_chunk_y_max-1,1 do --from (top+1) to (bottom-1) ie close to river
 			for _x=-1*_chunk_minmax+1,_chunk_minmax-1,1 do
-				if _chunk_info[_x][_y]["ore"]==0 then --we have an empty chunk
-					if _chunk_info[_x][_y]["ore-next"]==0 then	-- and all neighbors are empty
-						table.insert(_chunk_very_empty, {_x, _y})
-					else
-						table.insert(_chunk_almost_empty, {_x, _y})
+				if _chunk_info[_x][_y]["water"]<5 then 	-- If we dont have more than 10 tiles of water out of 49 (around 20%)
+															-- Then we can place ore in this chunk			
+					if _chunk_info[_x][_y]["ore"]==0 then --we have an empty chunk
+						if _chunk_info[_x][_y]["ore-next"]==0 then	-- and all neighbors are empty
+							table.insert(_chunk_very_empty, {_x, _y})
+						else
+							table.insert(_chunk_almost_empty, {_x, _y})
+						end
 					end
 				end
 			end
-		end	
+		end
+
 
 	else
 		if global.bb_debug then game.print("No need for mixed patch",{r = 150, g = 250, b = 150}) end
@@ -1060,7 +1082,7 @@ function Public.check_ore_in_main(surface)
 			else -- are we in water ? if so we need to move far away
 				_tile_name=surface.get_tile({x=_posX,y=_posY}).name
 				if _tile_name == "water" or _tile_name== "water" then
-					if global.bb_debug then game.print("Shit we're in water !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",{r = 250, g = 0, b = 0})  end
+					if global.bb_debug then game.print("Shit Oil is in water, need to move !!!",{r = 250, g = 0, b = 0})  end
 					--Try to get out of water
 					_posX=_posX+math.random(20,40)
 					_posY=_posY-math.random(10,20)
@@ -1192,16 +1214,16 @@ function Public.generate_silo(surface)
 	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
 	turret3.insert({name = "firearm-magazine", count = _count})
 	
-	local add_turrets=false 
+	local add_turrets=false --CODING--
 	if add_turrets then --EVL SOME MORE TURRETS FOR TESTING IN SOLO
 		--local bullet="firearm-magazine"
 		local bullet="uranium-rounds-magazine"
 		local count=200
-		local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
+		local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-9, y=pos.y-5}, force = "north"})
 		turret1.insert({name = bullet, count = count})
-		local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
+		local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x-9, y=pos.y-8}, force = "north"})
 		turret2.insert({name = bullet, count = count})
-		local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
+		local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x-9, y=pos.y-11}, force = "north"})
 		turret3.insert({name = bullet, count = count})
 
 		local turret4 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-8}, force = "north"})
@@ -1219,23 +1241,41 @@ function Public.generate_silo(surface)
 
 		local turret1a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-5}, force = "north"})
 		turret1a.insert({name = bullet, count = count})
-		local turret2a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-5}, force = "north"})
+		local turret2a = surface.create_entity({name = "gun-turret", position = {x=pos.x+7, y=pos.y-5}, force = "north"})
 		turret2a.insert({name = bullet, count = count})
-		local turret3a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-5}, force = "north"})
+		local turret3a = surface.create_entity({name = "gun-turret", position = {x=pos.x+10, y=pos.y-5}, force = "north"})
 		turret3a.insert({name = bullet, count = count})
 
 		local turret4a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-8}, force = "north"})
 		turret4a.insert({name = bullet, count = count})
-		local turret5a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-8}, force = "north"})
+		local turret5a = surface.create_entity({name = "gun-turret", position = {x=pos.x+7, y=pos.y-8}, force = "north"})
 		turret5a.insert({name = bullet, count = count})
-		local turret6a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-8}, force = "north"})
+		local turret6a = surface.create_entity({name = "gun-turret", position = {x=pos.x+10, y=pos.y-8}, force = "north"})
 		turret6a.insert({name = bullet, count = count})
 		local turret7a = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-11}, force = "north"})
 		turret7a.insert({name = bullet, count = count})
-		local turret8a = surface.create_entity({name = "gun-turret", position = {x=pos.x+8, y=pos.y-11}, force = "north"})
+		local turret8a = surface.create_entity({name = "gun-turret", position = {x=pos.x+7, y=pos.y-11}, force = "north"})
 		turret8a.insert({name = bullet, count = count})
-		local turret9a = surface.create_entity({name = "gun-turret", position = {x=pos.x+6, y=pos.y-11}, force = "north"})
+		local turret9a = surface.create_entity({name = "gun-turret", position = {x=pos.x+10, y=pos.y-11}, force = "north"})
 		turret9a.insert({name = bullet, count = count})
+		
+		local turret1b = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y-2}, force = "north"})
+		turret1b.insert({name = bullet, count = count})
+		local turret2b = surface.create_entity({name = "gun-turret", position = {x=pos.x-6, y=pos.y+1}, force = "north"})
+		turret2b.insert({name = bullet, count = count})
+		local turret3b = surface.create_entity({name = "gun-turret", position = {x=pos.x+7, y=pos.y-2}, force = "north"})
+		turret3b.insert({name = bullet, count = count})
+		local turret4b = surface.create_entity({name = "gun-turret", position = {x=pos.x+7, y=pos.y+1}, force = "north"})
+		turret4b.insert({name = bullet, count = count})
+		local turret1c = surface.create_entity({name = "gun-turret", position = {x=pos.x-9, y=pos.y-2}, force = "north"})
+		turret1c.insert({name = bullet, count = count})
+		local turret2c = surface.create_entity({name = "gun-turret", position = {x=pos.x-9, y=pos.y+1}, force = "north"})
+		turret2c.insert({name = bullet, count = count})
+		local turret3c = surface.create_entity({name = "gun-turret", position = {x=pos.x+10, y=pos.y-2}, force = "north"})
+		turret3c.insert({name = bullet, count = count})
+		local turret4c = surface.create_entity({name = "gun-turret", position = {x=pos.x+10, y=pos.y+1}, force = "north"})
+		turret4c.insert({name = bullet, count = count})
+	
 	end
 
 	
@@ -1312,10 +1352,11 @@ function Public.minable_wrecks(event)
 	]]--
 	local item_stacks = {
 		['iron-plate'] = 5,
-		['copper-plate'] = 1,
+		['copper-plate'] = 2,
 		['steel-plate'] = 1,
-		['electronic-circuit'] = 1,
-		['transport-belt'] = 2,
+		['iron-gear-wheel'] = 2,
+		['electronic-circuit'] = 2,
+		['transport-belt'] = 3,
 		['inserter'] = 1,
 		['coal'] = 5,
 		['stone'] = 5

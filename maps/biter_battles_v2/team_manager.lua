@@ -146,7 +146,7 @@ local function switch_force(player_name, force_name)
 		spectate(player, true)		
 	else
 		if player.admin then 
-			game.print(">>>>> BBC ALERT : Player " .. _player_name .. " is Admin and should not be switched into a team.", {r=0.98, g=0.77, b=0.77})
+			game.print(">>>>> BBC ALERT : Player " .. _player_name .. " is Admin and should not be switched into a team (unless training or scrim mode).", {r=0.98, g=0.77, b=0.77})
 		end
 		join_team(player, force_name, true)
 		if #game.forces[force_name].connected_players > 3 then
@@ -435,7 +435,7 @@ local function set_custom_game_id(player,gameid)
 		player.print("ID:"..gameid.." is not a number, pleasy retry.",{r = 175, g = 11, b = 11})
 		return 
 	end
-	if (_game_id<10000) or math.floor(_game_id%123) ~= 0 then 
+	if (_game_id<1000) or math.floor(_game_id%123) ~= 0 then 
 		global.game_id=nil
 		player.print("ID:".._game_id.." is not valid, pleasy retry.",{r = 175, g = 11, b = 11})
 		return
@@ -695,7 +695,25 @@ local function team_manager_gui_click(event)
 	if event.element.caption == "→" then m = 1 end
 	local force_name = forces[tonumber(name) + m].name
 	
-	switch_force(player_name, force_name)
+	--EVL We remove tag Admin before switching force (see get_player_array above)
+	local _player_this=player_name
+	if string.sub(_player_this,1,15) == "[color="..colorAdmin.."]" then
+		_player_this=string.sub(_player_this,16,#_player_this-10)
+	end
+	if not game.players[_player_this] then game.print("Team Manager >> Player " .. _player_this .. " doesn't exist.", {r=0.98, g=0.66, b=0.22}) return end
+	local _player = game.players[_player_this]
+	if 	global.training_mode or global.game_id=="scrim" then -- in training or scrim mode, admins can be switched into teams
+		switch_force(player_name, force_name)
+	elseif _player.admin then -- not training or scrim mode, but admin, we cannot switch
+		game.print(">>>>> BBC ALERT : Player " .. player_name .. " is Admin and cannot be switched into a team (unless training or scrim mode).", {r=0.98, g=0.77, b=0.77})
+	else -- not training or scrim mode, not admin, we can switch
+		switch_force(player_name, force_name)
+	end
+	-- if not global.training_mode and player_name.admin==true then
+	--	game.print("NOPE")
+	--else
+		
+	--end
 	
 	draw_manager_gui(player)
 end

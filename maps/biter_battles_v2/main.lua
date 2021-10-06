@@ -27,7 +27,18 @@ require "modules.spawners_contain_biters" -- is this used ?
 local function inkilos(value)
 	if not value then return -9999 end
 	local _value=tonumber(value)
-	if _value > 800 then _value=math.floor(_value/1000).."k"..math.floor((_value%1000)/100,0) end
+	if _value > 800 then
+		if 	_value%100<=50 then
+			_value=math.floor(_value/1000).."k"..math.floor((_value%1000)/100,0) 
+		else
+			local _decimal = math.floor((_value%1000)/100)
+			if _decimal==9 then 
+				_value=(math.floor(_value/1000)+1).."k".."0"
+			else
+				_value=math.floor(_value/1000).."k"..(_decimal+1)
+			end
+		end
+	end
 	return _value
 end
 
@@ -46,22 +57,7 @@ local function show_countdown(_second)
 
 		local _sprite="file/png/".._second..".png" 
 		player.gui.center.add{name = "bbc_cdf", type = "sprite", sprite = _sprite} -- EVL cdf for countdown_frame
-		--[[ THAT WAS SO NICE ASCII ART
-		local bbc_frame = player.gui.center.add({type = "frame", name = "bbc_cdf", caption = "Starting in "})
-		local _caption="\n"
-		for _line=1,#Tables.bbc_countdowns[_second],1 do
-		 _caption=_caption.."            "..Tables.bbc_countdowns[_second][_line].."\n"
-		end
-		local bbc_count = bbc_frame.add({type = "label", name = "bbc_cdb", caption = _caption, tooltip="This is what you get when you cant display a .png"})
-		bbc_count.style.single_line = false
-		bbc_count.style.font="default-large-bold"
-		bbc_count.style.font_color = {r=0.66, g=0.66, b=0.66}
-		if global.match_countdown<=6 then bbc_count.style.font_color = {r=0.78, g=0.44, b=0.44} end
-		if global.match_countdown<=3 then bbc_count.style.font_color = {r=0.98, g=0.22, b=0.22} end
-		bbc_count.style.minimal_width = 250
-		bbc_count.style.minimal_height = 225
-		--local bbc_image = bbc_frame.add({type = "sprite", name = "bbc_png", sprite = "01.png"}) --EVL WHY??? PLEASE....
-		]]--
+
 	end	
 end
 --EVL SOME IMAGES TO INTRODUCE WHEN PLAYER JOINS
@@ -105,9 +101,7 @@ local _guitm = ""	--_GUI_TOP_MID	(North recap)
 local _json_north = {}	-- JSON NORTH STATS
 local _guitr = ""	--_GUI_TOP_RIGHT	(South recap)
 local _json_south = {}	-- JSON SOUTH STATS
-local _guin = ""	--_GUI_NORTH
 local _json_players_north = {}	-- JSON NORTH PLAYERS STATS
-local _guis = ""	--_GUI_SOUTH
 local _json_players_south = {}-- JSON SOUTH PLAYERS STATS
 local _guib = ""	--_GUI_BOTTOM
 
@@ -119,7 +113,7 @@ local _jsonb = {}	-- JSON RIGHT TABLE
 --SETTINGS STATS ONCE FOR ALL TO USE IN EXPORT JSON AND DRAW RESULTS
 local function set_stats_title() --fill up string "local _guit" and table "local _jsont"
 	
-	_guit=_guit.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]\n" 
+	_guit=_guit.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]      v0.9\n" 
 	_guit=_guit.."see all results at [color=#DDDDDD]https://bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
 	_guit=_guit.."[font=default-bold][color=#77DD77]ADD the result [/color][color=#999999](gameId)[/color][color=#77DD77] to the website [/color][color=#999999](referee)[/color]"
 	_guit=_guit.."[color=#77DD77] & SET url of the replays [/color][color=#999999](players & streamers)[/color][color=#77DD77] ASAP ![/color][/font]\n"
@@ -155,16 +149,17 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 	--GLOBAL STATS
 	--
 	_guitl=_guitl.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
-	_guitl=_guitl.."     GAME_ID="..global.game_id..""
-	_guitl=_guitl.." | REFEREE=".."tbd".."\n"
-	_guitl=_guitl.."     ATHOME=".."tbd"..""
-	_guitl=_guitl.." | REROLL="..(global.reroll_max-global.reroll_left).."\n"
+	_guitl=_guitl.."     GAME_ID="..global.game_id.."\n"
+	_guitl=_guitl.."     REFEREE=".."tbd".."\n"
+	_guitl=_guitl.."     ATHOME=".."tbd".."\n"
+	_guitl=_guitl.."     REROLL="..(global.reroll_max-global.reroll_left).."\n"
 	_guitl=_guitl.."     STARTER PACK="..Tables.packs_list[global.pack_choosen]["caption"].."\n"
 	_guitl=_guitl.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
 		_guitl=_guitl.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
 	local _bb_game_won_by_team=global.bb_game_won_by_team
 	local _bb_game_loss_by_team = Tables.enemy_team_of[_bb_game_won_by_team]
-	_guitl=_guitl.."     [color=#97FF40]WINNER=".._bb_game_won_by_team.."[/color]  |  [color=#FF9740]LOSER=".._bb_game_loss_by_team.."[/color]\n"
+	_guitl=_guitl.."     [color=#97FF40]WINNER=".._bb_game_won_by_team.."[/color]\n"
+	_guitl=_guitl.."     [color=#FF9740]LOSER=".._bb_game_loss_by_team.."[/color]\n"
 
 	_json_global={ --THE JSON GLOBAL STATS (topleft)
 		["GAME_ID"]	= global.game_id, 
@@ -221,8 +216,13 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 			["WORMS"]={["small-worm-turret"]=0,["medium-worm-turret"]=0,["big-worm-turret"]=0}, --remove behemoth ,'behemoth-worm-turret'},
 			["SCRAPS"]=0,
 			["SPAWNERS"]={["biter-spawner"]=0, ["spitter-spawner"]=0},
-			["SCIENCE"]={["automation"]=0,["logistic"]=0,["military"]=0,["chemical"]=0,["production"]=0,["utility"]=0,["space"]=0}
-
+			["SCIENCE"]={["automation"]=0,["logistic"]=0,["military"]=0,["chemical"]=0,["production"]=0,["utility"]=0,["space"]=0},
+			["SCIENCE_SCORE"]=0,
+			["DEATH_SCORE"]=0,
+			["KILLSCORE"]=0,
+			["BUILT"]=0,
+			["WALLS"]=0,
+			["MINED"]=0
 			
 		}
 		--BITERS WITH DETAILS --EVL DOING SOME FIORITURES
@@ -292,20 +292,26 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 		--SCIENCE
 		if total_science_of_force then
 			local _science=""
+			local _science_score=0 -- Science score (Qtity *  value)
 			for _science_nb = 1, 7 do 
 				local _this_science=total_science_of_force[_science_nb]
+				_science_score=_science_score+_this_science*Tables.food_values[Tables.food_long_and_short[_science_nb].long_name].value*1000
 				----JSON ADD EACH SCIENCE
 				_json_team["SCIENCE"][Tables.food_long_and_short[_science_nb].short_name]= _this_science
-				if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 990 -> 0k9 TODO
-				_science=_science.._this_science.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..", "
+				_science=_science..inkilos(_this_science).."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..", "
 				if _science_nb==3 then _science=_science.."\n     " end
 				
 			end
 			_science=string.sub(_science, 1, string.len(_science)-2)
 			_guit=_guit.."     SCIENCE: ".._science.."\n"
+			----JSON ADD SCIENCE SCORE
+			_json_team["SCIENCE_SCORE"]=_science_score
+			_guit=_guit.."     SCIENCE SCORE: ".._science_score.."\n"
 		else
 			_guit=_guit.."     NO SCIENCE SENT\n"
+			_guit=_guit.."     SCIENCE SCORE: -\n"
 		end
+
 		--put the gui and the json_team into the correct side
 		if _side==1 then --NORTH SIDE --
 			_guitm = _guit	--_GUI_TOP_MID	(North recap)
@@ -324,15 +330,11 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 	
 end
 local function set_stats_north_and_south() --fill up string "local _guir" and table "local _jsonr"
-	
-	
-	--GUI_RIGHT, RIGHT COLUMN
+
 	
 	local get_score = Score.get_table().score_table
-	--game.print("get_score:"..serpent.block(get_score))
+
     if not get_score then 
-		_guin=_guin.."[font=default-small][color=#999999][Unable to get scores at all][/color][/font]\n"
-		_guis=_guis.."[font=default-small][color=#999999][Unable to get scores at all][/color][/font]\n"
 		if global.bb_debug then game.print(">>>>> Unable to get score table.", {r = 0.88, g = 0.22, b = 0.22}) end
 		return
 	end
@@ -340,13 +342,12 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 	
 
 	if not get_score["north"] then 
-		_guin=_guin.."[font=default-small][color=#999999][Unable to get scores at north][/color][/font]\n"
 		if global.bb_debug then game.print(">>>>> Unable to get score table for north.", {r = 0.88, g = 0.22, b = 0.22}) end
 	else
 		_score["north"] = get_score["north"]
 	end
 	if not get_score["south"] then 
-		_guis=_guis.."[font=default-small][color=#999999][Unable to get scores at south][/color][/font]\n"
+		--_guis=_guis.."[font=default-small][color=#999999][Unable to get scores at south][/color][/font]\n"
 		if global.bb_debug then game.print(">>>>> Unable to get score table for south.", {r = 0.88, g = 0.22, b = 0.22}) end
 	else
 		_score["south"] = get_score["south"]
@@ -369,8 +370,8 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 		local _turrets = 0
 		local _walls = 0
 		local _paths = 0
-
-		local _belts = 0 --add chests ?
+		--add chests ?
+		local _belts = 0 
 		local _pipes = 0
 		local _powers = 0
 		local _inserters = 0
@@ -399,8 +400,8 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 				local score_player= _score[_force].players[_name]
 				_killscore = score_player.killscore
 				_deaths = score_player.deaths
-				_entities = score_player.built_entities
-				_mined = score_player.mined_entities-score_player.built_walls
+				_entities = score_player.built_entities-score_player.built_walls --  we deduce walls from built entities
+				_mined = score_player.mined_entities
 				-- EVL MORE STATS !
 				_walls = score_player.built_walls
 				_paths = score_player.placed_path
@@ -424,30 +425,7 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 				_worms = score_player.kills_worm
 			end
 		end
-		local _guif="" --DEBUG
-		--[[
-		--WHICH PLAYER
-		local _guif="" --we dont specify force for now
-		_guif=_guif.."[font=default-bold][color=#FF9740]>>"..string.upper(_name)..">>[/color][/font]"
-		_guif=_guif.."  (".._force
-		if player.admin then _guif=_guif..":Admin" end
-		_guif=_guif..")\n"
-		--SHOW THE DATAS
-		if _force=="spectator" or _force=="spec_god" then
-			game.print("2220000")
-			_guif=_guif.."     NO STATISTICS\n"
-		else
-			_guif=_guif.."     [font=default][color=#FF9999]DEATHS=".._deaths.."[/color] | [color=#99FF99]KILLSCORE=".._killscore.."[/color][/font]\n"
-			_guif=_guif.."     ".._entities.."[item=blueprint], ".._mined.."[item=deconstruction-planner], ".._turrets.."[item=gun-turret], ".._walls.."[item=stone-wall]\n"
-			_guif=_guif.."     ".._belts.."[item=transport-belt], ".._pipes.."[item=pipe], ".._inserters.."[item=inserter], ".._powers.."[item=steam-engine]\n"
-			_guif=_guif.."     ".._miners.."[item=electric-mining-drill], ".._furnaces.."[item=stone-furnace], ".._machines.."[item=assembling-machine-1], ".._labs.."[item=lab]\n"
-			-- (Not used : chests)
-			_guif=_guif.."     ".._worms.."[entity=small-worm-turret], ".._spawners.."[entity=biter-spawner], ".._smalls.."[entity=small-biter]\n"
-			_guif=_guif.."     ".._mediums.."[entity=medium-biter], ".._bigs.."[entity=big-biter], ".._behemoths.."[entity=behemoth-biter]\n"		
-
-			
-		end
-		]]--
+		--
 		local _json_player={
 			["NAME"] =_name,
 			["ADMIN"] = player.admin,
@@ -484,42 +462,24 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 		--SCIENCE
 		
 		if global.science_per_player[player.name] then
-			local _science=""
-
 			for _science_nb = 1, 7 do 
 				local _this_science=0
 				if global.science_per_player[player.name][_science_nb] then _this_science = global.science_per_player[player.name][_science_nb] end
 				if _this_science > 0 then 
 					_json_player["SCIENCE"][Tables.food_long_and_short[_science_nb].short_name]=_this_science
-					--if _this_science > 800 then _this_science=math.floor(_this_science/1000).."k"..math.floor((_this_science%1000)/100,0) end --USE Kilos when > 800 ie 800->0k8 but 999->0k9 TODO
-					--_science=_science.._this_science.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..", "
 				end
 			end
-			--_science=string.sub(_science, 1, string.len(_science)-2)
-			--_guif=_guif.."     ".._science.."\n"
-		else
-			--_guif=_guif.."     NO SCIENCE SENT\n"
 		end
 		
-		--FILL to the right side
+		--FILL to the correct side
 		if _force=="north" then 
-			_guin=_guin.._guif 
 			table.insert(_json_players_north,_json_player)
 		elseif _force=="south" then 
-			_guis=_guis.._guif
 			table.insert(_json_players_south,_json_player)
 		end --if force = spec or god, we forget (they did nothing, if they had they would be switched to north (in prio) or south, see above
 		--still we could add the fourth player of the team, nothing done yet (waiting for infos from the lobby or the website)
 	end		
 	--OTHER DATAS
-	--[[
-	local _s=""
-	if #game.forces["north"].connected_players > 1 then _s="S" end
-	_guin=_guin.."[font=default-bold][color=#FF9740]<<"..#game.forces["north"].connected_players.." PLAYER".._s.." ONLINE<<[/color][/font]"	
-	_s=""	
-	if #game.forces["south"].connected_players > 1 then _s="S" end
-	_guis=_guis.."[font=default-bold][color=#FF9740]<<"..#game.forces["south"].connected_players.." PLAYER".._s.." ONLINE<<[/color][/font]"	
-	]]--
 end
 
 --DRAWING EXPORT FRAME (Global / North / South)
@@ -565,6 +525,31 @@ local function draw_results(player)
 	local sep = _tabletop.add {type = "label", caption = "   "} --EVL SEPARATOR
 
 	-- TOPMIDDLE:NORTH STATS
+	-- Addendum : Get  the sums of Deaths/KillScore/Built/WallsBuilts/Mined
+	local _sum_deaths=0
+	local _sum_killscore=0
+	local _sum_built_entities=0
+	local _sum_built_walls=0
+	local _sum_mined_entities=0
+	if table_size(_json_players_north)>0 then 
+		for _index,_player in pairs(_json_players_north) do
+			_sum_deaths=_sum_deaths+_player["DEATHS"]
+			_sum_killscore=_sum_killscore+_player["KILLSCORE"]
+			_sum_built_entities=_sum_built_entities+_player["BUILT"]
+			_sum_built_walls=_sum_built_walls+_player["WALLS"]
+			_sum_mined_entities=_sum_mined_entities+_player["MINED"]
+		end
+	end
+	--Add them to North stats
+	_json_team["DEATH_SCORE"]=_sum_deaths
+	_json_team["KILLSCORE"]=_sum_killscore
+	_json_team["BUILT"]=_sum_built_entities
+	_json_team["WALLS"]=_sum_built_walls
+	_json_team["MINED"]=_sum_mined_entities
+	_guitm=_guitm.."     DEATHS: ".._sum_deaths.." | KILLSCORE: ".._sum_killscore.."\n"
+	_guitm=_guitm.."     [item=blueprint]: ".._sum_built_entities.." | [item=stone-wall]: ".._sum_built_walls.." | [item=deconstruction-planner]: ".._sum_mined_entities.."\n"
+	
+	
 	local _ttm = _tabletop.add {type = "label", name = "bb_export_topmid", caption = _guitm}
 	_ttm.style.single_line = false
 	_ttm.style.font = "default"
@@ -574,6 +559,29 @@ local function draw_results(player)
 	local sep = _tabletop.add {type = "label", caption = "   "} --EVL SEPARATOR
 
 	-- TOPRIGHT:SOUTH STATS
+	-- Addendum : Get the sums of Deaths/KillScore/Built/WallsBuilts/Mined
+	_sum_deaths=0
+	_sum_killscore=0
+	_sum_built_entities=0
+	_sum_built_walls=0
+	_sum_mined_entities=0
+	if table_size(_json_players_south)>0 then 
+		for _index,_player in pairs(_json_players_south) do
+			_sum_deaths=_sum_deaths+_player["DEATHS"]
+			_sum_killscore=_sum_killscore+_player["KILLSCORE"]
+			_sum_built_entities=_sum_built_entities+_player["BUILT"]
+			_sum_built_walls=_sum_built_walls+_player["WALLS"]
+			_sum_mined_entities=_sum_mined_entities+_player["MINED"]
+		end
+	end
+	--Add them to South stats
+	_json_team["DEATH_SCORE"]=_sum_deaths
+	_json_team["KILLSCORE"]=_sum_killscore
+	_json_team["BUILT"]=_sum_built_entities
+	_json_team["WALLS"]=_sum_built_walls
+	_json_team["MINED"]=_sum_mined_entities
+	_guitr=_guitr.."     DEATHS: ".._sum_deaths.." | KILLSCORE: ".._sum_killscore.."\n"
+	_guitr=_guitr.."     [item=blueprint]: ".._sum_built_entities.." | [item=stone-wall]: ".._sum_built_walls.." | [item=deconstruction-planner]: ".._sum_mined_entities.."\n"	
 	local _ttr = _tabletop.add {type = "label", name = "bb_export_topright", caption = _guitr}
 	_ttr.style.single_line = false
 	_ttr.style.font = "default"
@@ -784,7 +792,7 @@ local function draw_results(player)
 	_tp_score.style.single_line = false
 	_tp_score.style.horizontal_align="right"
 
-	local _tp_built	= _tp.add {type = "label", caption = _col_built, name = "tp_built", tooltip="Built entities"}
+	local _tp_built	= _tp.add {type = "label", caption = _col_built, name = "tp_built", tooltip="Built entities minus walls"}
 	_tp_built.style.single_line = false
 	_tp_built.style.horizontal_align="right"
 	local _tp_mined	= _tp.add {type = "label", caption = _col_mined, name = "tp_mined", tooltip="Mined entities"}
@@ -854,41 +862,6 @@ local function draw_results(player)
 	_tp_lab.style.single_line = false
 	_tp_lab.style.horizontal_align="right"	
 
-
-
---[[	
-	--CENTER LEFT : GLOBAL
-	local _tablemid = frame.add {type = "table", name = "bb_export_mid", column_count = 5}	
-	_tablemid.vertical_centering=false
-	
-	--_table.style.vertical_align = "top"		
-	local ll = _table.add {type = "label", caption = _guil, name = "bb_export_left"}
-	ll.style.single_line = false
-	ll.style.font = "default"
-	ll.style.font_color = {r=0.7, g=0.6, b=0.99}
-	ll.style.minimal_width = 250
-	ll.style.maximal_width = 500
-	local sep = _tabletop.add {type = "label", caption = "   "} --EVL SEPARATOR
-	
-	
-	
-	
-	--CENTER MID : NORTH
-	local ln = _tablemid.add {type = "label", caption = _guin, name = "bb_export_north"}
-	ln.style.single_line = false
-	ln.style.font = "default"
-	ln.style.font_color = {r=0.7, g=0.6, b=0.99}
-	ln.style.minimal_width = 250
-	ln.style.maximal_width = 500
-	local sep = _tablemid.add {type = "label", caption = "   "} --EVL SEPARATOR
-	--CENTER RIGHT : SOUTH
-	local ls = _tablemid.add {type = "label", caption = _guis, name = "bb_export_south"}
-	ls.style.single_line = false
-	ls.style.font = "default"
-	ls.style.font_color = {r=0.7, g=0.6, b=0.99}
-	ls.style.minimal_width = 250
-	ls.style.maximal_width = 500
-]]--
 	--BOTTOM
 	local lb = frame.add {type = "label", caption = _guib, name = "bb_export_bottom"}
 	lb.style.single_line = false
@@ -910,17 +883,19 @@ local function export_results(export_to_json)
 	end
 
 	if not global.export_stats_are_set then
+		--Global
 		_guit = ""			--_GUI_TITLE FULL WIDTH
 		_guitl = ""		--_GUI_TOP_LEFT	(Global)
 		_json_global = {}	-- JSON TITLE TABLE
+		--Teams
 		_guitm = ""		--_GUI_TOP_MID	(North recap)
 		_json_north = {}	-- JSON NORTH RECAP
 		_guitr = ""		--_GUI_TOP_RIGHT	(South recap)
 		_json_south = {}	-- JSON SOUTH RECAP
-		_guin = ""			--_GUI_NORTH PLAYERS
+		--Players
 		_json_players_north = {} --JSON WITH ALL NORTH PLAYERS (including spec that have played in north)
-		_guis = ""			--_GUI_SOUTH PLAYERS
 		_json_players_south = {} --JSON WITH ALL SOUTH PLAYERS (including spec that have played in south)
+		--Bottom
 		_guib = ""			--_GUI_BOTTOM
 		
 		if global.bb_debug then game.print(">>>>> Setting results and stats.", {r = 0.22, g = 0.22, b = 0.22}) end
@@ -1070,7 +1045,8 @@ local function on_player_joined_game(event)
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
 	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 225, b = 00})
-	player.print(">>>>> (09-27-21) New map generation, report unplayable maps and send us the seed : \n       /c game.print(game.player.surface.map_gen_settings.seed)",{r = 00, g = 175, b = 00})
+	player.print(">>>>> (10-06-21) v0.9 Slightly increased ore in spawn), report unplayable maps and send us the seed : \n       [color=#888888]/c game.print(game.player.surface.map_gen_settings.seed)[/color]",{r = 150, g = 150, b = 250})
+	player.print(">>>>> (10-06-21) v0.9 We're lacking teams for the Biter league, motivate your friends to apply and build a team  !",{r = 150, g = 150, b = 250})
 end
 
 local function on_gui_click(event)
@@ -1080,6 +1056,7 @@ local function on_gui_click(event)
 	if not element.valid then return end
 	--Do we need to see the clicks ?
 	if false and global.bb_debug then game.print("      ON GUI CLICK : elem="..element.name.."       parent="..element.parent.name, {r = 0.22, g = 0.22, b = 0.22}) end
+
 	--EVL Not beautiful but it works
 	if element.parent.name == "bb_export_frame" or element.parent.name == "bb_export_top" or element.name == "bb_export_button" then 
 		frame_export_click(player, element)
@@ -1219,7 +1196,7 @@ local function on_tick()
 		--EVL but we keep possibility to reset for exceptional reasons 
 		if global.force_map_reset_exceptional then		 
 			if not global.server_restart_timer then 
-				global.server_restart_timer=20  --CODING-- was 20
+				global.server_restart_timer=20  --CODING-- was 20 (5 for quick restart)
 			end
 			Game_over.reveal_map() --EVL must be repeated
 			Game_over.server_restart()
@@ -1253,12 +1230,26 @@ local function on_tick()
 			if global.freezed_start == 999999999 then -- players are unfreezed
 				if not global.evo_boost_active then -- EVO BOOST AFTER 2H (global.tick_evo_boost=60*60*60*2)
 					local real_played_time = game.ticks_played - global.freezed_time
+
+					--EVL some verbose about coming armageddon
+					if (real_played_time - global.evo_boost_tick)<0 then
+						local tick_to_arma= global.evo_boost_tick-real_played_time
+						if tick%(100800)==0 then -- every 28 min=60*60*28
+							local min_to_arma=math.floor((global.evo_boost_tick-real_played_time)/3600)
+							game.print(">>>>> TIME IS RUNNING  !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] is coming in ".. min_to_arma .." minutes", {r = 192, g = 77, b = 77})
+						elseif tick_to_arma<10800 and tick%2400==0 then --every 40sec in the last 3 min
+							local sec_to_arma=math.floor((global.evo_boost_tick-real_played_time)/60)
+							game.print(">>>>> HURRY UP  !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] is coming in ".. sec_to_arma .." seconds", {r = 192, g = 77, b = 77})
+						end
+					end					
+					
+					--EVL Time for armageddon !
 					if real_played_time >= global.evo_boost_tick then
 						--EVL Set boosts for north and south
 						local evo_north = global.bb_evolution["north_biters"]
-						if evo_north<0.001 then evo_north=0.001 end --!DIV0
+						if evo_north<0.00001 then evo_north=0.00001 end --!DIV0
 						local evo_south = global.bb_evolution["south_biters"]
-						if evo_south<0.001 then evo_south=0.001 end --!DIV0
+						if evo_south<0.00001 then evo_south=0.00001 end --!DIV0
 						-- Regular boost (both team are active)
 						if evo_north < evo_south then
 							-- WE WANT NORTH TO GO UP TO 90% UNTIL global.evo_boost_active+global.evo_boost_duration=30min (PLUS NATURAL AND SENDINGS)
@@ -1284,32 +1275,39 @@ local function on_tick()
 							global.evo_boost_values["south_biters"] = boost_south
 						end
 						-- Correction if training mode and only one team
-						if global.training_mode and evo_north>0.01 and evo_south<0.01 then
-							--North is in training mode
-							local boost_north = (0.9-evo_north) / global.evo_boost_duration
-							global.evo_boost_values["north_biters"] = boost_north
-							global.evo_boost_values["south_biters"] = 0
-							game.print(">>>>> Training mode detected, boost will only apply to north...", {r = 77, g = 77, b = 192})
-						elseif global.training_mode and evo_north<0.01 and evo_south>0.01 then
-							--South is in training mode
-							global.evo_boost_values["north_biters"] = 0
-							local boost_south = (0.9-evo_south) / global.evo_boost_duration
-							global.evo_boost_values["south_biters"] = boost_south
-							game.print(">>>>> Training mode detected, boost will only apply to south...", {r = 77, g = 77, b = 192})
-						elseif global.training_mode and evo_north>0.01 and evo_south>0.01 then
-							--Both team are in training mode, we apply boost independently
-							local boost_north = (0.9-evo_north) / global.evo_boost_duration
-							global.evo_boost_values["north_biters"] = boost_north
-							local boost_south = (0.9-evo_south) / global.evo_boost_duration
-							global.evo_boost_values["south_biters"] = boost_south
-							game.print(">>>>> Training mode detected, boost will apply independently to both teams...", {r = 77, g = 77, b = 192})
+						if global.training_mode then
+							if evo_north>=0.001 and evo_south<0.001 then
+								--North is in training mode
+								local boost_north = (0.9-evo_north) / global.evo_boost_duration
+								global.evo_boost_values["north_biters"] = boost_north
+								global.evo_boost_values["south_biters"] = 0
+								game.print(">>>>> Training mode detected, boost will only apply to north...", {r = 77, g = 77, b = 192})
+							elseif evo_north<0.001 and evo_south>=0.001 then
+								--South is in training mode
+								global.evo_boost_values["north_biters"] = 0
+								local boost_south = (0.9-evo_south) / global.evo_boost_duration
+								global.evo_boost_values["south_biters"] = boost_south
+								game.print(">>>>> Training mode detected, boost will only apply to south...", {r = 77, g = 77, b = 192})
+							elseif evo_north>=0.001 and evo_south>=0.001 then
+								--Both team are in training mode, we apply boost independently
+								local boost_north = (0.9-evo_north) / global.evo_boost_duration
+								global.evo_boost_values["north_biters"] = boost_north
+								local boost_south = (0.9-evo_south) / global.evo_boost_duration
+								global.evo_boost_values["south_biters"] = boost_south
+								game.print(">>>>> Training mode detected, boost will apply independently to both teams...", {r = 77, g = 77, b = 192})
+							else 
+								global.evo_boost_values["north_biters"] = 0.01
+								global.evo_boost_values["south_biters"] = 0.01
+								game.print(">>>>> Training mode detected, but failed to apply correct boosts...", {r = 77, g = 77, b = 192})
+							end
 						end
 						
 						global.evo_boost_active = true --We wont come here again
 					
 						local _b_north=math.floor(global.evo_boost_values["north_biters"]*10000)/100
 						local _b_south=math.floor(global.evo_boost_values["south_biters"]*10000)/100
-						game.print(">>>>> TIME HAS PASSED !!! EVOLUTION IS NOW BOOSTED !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] IS PROCLAIMED !!! (%n=".._b_north.."  | %s=".._b_south.." | duration="..global.evo_boost_duration.."min)", {r = 192, g = 77, b = 77})
+						game.print(">>>>> TIME HAS PASSED !!! EVOLUTION IS NOW BOOSTED !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] IS PROCLAIMED !!! "
+								.."(%n=".._b_north.."  | %s=".._b_south.." | reach 90+ EVO in "..global.evo_boost_duration.."min)", {r = 192, g = 77, b = 77})
 					end
 				end
 				--game.print("UNFREEZ : ticks="..tick.." | played="..game.ticks_played.." (freezed="..global.freezed_time.." & FS="..global.freezed_start..")") 

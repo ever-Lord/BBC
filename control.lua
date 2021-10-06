@@ -1,3 +1,12 @@
+-----------------------------------
+-- BITER  BATTLES  CHAMPIONSHIPS --
+-----------------------------------
+--BASED ON BITER BATTLES SCENARIO--
+--BY MEWMEW FROM COMFY'S SERVERS --
+--EDITED BY EVERLORD (TAG : EVL) --
+--VERSION 0.9 , Oct 6th 2021     --
+-----------------------------------
+
 require 'utils.data_stages'
 _LIFECYCLE = _STAGE.control -- Control stage
 _DEBUG = false		--EVL (false)
@@ -23,7 +32,7 @@ require 'commands'
 --require 'antigrief' --EVL not needed for BBC-->no more /trust command ?
 require 'modules.corpse_markers'
 require 'modules.floaty_chat'
-require 'modules.show_inventory' --EVL only admins can /inventory player (nicer than /open player)
+--require 'modules.show_inventory' --EVL only admins can /inventory player (nicer than /open player) - deprecated, click on player list instead
 require 'utils.debug.command'
 
 require 'comfy_panel.main'

@@ -231,6 +231,7 @@ function Public.open_inventory(source, target)
         return
     end
 
+
     local inventory_gui = screen.inventory_gui
     if inventory_gui then
         close_player_inventory(source)
@@ -267,8 +268,6 @@ function Public.open_inventory(source, target)
     data.last_tab = 'Main'
 	
 	--EVL ADD TAB for Crafting queue
-	--CODING-- player.cursor_stack.name
-	--/c game.print("[item="..game.player.cursor_stack.name.."]")
 	local crafting={}
 	if target.crafting_queue ~= nil then
 		for _,item in pairs(target.crafting_queue) do
@@ -419,7 +418,7 @@ commands.add_command(
 	function(cmd)
 		local player = game.player
 		if true then
-			player.print(">>>>> Sorry, this command has been deprecated, click on a player name to open his inventory.", Color.warning) 
+			player.print(">>>>> Sorry, this command has been deprecated, click on a player name to open his inventory...", Color.warning) 
 			return
 		end
 		
@@ -441,8 +440,8 @@ commands.add_command(
 
             local target_player = game.players[cmd.parameter]
 			
-			--EVL DEBUG Remove "--" below --CODING--
-			--Needed to avoid bug when spec_god asks for himself in command /inventory
+			--EVL DEBUG Remove "--" below --DEBUG--
+			--Needed to avoid bug when spec_god asks for himself in command /inventory ?
 			--if target_player == player then
 			--	return player.print('Cannot open self.', Color.warning)
 			--end

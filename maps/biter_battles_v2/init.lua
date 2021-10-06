@@ -15,12 +15,13 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 
 	global.bb_debug = false --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
 	global.bb_biters_debug = false --EVL ADD MUCH VERBOSE TO BITERS AI
-
+	global.bb_debug_gui=false --EVL working on GUI inventory
+	
 	-- EVL change for map restart (/force-map-reset)
 	local _first_init=true --EVL for disabling nauvis (below)
 	if not game.forces["north"] then 
 		game.create_force("north")
-		game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open [color=#FF9740]TEAM MANAGER[/color] <<<<<",{r = 00, g = 175, b = 00}) --EVL double message?
+		--game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open [color=#FF9740]TEAM MANAGER[/color] <<<<<",{r = 00, g = 175, b = 00}) --EVL double message --DEBUG-- ?
 	else
 		if global.bb_debug then game.print("Debug : Executing initial setup (again)",{r = 00, g = 175, b = 00}) end
 		--game.print(">>>>> You may need to refresh [color=#FF9740]TEAM MANAGER[/color] GUI manually",{r = 127, g = 127, b = 127})
@@ -96,7 +97,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 			surface.delete_chunk({chunk.x, chunk.y})
 		end
 	end
-	--game.print(">>>>> WELCOME TO BBChampions ! Tournament mode is active, Players are frozen, Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 175, b = 00}) --EVL
+
 	global.tournament_mode = true -- EVL (none)
 	
 	
@@ -125,12 +126,14 @@ function Public.playground_surface()
 	local map_gen_settings = {}
 	local int_max = 2 ^ 31
 	map_gen_settings.seed = math.random(1, int_max) --EVL first math.random send always same value (since tick=0) ???
-	--map_gen_settings.seed = 1354075952 --CODING--
+	--map_gen_settings.seed = 996357343 --CODING--
 	--[[ SEEDS TO BE VERIFIED
 		996357343
 		1354075952
 		1497223384
 		1152708049
+		1407416735 (ugh)
+		1304692754 (copper in water)
 	]]--
 	map_gen_settings.water = math.random(15, 60) * 0.01 --EVL was 15,65
 	map_gen_settings.starting_area = 2.5
@@ -158,11 +161,12 @@ end
 function Public.draw_structures()
 	local surface = game.surfaces[global.bb_surface_name]
 	Terrain.draw_spawn_area(surface)
-	--Terrain.clear_ore_in_main(surface) --EVL --CODING--
+	--Terrain.clear_ore_in_main(surface)
 	--Terrain.generate_spawn_ore(surface)
-	Terrain.check_ore_in_main(surface) --EVL --CODING--
+
 	Terrain.generate_additional_rocks(surface)
 	Terrain.draw_spawn_circle(surface)
+	Terrain.check_ore_in_main(surface)
 	Terrain.generate_silo(surface)	
 	
 	--Terrain.generate_spawn_goodies(surface)
@@ -286,6 +290,7 @@ function Public.tables()
 	global.starter_chests_are_filled = false  --EVL (none)
 	global.match_countdown = 9 --EVL time of the countdown in seconds before match starts (unpause will have a 3 seconds countdown)
 	--global.match_countdown = 1 --CODING--
+	
 	global.match_running = false  --EVL determine if this is first unfreeze (start match) or nexts (pause/unpause)
 
 	global.freezed_time=0 --EVL (none)

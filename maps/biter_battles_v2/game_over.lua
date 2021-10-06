@@ -291,6 +291,9 @@ local function show_mvps(player)
             type = "label",
             caption = mvp.built_walls.name .. " built " .. mvp.built_walls.score .. " walls"
         })
+		 l.style.font = "default-bold"
+        l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
+		
         local l = t.add({type = "label", caption = "Deaths >> "})
         l.style.font = "default-listbox"
         l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
@@ -358,23 +361,22 @@ function Public.server_restart()
             end
         end
 		]]--
-       --[[ EVL THIS IS NOT WORKING AND I DONT GET WHY....
-		--EVL spec_god players have to be back on ground
-		game.print("spec to real"..table_size(global.god_players))
-		for _player,_bool in pairs(global.god_players) do
-			game.print(">".._player.." ".._bool)
-			if _bool then
-				local player = game.players[_player]
-				game.print(player.name.."/".._player)
-				player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-				player.create_character()
-				player.force = game.forces["spectator"]
-				player.zoom=0.30
-				global.god_players[_player] = false
-				if global.bb_debug then game.print("DEBUG: reset incoming -> player:" .._player.."/".. player.name .." ("..player.force.name..") switches back to real mode") end
+
+		--EVL spec_god players have to be back on ground/spec force before reinit/reroll/force-map-reset
+		if table_size(global.god_players) > 0 then
+			for _player,_bool in pairs(global.god_players) do
+				if _bool == true then
+					local player = game.players[_player]
+					player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
+					player.create_character()
+					player.force = game.forces["spectator"]
+					player.zoom=0.30
+					global.god_players[_player] = false
+					if global.bb_debug then game.print("DEBUG: reset incoming -> player:" .._player.."/".. player.name .." switches back to real mode") end
+				end
 			end
 		end
-		]]--
+		--
 		--EVL Starting reset
 		game.print(">>>>> Map is restarting !  (10s before reveal)", {r = 0.22, g = 0.88, b = 0.22}) --EVL BBC has a reveal of 127x127 for reroll purpose
         local message = 'Map is restarting! '

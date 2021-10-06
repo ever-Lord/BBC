@@ -431,7 +431,7 @@ local function on_entity_died(event)
     end
 	local _ent=event.entity.name
 	local _typ=event.entity.type
-	if global.bb_debug then game.print("died : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
+	--if global.bb_debug then game.print("died : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
 	
 	
 	--PLAYER KILLS STATS --
@@ -446,7 +446,10 @@ local function on_entity_died(event)
 		if _ent=="behemoth-biter" or _ent=="behemoth-spitter" then score.kills_behemoth = score.kills_behemoth + 1 end
 		if _ent=="biter-spawner" or _ent=="spitter-spawner" then score.kills_spawner = score.kills_spawner + 1 end
 		if _ent=="small-worm-turret" or _ent=="medium-worm-turret" or _ent=="big-worm-turret" or _ent=="behemoth-worm-turret" 
-			then score.kills_worm = score.kills_worm + 1 end
+			then 
+				score.kills_worm = score.kills_worm + 1 
+				if global.bb_debug then game.print("Worm died : ".._ent.."  score.kills_worm="..score.kills_worm, {r = 0.55, g = 0.55, b = 0.55}) end
+			end
   
 
         if global.show_floating_killscore[player.name] then
@@ -478,7 +481,7 @@ local function on_player_mined_entity(event)
     end
 	local _ent=event.entity.name
 	local _typ=event.entity.type
-	if global.bb_debug then game.print("mined : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
+	--if global.bb_debug then game.print("mined : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
     local player = game.players[event.player_index]
     Public.init_player_table(player)
     local score = this.score_table[player.force.name].players[player.name]
@@ -512,7 +515,7 @@ local function on_built_entity(event)
 	if _typ=="assembling-machine" or _ent=="pumpjack" or _ent=="beacon"		 			then score.built_machines = 1 + (score.built_machines or 0) return end
 	if _ent=="lab"							 											then score.built_labs = 1 + (score.built_labs or 0) return end
 	if _ent=="gun-turret" or _ent=="flamethrower-turret" or _ent=="laser-turret" or _ent=="radar" then score.built_turrets = 1 + (score.built_turrets or 0) return end	
-	if global.bb_debug then game.print("debug: entity is not tracked : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
+	if global.bb_debug then game.print("DEBUG: this entity is not tracked : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
 end
 
 
@@ -544,7 +547,7 @@ local function on_player_built_tile(event)
 		--game.print("placed_path="..score.placed_path.."   proto=".._typ.." entity=".._ent.." count=".._count)
 		return
 	end
-	if global.bb_debug then game.print("debug: tile is not tracked : proto=".._typ.." tile=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
+	if global.bb_debug then game.print("DEBUG: this tile is not tracked : proto=".._typ.." tile=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
 end
 
 

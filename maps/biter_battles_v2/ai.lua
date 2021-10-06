@@ -30,7 +30,7 @@ way_points.south = {}
 local p=0.49
 local _step=0.05
 --EVL the waypoints are p=0.49 0.44 0.38 0.31 0.23 0.14 0.04
--- (more chance to come vertically than horizontally)
+-- (slightly more chance to come vertically than horizontally)
 while p>0 do
 	local a = math.pi * p
 	local x = math.floor(way_point_radius * math.cos(a))
@@ -40,7 +40,7 @@ while p>0 do
 	p=p-_step
 	_step=_step+0.01
 end
---ADD one vertical waypoint at p=0.47
+--ADD one vertical waypoint at p=0.47, so biters have slightly more chance to come from vertical axe
 if true then
 	p=0.47
 	local a = math.pi * p
@@ -49,11 +49,16 @@ if true then
 	way_points.north[#way_points.north + 1] = {x, y * -1}
 	way_points.south[#way_points.south + 1] = {x, y}
 end
-
-
 local size_of_way_points = #way_points.north
 
+-- Create a table with default way points to be used frequently (and rarely we'll send to random waypoint)
+local default_way_points_nb = 5
+local default_way_points  = {}
+
+
+-- Each group of biters can be "all biters", "all spitters", "mixed"
 local unit_type_raffle = {"biter", "biter", "biter", "mixed", "mixed", "mixed", "mixed", "spitter", "spitter"}
+
 local size_of_unit_type_raffle = #unit_type_raffle
 
 local threat_values = {
@@ -269,7 +274,12 @@ local function select_units_around_spawner(spawner, force_name, side_target)
 		global.active_biters[biter.force.name][biter.unit_number] = {entity = biter, active_since = game.tick}
 		--Announce New Spawn
 		if(global.biter_spawn_unseen[force_name][unit_name]) then
-			game.print("A " .. unit_name:gsub("-", " ") .. " was spotted far away on team " .. force_name .. "...",{200, 20, 20})
+			--Add some color when new tier of biters happens
+			if string.sub(unit_name,1,3)=="med" then _color="#AA8888"
+			elseif string.sub(unit_name,1,3)=="big" then _color="#7777FF"
+			elseif string.sub(unit_name,1,3)=="beh" then _color="#55FF55"
+			else _color="#EEEEEE" end
+			game.print("A [font=default-large-bold][color=".._color.."]" .. unit_name:gsub("-", " ") .. "[/color][/font] was spotted far away on team " .. force_name .. "...",{200, 20, 20})
 			global.biter_spawn_unseen[force_name][unit_name] = false
 		end
 	end
@@ -326,77 +336,135 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		end
 	end
 ]]--
+	-- Initialize table with default way points to be used frequently (and rarely we'll send to random waypoint)
+	if #default_way_points<=1 then 
+		local _dft_wp_str="          Default way_points: "
+		local _last_way_pt=0
+		for _dwp= 1,default_way_points_nb,1 do
+			local _way_pt=math.random(1,#way_points.north)
+			if _way_pt==_last_way_pt then _way_pt=math.random(1,#way_points.north) end -- we slighlty avoid duplicate waypoints
+			_last_way_pt=_way_pt
+			local _wayPoint=way_points.north[_way_pt]
+			--Randomize X axis
+			if math.random(0,1)==1 then  _wayPoint[1]=-1*_wayPoint[1] end
+			default_way_points[#default_way_points + 1]=_wayPoint
+			_dft_wp_str = _dft_wp_str .. " (".._wayPoint[1]..",".._wayPoint[2]..") "
+		end
+		if global.bb_biters_debug then game.print(_dft_wp_str,{r = 100, g = 100, b = 250}) end
+	end
+
 	
-	--EVL TRYING TO EXPLAIN :
-	-- 												set global.bb_biters_debug=true in init.lua for verbose
-	--Each group goes to a waypoint randomly choosed in a ring around the spawn, then they aim a target (not changed) then they aim the silo
+	
+	
+	--EVL TRYING TO EXPLAIN : (set global.bb_biters_debug=true in init.lua for verbose)
+	--Each group goes to a waypoint randomly chosen in a ring around the spawn, then they aim a target (not changed) then they aim the silo
 	--BUG? Some groups vanishes right after they find the path to waypoint, why ?
 	--BUG? Sometime a group is assigned (or reassigned?) and is sent (again?) search for "waking up" below
 	--BUG? Biters (or groups?) are destroyed, i dont get it search for "destroy_inactive_biters"
+	--Multiple cases :
+	--1/ 80% - group goes to one of 5 default waypoints (and 5% one default waypoint is modified)
+	--2a/ 20% then 33% -- group goes to totally random waypoint which is stored so this waypoint is repeated to other team later
+	--2b/ 20% then 66% -- group goes to random waypoint from those which were applied to other team before
+	--
 	--global.way_points stores previous waypoints to re-use them for opponent team, though it is limited to global.way_points_max entries
 	--we always check the possibility to reach waypoints (and the target is always different, obv. we cant copy it)
 	--so 2 chances out of 3 to re-use a waypoint (if enough are already stored, plus trick to never get last one)
 	-- 1 out of 3 to set a new waypoint that will be stored in global.way_points[force]
 	-- if position (waypoint) is not valid, we skip the first command (the one aiming the waypoint)
-	
-	--Initialisation for new WAYPOINTS -tobe moved to if not _position then
-	local _way_point = way_points[force_name][math.random(1,size_of_way_points)] --EVL WE CHOOSE A RANDOM WAYPOINT ON THE QUARTER RING
-	local distance_modifier = math_random(50, 100) * 0.01	--EVL  (circles of way_point_radius 256 to 512)
-	local _posX=math.floor(_way_point[1]*distance_modifier)
-	local _posY=math.floor(_way_point[2]*distance_modifier)
-	
-	--Initialisation for WAYPOINTS (either new or re-used)
 	local _position = nil
 	local _position_is_new=false
 	local _reverse = ""
-	
-	if math.random(1,3)<3 then --2 out of 3 times, we try to get one previous waypoint that was sent to opponent team
-		
-		local force_opponent=enemy_team_of[force_name]
-		local _nb_way_points_opp=table_size(global.way_points_table[force_opponent])
-		--game.print("opponent "..force_opponent.." has ".._nb_way_points_opp.." waypoints")
-		if _nb_way_points_opp > 2 then --we have 3 or more waypoints to choose from
-			local _index=math.random(1,_nb_way_points_opp)
-			if _index>1 then _index=_index-1 end --EVL little trick to go further in the past, last waypoint will never be choosed
-			_position=global.way_points_table[force_opponent][_index]
-			table.remove(global.way_points_table[force_opponent],_index)
-			if global.bb_biters_debug then game.print("          Taking waypoint from "..force_opponent.." [".._index.."]=(".._position[1]..",".._position[2]..").", {r = 97, g = 97, b = 127}) end
-			_position[2]=-_position[2] --EVL switch side of _position
-			--EVL TODO? : send the group to the same side of the target  OR send it to the same side as it was sent to opponents ?
+	local _kind_of_waypoint = ""
+	if math.random(1,10)<9 then -- We use default waypoints : most of the time biters will come from same few angles
+		if math.random(1,20)==1 then -- 5% chance to change one of the default waypoints
+			local _index=math.random(1,#default_way_points)
+			table.remove(default_way_points,_index)
+			local _way_pt=math.random(1,#way_points.north)
+			local _wayPoint=way_points.north[_way_pt]
+			if math.random(0,1)==1 then  _wayPoint[1]=-1*_wayPoint[1] end
+			default_way_points[#default_way_points + 1]=_wayPoint			
+			-- List of way points after
+			local _dft_wp_str="          New Default WayPoints : "
+			for _dwp= 1,default_way_points_nb,1 do
+				_dft_wp_str = _dft_wp_str .. " ("..default_way_points[_dwp][1]..","..default_way_points[_dwp][2]..") "
+			end
+			if global.bb_biters_debug then game.print(_dft_wp_str,{r = 100, g = 150, b = 250}) end				
+			_kind_of_waypoint="*"
 		end
-	end
+		-- we take a random waypoint from the default list		
+		local _index=math.random(1,#default_way_points)
+		local _way_point=default_way_points[_index]
+		local distance_modifier = math_random(50, 100) * 0.01
+		local _posX=math.floor(_way_point[1]*distance_modifier)
+		local _posY=math.floor(_way_point[2]*distance_modifier)
+		-- Need to reverse _posY if it is south (default waypoints are copied from global.way_points_table[north]
+		if force_name=="south" then  _posY=-1*_posY end
+		_position = { _posX, _posY}
+		_position_is_new=false
+		_kind_of_waypoint = _kind_of_waypoint .. "DEFAULT#".._index -- waypoint from default list
+
 	
-	if not _position then
-		if math_random(1,10)>2 then
-			--EVL SEND GROUP ON THE SAME SIDE (X-axis) OF THE MAP THAN THE TARGET
-			if target.x <0 then
-				_position = {-_posX, _posY}
-			else
-				_position = { _posX, _posY}
+	
+	else -- We use random waypoints to surprize teams (but still we store those random waypoints to apply them to other team later)
+
+		--Initialisation for new WAYPOINTS -tobe moved to if not _position then
+		local _way_point = way_points[force_name][math.random(1,size_of_way_points)] --EVL WE CHOOSE A RANDOM WAYPOINT ON THE QUARTER RING
+		local distance_modifier = math_random(50, 100) * 0.01	--EVL  (circles of way_point_radius 256 to 512)
+		local _posX=math.floor(_way_point[1]*distance_modifier)
+		local _posY=math.floor(_way_point[2]*distance_modifier)
+		
+		--Initialisation for WAYPOINTS (either new or re-used)
+		if math.random(1,3)<3 then --2 out of 3 times, we try to get one previous waypoint that was sent to opponent team
+			local force_opponent=enemy_team_of[force_name]
+			local _nb_way_points_opp=table_size(global.way_points_table[force_opponent])
+			--game.print("opponent "..force_opponent.." has ".._nb_way_points_opp.." waypoints")
+			if _nb_way_points_opp > 2 then --we have 3 or more waypoints to choose from
+				_kind_of_waypoint = "OTHER SIDE" -- waypoint from previous waypoints of other side
+				local _index=math.random(1,_nb_way_points_opp)
+				if _index>1 then _index=_index-1 end --EVL little trick to go further in the past, last waypoint will never be choosed
+				_position=global.way_points_table[force_opponent][_index]
+				table.remove(global.way_points_table[force_opponent],_index)
+				if global.bb_biters_debug then game.print("          Taking waypoint from "..force_opponent.." [".._index.."]=(".._position[1]..",".._position[2]..").", {r = 97, g = 97, b = 127}) end
+				_position[2]=-_position[2] --EVL switch side of _position (fron side to opponent side)
+				--EVL TODO? : send the group to the same side of the target  OR send it to the same side as it was sent to opponents ?
 			end
-			_position_is_new=true
-		else
-		-- So you build all your base on the same side of X-axis ? and never get attacked on your back ?
-		-- Nope, and this is the patch, 20% chance of reverse attack xd
-			if target.x <0 then
-				_position = { _posX, _posY}
+		end
+		
+		if not _position then -- either we're in the case of 1 out of 3 times, either we had not enough waypoints to copy from other side way points
+			_kind_of_waypoint = "RANDOM" -- waypoint not from other side
+			if math_random(1,10)>2 then
+				--EVL SEND GROUP ON THE SAME SIDE (X-axis) OF THE MAP THAN THE TARGET
+				if target.x <0 then
+					_position = {-_posX, _posY}
+				else
+					_position = { _posX, _posY}
+				end
+				_position_is_new=true
 			else
-				_position = {-_posX, _posY}
+			-- So you build all your base on the same side of X-axis ? and never get attacked on your back ?
+			-- Nope, and this is the patch, 20% chance of reverse attack xd
+				if target.x <0 then
+					_position = { _posX, _posY}
+				else
+					_position = {-_posX, _posY}
+				end
+				_reverse = "(reversed)"
+				_position_is_new=true
+				
 			end
-			_reverse = "(reversed)"
-			_position_is_new=true
-			
 		end
 	end
 	--
 	-- Is there a place to be there (could be a lake)
-	
+	--game.print("#####1111111111")
 	position = unit_group.surface.find_non_colliding_position("stone-furnace", _position, 96, 1)
-	
+	--game.print("#####2222222222")
 	if position then
+		--game.print("#####33333333333")
 		if math.abs(position.y) >= math.abs(unit_group.position.y) then --EVL TEST/DEBUG/UNDERSTAND
 			if global.bb_biters_debug then game.print("  DEBUGS: I dont understand what happened here (send_group in ai.lua)  group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
-		end 
+		end
+		--game.print("#####4444444444444")
 		--if math.abs(position.y) < math.abs(unit_group.position.y) then
 			commands[#commands + 1] = {
 				type = defines.command.attack_area,
@@ -405,6 +473,7 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 				distraction = defines.distraction.by_enemy
 			}
 		--end 
+		--game.print("#####55555555555555")
 		--Everything went fine, we store the _position (and not the position) > we want to always test surface.find_non_colliding_position
 		if _position_is_new then 
 			if table_size(global.way_points_table[force_name]) < global.way_points_max then --EVL we dont remember infinity of waypoints (we prefer to use old ones than new ones, for equity/balance)
@@ -418,6 +487,7 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		if global.bb_biters_debug then game.print("          Debugs : failed to get position (in send_group) [color=#55AA55]skipping waypoint[/color] command for group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
 		--no return here, we just skip way_point command
 	end
+	--game.print("#####666666666666")
 	-- THEN WE SEND TO TARGET
 	commands[#commands + 1] = {
 		type = defines.command.attack_area,
@@ -425,19 +495,22 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		radius = 32,
 		distraction = defines.distraction.by_enemy
 	}
+	--game.print("#####77777777777")
 	-- THEN WE SEND TO SILO
 	commands[#commands + 1] = {
 		type = defines.command.attack,
 		target = global.rocket_silo[force_name],
 		distraction = defines.distraction.by_enemy
 	}
-
+	--game.print("#####88888888888")
 	unit_group.set_command({
 		type = defines.command.compound,
 		structure_type = defines.compound_command.logical_and,
 		commands = commands
 	})
-	if global.bb_biters_debug then game.print("          Debugs : target="..target.x..","..target.y.."   waypoint="..position.x..","..position.y.."  [color=#FFFFFF]sent[/color] ".._reverse.." ! ["..force_name.."]  group #"..group_numero, {r = 150, g = 150, b = 150}) end
+	--game.print("#####9999999999")
+	if global.bb_biters_debug then game.print("          Debugs : ".._kind_of_waypoint.." waypoint="..position.x..","..position.y.."  [color=#FFFFFF]sent ![/color] target="..target.x..","..target.y.."   "
+												.._reverse.." ["..force_name.."]  group #"..group_numero, {r = 150, g = 150, b = 150}) end
 	return true
 end
 

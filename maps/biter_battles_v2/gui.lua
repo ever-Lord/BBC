@@ -7,7 +7,7 @@ local event = require 'utils.event'
 local Functions = require "maps.biter_battles_v2.functions"
 local feed_the_biters = require "maps.biter_battles_v2.feeding"
 local Tables = require "maps.biter_battles_v2.tables"
-local show_inventory = require 'modules.show_inventory'
+local show_inventory = require 'modules.show_inventory_bbc'
 
 local wait_messages = Tables.wait_messages
 local food_names = Tables.gui_foods
@@ -220,8 +220,8 @@ function Public.create_main_gui(player)
 		l.style.font = "default"
 		l.style.font_color = { r=0.22, g=0.88, b=0.22}
 		
-		-- Tech button
-		if is_spec then
+		-- Tech button EVL only if game has started and player is spec and player is admin (so no tech button for spy/coach/sub)
+		if global.match_running and is_spec and player.admin then --Avoid Bug (switch player looking add science tree will give him all techs like mining productivity and all recipes)
 			add_tech_button(t, gui_value)
 			-- add_prod_button(t, gui_value)
 		end
@@ -500,6 +500,13 @@ local function on_gui_click(event)
 	if not event.element.valid then return end
 	local player = game.players[event.player_index]
 	local name = event.element.name
+	
+	-- Close inventory Gui
+	if name == "inventory_close" then
+		show_inventory.close_inventory(player)
+		return
+	end
+	
 	if name == "bb_toggle_button" then
 		if player.gui.left["bb_main_gui"] then
 			player.gui.left["bb_main_gui"].destroy()
@@ -545,8 +552,8 @@ local function on_gui_click(event)
 	--EVL only available for admins that are spectating
 	local _name=string.sub(name,0,6)
 	if _name=="plist_" then
-		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
-		--if true then -- EVL  --CODING-- Switch lines to test in any condition
+		--if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
+		if true then -- EVL  --CODING-- Switch lines to test inventory_gui in any condition
 			local _target_name = event.element.caption
 			if not game.players[_target_name] then
 				if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist)") end
@@ -585,6 +592,7 @@ local function on_gui_click(event)
 				player.character = nil
 				player.zoom=0.18
 				global.god_players[player.name] = true
+				game.print(">>>>> Admin:" ..  player.name .. "has gone into Spec/God mode view.", {r = 75, g = 75, b = 75})
 				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches to God mode") end
 			elseif player.force.name == "spec_god" then -- GO TO SPEC REAL MODE
 				
