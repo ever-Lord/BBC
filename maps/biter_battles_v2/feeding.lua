@@ -92,7 +92,7 @@ local function add_stats(player, food, flask_amount,biter_force_name,evo_before_
 		["south"] = table.concat({"[color=255, 65, 65]", s, "[/color]"})
 	}
 	if flask_amount > 0 then
-		local tick = game.ticks_played
+		local tick = game.ticks_played - global.freezed_time --EVL correction to science sendings timing
 		local feed_time_mins = math.round(tick / (60*60), 0)
 		local minute_unit = ""
 		if feed_time_mins <= 1 then
@@ -201,34 +201,131 @@ function set_evo_and_threat(flask_amount, food, biter_force_name)
 	set_biter_endgame_modifiers(game.forces[biter_force_name])
 end
 
-local function feed_biters(player, food)	
+local function feed_biters(player, food, mode)	
 	--EVL NOPE (science pack cand send science right at the beginning)
 	--if game.ticks_played < global.difficulty_votes_timeout then
 	--	player.print("Please wait for voting to finish before feeding")
 	--	return
 	--end
+	local enemy_force_name = ""
+	local biter_force_name = ""
+	local flask_amount = 0
 
-	local enemy_force_name = get_enemy_team_of(player.force.name)  ---------------
-	--enemy_force_name = player.force.name
-	
-	local biter_force_name = enemy_force_name .. "_biters"
-	
-	local i = player.get_main_inventory()
-	local flask_amount = i.get_item_count(food)
-	if flask_amount == 0 then
-		player.print("You have no " .. food_values[food].name .. " flask in your inventory.", {r = 0.98, g = 0.66, b = 0.22})
+	if mode == "regular" then --Regular sending (now we have also auto-sendings with /training command
+		enemy_force_name = get_enemy_team_of(player.force.name)  --return opponent unless training mode
+		biter_force_name = enemy_force_name .. "_biters"
+		local i = player.get_main_inventory()
+		flask_amount = i.get_item_count(food)
+		if flask_amount == 0 then
+			player.print("You have no [color="..food_values[food].color.."]" .. food_values[food].name .. "[/color] flask [img=item/".. food.. "] in your inventory.", {r = 0.98, g = 0.66, b = 0.22})
+			return
+		end
+		i.remove({name = food, count = flask_amount})
+		print_feeding_msg(player, food, flask_amount)	
+	--Auto-training mode for north
+	elseif mode=="north" then
+		enemy_force_name = "north"
+		biter_force_name = enemy_force_name .. "_biters"
+		flask_amount = global.auto_training["north"]["qtity"]
+	--Auto-training mode for south
+	elseif mode=="south" then
+		enemy_force_name = "south"
+		biter_force_name = enemy_force_name .. "_biters"
+		flask_amount = global.auto_training["south"]["qtity"]		
+	--Oups
+	else
+		if global.bb_debug then game.print(">>>>> feed_biters (from feeding.lua) was called with inappropriate arguments. Skipping...", {r = 0.98, g = 0.66, b = 0.22}) end
 		return
 	end
 	
-	i.remove({name = food, count = flask_amount})
-	
-	print_feeding_msg(player, food, flask_amount)	
 	local evolution_before_feed = global.bb_evolution[biter_force_name]
-	local threat_before_feed = global.bb_threat[biter_force_name]						
-	
+	local threat_before_feed = global.bb_threat[biter_force_name]	
 	set_evo_and_threat(flask_amount, food, biter_force_name)
-	
 	add_stats(player, food, flask_amount ,biter_force_name, evolution_before_feed, threat_before_feed)
 end
+
+commands.add_command(
+    'training',
+    ' command :\n'
+	..'     Auto-sending science. Format : [color=#AAFFAA]/training [QTITY]-[SCIENCE]-[TIME][/color] [color=#999999]([qtity] [science] flasks every [time] in minutes).[/color]\n'
+	..'     Ex: [color=#999999]/training 100-chem-10[/color] (auto|logi|mili|chem|prod|util|spac).\n'
+	..'     Use [color=#999999]/training off[/color] to cancel sendings',
+	function(cmd)
+		local _player = cmd.player_index
+		if not game.players[_player] then game.print("OUPS that should not happen (in <</training>> command)", {r = 175, g = 100, b = 100}) return end
+		if not global.training_mode then
+			game.players[_player].print("/training command can only be used in training mode...", {r = 175, g = 100, b = 100})
+			return
+		end
+
+		local _force = game.players[_player].force.name
+		if _force~="north" and _force~="south" then
+			game.players[_player].print("You can only use /training command when playing on one side...", {r = 175, g = 100, b = 100})
+			return
+		end
+		local _param1= tostring(cmd.parameter)
+		--Sets off the auto training command
+		if _param1=="off" or _param1=="OFF" then
+			global.auto_training[_force]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0}
+			game.print("Auto-training mode canceled/desactivated by [color=#FFFFFF]"..game.players[_player].name.."[/color] for ".._force.." side", {r = 175, g = 250, b = 100})			
+			return
+		end
+		--Tests & Find parameters (qtity,science,timing)
+		if string.len(_param1)<7 then
+			game.players[_player].print("Please type [color=#FFFFFF]/training X-YYYY-Z[/color] with X=quantity | YYYY=(auto|logi|mili|chem|prod|util|spac) | Z=timing (in minutes)", {r = 175, g = 100, b = 100})
+			return
+		end
+		--Find the first param (quantity)
+		local _index1=string.find(_param1,"-")
+		if not _index1 or _index1<2 or _index1>5 then
+			game.players[_player].print("Quantity is not valid, should be in 1..9999 range,please retry.", {r = 175, g = 100, b = 100})
+			return
+		end
+		local _qtity = tonumber(string.sub(_param1,1,_index1-1))
+		if not _qtity or _qtity<=0 or _qtity>9999 then
+			game.players[_player].print("Quantity is not valid, must be in 1..9999 range, please retry.", {r = 175, g = 100, b = 100})
+			return
+		end
+		--We stay with the right part of the pama
+		local _param2 = string.sub(_param1,_index1+1)
+		--Find the second param (science in 4 chars)
+		local _index2 = string.find(_param2,"-")
+		if not _index2 or _index2~=5 then
+			game.players[_player].print("Science is not valid, please retry with (auto|logi|mili|chem|prod|util|spac).", {r = 175, g = 100, b = 100})
+			return
+		end
+
+		local _science = tostring(string.sub(_param2,1,_index2-1))
+		if string.len(_science)~=4 then
+			game.players[_player].print("Science is not acceptable, please retry with (auto|logi|mili|chem|prod|util|spac).", {r = 175, g = 100, b = 100})
+			return
+		end
+		local _science_long=""
+		if _science=="auto" or _science=="AUTO" then _science_long="automation-science-pack"
+		elseif _science=="logi" or _science=="LOGI" then _science_long="logistic-science-pack"
+		elseif _science=="mili" or _science=="MILI" then _science_long="military-science-pack"
+		elseif _science=="chem" or _science=="CHEM" then _science_long="chemical-science-pack"
+		elseif _science=="prod" or _science=="PROD" then _science_long="production-science-pack"
+		elseif _science=="util" or _science=="UTIL" then _science_long="utility-science-pack"
+		elseif _science=="spac" or _science=="SPAC" then _science_long="space-science-pack"
+		else
+			game.players[_player].print("Science is not valid, please retry with (auto|logi|mili|chem|prod|util|spac).", {r = 175, g = 100, b = 100})
+			return
+		end
+		--We stay with the third param (Timing)
+		local _timing = tonumber(string.sub(_param2,_index2+1))
+		if not _timing or _timing<=0 or _timing>99 then
+			game.players[_player].print("Timing is not valid, must be in 1..99 range, please retry.", {r = 175, g = 100, b = 100})
+			return
+		end
+		--OK WE HAVE ALL WE NEED
+		global.auto_training[_force]={["player"]=game.players[_player].name,["active"]=true,["qtity"]=_qtity,["science"]=_science_long,["timing"]=_timing}
+		
+		-- print
+		game.print(">>>>> Auto-training mode activated by [color=#FFFFFF]"..game.players[_player].name.."[/color] for [color=#FFFFFF]".._force.."[/color] side : [color=#FFFFFF]"
+				.._qtity.."[/color] flasks of [color="..food_values[_science_long].color.."]".._science_long.."[/color] will be sent every [color=#FFFFFF]".._timing.."[/color] minute(s)", {r = 77, g = 192, b = 192})
+		return
+    end
+)
 
 return feed_biters

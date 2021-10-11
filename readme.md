@@ -9,17 +9,17 @@ MAP :
 - Map sides are perfectly symmetrical.
 - 3 bonus turrets are placed near the silo with 12 magazines each.
 - Worms are closer (dist / 2)
-- Wrecks give : 5 iron, 1 copper, 1 steel, 1 coal, 5 stone, 1 GC, 2 belts, 1 inserter
+- Wrecks give {5 iron-2 copper-1 steel-5 coal-5 stone-2 gear-2 GC-2 belt-1 inserter}
 - Mines, Artillery, Atomic bomb are disabled.
-- Anything not forbidden by the code is implicitly authorised.
+- ######### DONT USE GLITCHS, BUGS etc. kepp the spirit of biter battles.
 
 TEAM MANAGER :
 - Team manager : check the "?" button for all infos.
 - Players have to be demoted (anti-cheat), 4th team mate (spy|coach|substitute) and spectators also have to be demoted.
 - Streamers have to be promoted (access to larger view, to crafting list and to inventory of players)
 - Reroll map up to twice (no roll back) decided by team "AtHome"
-- No inventory, items are in Starter Chests
 - 4 Starter packs : Regular, Science, Robot, Combat (see content ingame)
+- No inventory, items from starter pack are split into 3 chests
 
 - No need for trusting players, everyone can use deconstruction planner and cut/copy/paste
 - Behemoth league (150%) : importing blue prints from personal library is disabled
@@ -29,9 +29,9 @@ TEAM MANAGER :
 GAME :
 - Game starts at dawn.
 - Evo starts at 0, Threats starts at 9
-- Unless threat<0 : min=3 to max=7 groups every other minute, depending on threats ratio
+- Unless threat<0 : min=2 to max=7 groups every other minute, depending on threats ratio
 - First attack targets north or south randomly (no big deal)
-- Automatic clear-corpses every 5 min (/clear-corpses 'radius' still active)
+- Automatic clear-corpses every 15 min (/clear-corpses 'radius' still active)
 - You can damage your silo but you can't destroy it (will stay at 9 health)
 - Satellite and Silo researches are granted once you have researched speed-module-3
 - Groups of biters come from all side and will use same waypoints to attack other side (slighlty randomized)

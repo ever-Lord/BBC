@@ -15,6 +15,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 
 	global.bb_debug = false --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
 	global.bb_biters_debug = false --EVL ADD MUCH VERBOSE TO BITERS AI
+	global.bb_biters_debug2 = false --EVL ADD EVEN MUCH VERBOSE TO BITERS AI
 	global.bb_debug_gui=false --EVL working on GUI inventory
 	
 	-- EVL change for map restart (/force-map-reset)
@@ -99,7 +100,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	end
 
 	global.tournament_mode = true -- EVL (none)
-	
+	global.training_mode  = false -- EVL (none)
 	
 	--global.freezed_start = 999999999 --EVL will be set to actual ticks_played game.ticks_played
 	--global.freeze_players = true -- EVL (none)
@@ -260,11 +261,24 @@ function Public.tables()
 	--EVL Need a patch so first attack goes to team OUTSIDE (give an advantage top team ATHOME) not sure its an advantage though
 	--EVL well, not even working since waves (with no group in them) are built during lobby time 
 	--We need to set global.next_attack when match starts
-	global.way_points_table = {  --We save way_points to use them on the other side (equity/balance)
+
+	--Ai.lua BASE OF WAY POINTS
+	global.way_point_radius = 512
+	global.way_points_base = {}
+	global.way_points_base.north = {}
+	global.way_points_base.south = {}
+
+	--AI.lua DEFAULT WAY  POINTS
+	global.default_way_points_nb = 5	-- number of  default way points
+	global.default_way_points  = {}	-- table of  default waypoints, 80% chance to be used
+
+	--AI.lua RANDOM WAY  POINTS
+	global.way_points_table = {  --Store way_points to use them on the other side (equity/balance)
 		["north"]={},
 		["south"]={}
 	}
-	global.way_points_max=15 -- We limit number of way_points to be remembered
+	global.way_points_max=15 -- limit to the number of way_points stored
+
 	
 	global.scraps_mined = {  --We save #scraps that were mined by force
 		["north"]=0,
@@ -316,6 +330,11 @@ function Public.tables()
 	--global.server_restart_timer = 20 -- EVL see main.lua, need to be nil
 	global.god_players={} -- EVL List of players in spec_god force/mode : we have 2 kinds of specs (see spectator_zoom.lua)
 	
+	global.auto_training  = {
+		["north"]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0},
+		["south"]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0}	
+	}
+
 end
 
 function Public.load_spawn()
@@ -341,6 +360,56 @@ function Public.load_spawn()
 		surface.request_to_generate_chunks({x = -48, y = y * -1 - 16}, 0)
 		surface.request_to_generate_chunks({x = -80, y = y * -1 - 16}, 0)
 	end
+end
+
+--Initialize base of way_points_base and default waypoints (from on_init() in main.lua, to use in ai.lua)
+function Public.init_waypoints()
+	-- FIRST BASE OF WAYPOINTS
+	local p=0.49
+	local _step=0.05
+	--EVL the waypoints are p=0.49 0.44 0.38 0.31 0.23 0.14 0.04
+	-- (slightly more chance to come vertically than horizontally)
+	while p>0 do
+		local a = math.pi * p
+		local x = math.floor(global.way_point_radius * math.cos(a))
+		local y = math.floor(global.way_point_radius * math.sin(a))
+		global.way_points_base.north[#global.way_points_base.north + 1] = {x, y * -1}
+		global.way_points_base.south[#global.way_points_base.south + 1] = {x, y}
+		p=p-_step
+		_step=_step+0.01
+	end
+	--ADD one vertical waypoint at p=0.47, so biters have slightly more chance to come from vertical axe
+		p=0.47
+		local a = math.pi * p
+		local x = math.floor(global.way_point_radius * math.cos(a))
+		local y = math.floor(global.way_point_radius * math.sin(a))
+		global.way_points_base.north[#global.way_points_base.north + 1] = {x, y * -1}
+		global.way_points_base.south[#global.way_points_base.south + 1] = {x, y}
+	--PRINT BASE WP
+	local base_str="          Base waypoints: "
+	for _index=1,#global.way_points_base.south,1 do
+		base_str=base_str.." ("..global.way_points_base.south[_index][1]..","..global.way_points_base.south[_index][2]..")"
+	end
+	if global.bb_biters_debug then game.print(base_str,{r = 200, g = 200, b = 250}) end	
+	
+	--SECOND SELECT POINTS FROM BASE TO FILL DEFAULT_WAYPOINTS
+	-- Initialize table with default way points to be used frequently (and rarely we'll send to random waypoint)
+	local _dft_wp_str="          Default way_points: "
+	local _last_way_pt=0
+	for _dwp= 1,global.default_way_points_nb,1 do
+		local _way_pt=math.random(1,#global.way_points_base.north)
+		--DEBUG--if _way_pt==_last_way_pt then _way_pt=math.random(1,#global.way_points_base.north) end -- we slighlty avoid duplicate waypoints
+		_last_way_pt=_way_pt
+		local _wayPoint=global.way_points_base.north[_way_pt]
+		--Randomize X axis
+		--DEBUG--if math.random(0,1)==1 then  _wayPoint[1]=-1*_wayPoint[1] end
+		if _way_pt%2==0 then _wayPoint[1]=-1*_wayPoint[1] end
+		global.default_way_points[#global.default_way_points + 1]=_wayPoint
+		_dft_wp_str = _dft_wp_str .. " (".._wayPoint[1]..",".._wayPoint[2]..") "
+	end
+	--PRINT DEFAULT WP
+	if global.bb_biters_debug then game.print(_dft_wp_str,{r = 200, g = 200, b = 250}) end
+
 end
 
 function Public.forces()

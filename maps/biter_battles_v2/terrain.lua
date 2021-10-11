@@ -521,7 +521,7 @@ local function mixed_ore(surface, left_top_x, left_top_y)
 			end
 		end
 	end
-	
+	--DEBUG-- What  is  this ?
 	if left_top_y == -32 and math_abs(left_top_x) <= 32 then
 		for _, e in pairs(surface.find_entities_filtered({name = 'character', invert = true, area = {{-12, -12},{12, 12}}})) do e.destroy() end
 	end
@@ -695,6 +695,8 @@ local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track
 		--game.print("Y"..y)--..msg)
 	end
 	--if track_ore and global.bb_debug then game.print("Added "..tot_amount.." mixed ores in "..tot_size.."m²",{r = 200, g = 200, b = 200}) end	
+	
+	--DEBUG-- What  is  this ?
 	if left_top_y == -32 and math_abs(left_top_x) <= 32 then
 		for _, e in pairs(surface.find_entities_filtered({name = 'character', invert = true, area = {{-12, -12},{12, 12}}})) do e.destroy() end
 	end

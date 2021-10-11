@@ -79,14 +79,14 @@ function Public.close_inventory(player)
 		if not validate_object(screen) then return end
 		local inventory_gui = screen.inventory_gui
 		if not validate_object(inventory_gui) then 
-			if bb_debug_gui then game.print("DEBUGUI close_inventory : inventory_gui is not valid...        |"..math.random(100,500)) end
+			if bb_debug_gui then game.print("DEBUGUI close_inventory : inventory_gui is not valid...") end
 			return
 		end
-		if global.bb_debug_gui then game.print("DEBUGUI : Closing inventory.        |"..math.random(100,500)) end
+		if global.bb_debug_gui then game.print("DEBUGUI : Closing inventory.") end
 		viewing_inventory[player.name]=""
 		inventory_gui.destroy()	 
 	else
-		if global.bb_debug_gui then game.print("DEBUGUI close_inventory : There should be a inventory opened, cant find it...        |"..math.random(100,500)) end
+		if global.bb_debug_gui then game.print("DEBUGUI close_inventory : There should be a inventory opened, cant find it...") end
 	end
 end
 
@@ -306,10 +306,10 @@ function Public.open_inventory(source, target)
 	-- EVL Click again on same player will close inventory if exists and already show the same target (then return)
 	if viewing_inventory[source.name] and viewing_inventory[source.name]==target.name then
 		if not validate_object(inventory_gui) then 
-			if global.bb_debug_gui then game.print("DEBUGUI : Can't find the inventory opened...        |"..math.random(100,500)) end
+			if global.bb_debug_gui then game.print("DEBUGUI : Can't find the inventory opened...") end
 			return 
 		end
-		if global.bb_debug_gui then game.print("DEBUGUI : Closing inventory of " .. target.name .. " asked by "..source.name.."        |"..math.random(100,500)) end
+		if global.bb_debug_gui then game.print("DEBUGUI : Closing inventory of " .. target.name .. " asked by "..source.name) end
 		viewing_inventory[source.name]=""
 		inventory_gui.destroy()		
 		return 
@@ -319,7 +319,7 @@ function Public.open_inventory(source, target)
 	if validate_object(inventory_gui) then inventory_gui.destroy()	 end
 	
 	--EVL Add this target in the list of viewing inventory of source
-	if global.bb_debug_gui then game.print("DEBUGUI : Opening inventory of " .. target.name .. " asked by "..source.name.."        |"..math.random(100,500)) end    
+	if global.bb_debug_gui then game.print("DEBUGUI : Opening inventory of " .. target.name .. " asked by "..source.name) end    
 	viewing_inventory[source.name]=target.name
 	
 	--EVL Create new inventory
@@ -331,8 +331,7 @@ function Public.open_inventory(source, target)
     inventory_gui.style.minimal_height = 250
 
 	draw_inventory(inventory_gui, target)
-	--if global.bb_debug_gui then game.print(">>>>>  Inventory created #"..inventory_gui.index.."          |"..math.random(100,500)) end
-
+	
 end
 
 local function update_inv_gui (event)

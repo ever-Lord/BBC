@@ -179,9 +179,7 @@ local function show_mvps(player)
         direction = "vertical"
     })
     local name_North="North"
-	if global.tm_custom_name[global.bb_game_won_by_team] then
-        name_North = global.tm_custom_name[global.bb_game_won_by_team]
-    end
+	if global.tm_custom_name["north"] then name_North = global.tm_custom_name["north"]	end
 	local l = frame.add({type = "label", caption = "MVPs - "..name_North..":"})
     l.style.font = "default-listbox"
     l.style.font_color = {r = 0.55, g = 0.55, b = 0.99}
@@ -252,9 +250,7 @@ local function show_mvps(player)
     end
 	--SOUTH
     local name_South="South"
-	if global.tm_custom_name[global.bb_game_won_by_team] then
-        name_South = global.tm_custom_name[global.bb_game_won_by_team]
-    end
+	if global.tm_custom_name["south"] then name_South = global.tm_custom_name["south"]	end
 	local l = frame.add({type = "label", caption = "MVPs - "..name_South..":"})
     l.style.font = "default-listbox"
     l.style.font_color = {r = 0.99, g = 0.33, b = 0.33}
@@ -404,6 +400,7 @@ function Public.server_restart()
 		Init.forces()
 		Init.draw_structures()
        Init.load_spawn()
+		Init.init_waypoints()	   
 		--EVL Looking why always south gets attacked first
 		local whoisattackedfirst=math.random(1,2)
 		if whoisattackedfirst == 1 then global.next_attack = "south" end

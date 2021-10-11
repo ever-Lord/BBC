@@ -132,7 +132,7 @@ function Public.create_main_gui(player)
 	if player.gui.left["bb_main_gui"] then player.gui.left["bb_main_gui"].destroy() end
 
 	if global.bb_game_won_by_team then return end
-	if not global.chosen_team[player.name] then
+	if not global.chosen_team[player.name] then --  to  be removed   ?
 		if not global.tournament_mode then
 			create_first_join_gui(player)
 			return
@@ -515,13 +515,13 @@ local function on_gui_click(event)
 		end
 		return
 	end
-
+	--[[ EVL Removed, we always show the player list, no possibility to "join_team_button"
 	if name == "join_north_button" then join_gui_click(name, player) return end
 	if name == "join_south_button" then join_gui_click(name, player) return end
-
+	]]--
 	if name == "raw-fish" then Functions.spy_fish(player, event) return end
 
-	if food_names[name] then feed_the_biters(player, name) return end
+	if food_names[name] then feed_the_biters(player, name, "regular") return end
 	
 	--[[ EVL Removed, we always show the player list
 	if name == "bb_leave_spectate" then join_team(player, global.chosen_team[player.name])	return end
@@ -592,8 +592,8 @@ local function on_gui_click(event)
 				player.character = nil
 				player.zoom=0.18
 				global.god_players[player.name] = true
-				game.print(">>>>> Admin:" ..  player.name .. "has gone into Spec/God mode view.", {r = 75, g = 75, b = 75})
-				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches to God mode") end
+				game.print(">>>>> Admin: " ..  player.name .. " has gone into Spec/God mode view.", {r = 75, g = 75, b = 75})
+				if global.bb_debug then game.print("Debug: player: " ..  player.name .." ("..player.force.name..") switches to God mode") end
 			elseif player.force.name == "spec_god" then -- GO TO SPEC REAL MODE
 				
 				player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
@@ -601,7 +601,7 @@ local function on_gui_click(event)
 				player.force = game.forces["spectator"]
 				player.zoom=0.30
 				global.god_players[player.name] = false
-				if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") switches back to Real mode") end
+				if global.bb_debug then game.print("Debug: player: " ..  player.name .." ("..player.force.name..") switches back to Real mode") end
 			else
 				game.print(">>>>> Only spectators are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
 			end

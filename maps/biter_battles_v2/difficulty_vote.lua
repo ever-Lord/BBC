@@ -130,7 +130,7 @@ local function on_player_joined_game(event)
 	if game.ticks_played < global.difficulty_votes_timeout then
 		if not global.difficulty_player_votes[player.name] then
 			if global.bb_settings.only_admins_vote or global.tournament_mode then
-				if player.admin then poll_difficulty(player) end
+				if not(global.match_running) and player.admin then poll_difficulty(player) end  -- dont show vote if game has started
 			end
 		end
 	else

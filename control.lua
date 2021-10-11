@@ -32,7 +32,7 @@ require 'commands'
 --require 'antigrief' --EVL not needed for BBC-->no more /trust command ?
 require 'modules.corpse_markers'
 require 'modules.floaty_chat'
---require 'modules.show_inventory' --EVL only admins can /inventory player (nicer than /open player) - deprecated, click on player list instead
+--require 'modules.show_inventory_bbc' --DEBUG-- EVL only admins can /inventory player (nicer than /open player) - deprecated, click on player list instead
 require 'utils.debug.command'
 
 require 'comfy_panel.main'

@@ -16,6 +16,8 @@ local Session = require 'utils.datastore.session_data'
 local Color = require 'utils.color_presets'
 local diff_vote = require "maps.biter_battles_v2.difficulty_vote"
 
+local feed_the_biters = require "maps.biter_battles_v2.feeding" --EVL to use with /training command 
+
 require "maps.biter_battles_v2.sciencelogs_tab"
 -- require 'maps.biter_battles_v2.commands' --EVL no need (other way to restart : use /force_map_reset instead)
 require "modules.spawners_contain_biters" -- is this used ?
@@ -92,26 +94,22 @@ local function show_anim_player(player,countdown)
 	end
 
 end
---EVL EXPORTING DATAS TO FRAME AND TO JSON FILE
---local _stats_are_set = false --First we set the datas moved to init global.export_stats_are_set
-local _guit = ""	--_GUI_TITLE FULL WIDTH
-local _guitl = ""	--_GUI_TOP_LEFT	(Global)
-local _json_global = {}	-- JSON GLOBAL STATS
-local _guitm = ""	--_GUI_TOP_MID	(North recap)
-local _json_north = {}	-- JSON NORTH STATS
-local _guitr = ""	--_GUI_TOP_RIGHT	(South recap)
-local _json_south = {}	-- JSON SOUTH STATS
-local _json_players_north = {}	-- JSON NORTH PLAYERS STATS
-local _json_players_south = {}-- JSON SOUTH PLAYERS STATS
-local _guib = ""	--_GUI_BOTTOM
 
-local _jsonl = {}	-- JSON LEFT TABLE
-local _jsonn = {}	-- JSON NORTH TABLE
-local _jsons = {}	-- JSON SOUTH TABLE
-local _jsonb = {}	-- JSON RIGHT TABLE
+--EVL EXPORTING DATAS TO FRAME AND TO JSON FILE
+--dependance : global.export_stats_are_set = false
+local _guit = ""				--_GUI_TITLE FULL WIDTH
+local _guitl = ""				--_GUI_TOP_LEFT	(Global)
+local _json_global = {}		-- JSON GLOBAL STATS (+ force-map-reset)
+local _guitm = ""				--_GUI_TOP_MID	(North recap)
+local _json_north = {}			-- JSON NORTH STATS (North recap)
+local _guitr = ""				--_GUI_TOP_RIGHT	(South recap)
+local _json_south = {}			-- JSON SOUTH STATS	(South recap)
+local _json_players_north = {}	-- JSON NORTH PLAYERS STATS
+local _json_players_south = {}	-- JSON SOUTH PLAYERS STATS
+local _guib = ""				--_GUI_BOTTOM
 
 --SETTINGS STATS ONCE FOR ALL TO USE IN EXPORT JSON AND DRAW RESULTS
-local function set_stats_title() --fill up string "local _guit" and table "local _jsont"
+local function set_stats_title() 				--fill up string "_guit" and table "_json_global"
 	
 	_guit=_guit.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]      v0.9\n" 
 	_guit=_guit.."see all results at [color=#DDDDDD]https://bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
@@ -121,9 +119,8 @@ local function set_stats_title() --fill up string "local _guit" and table "local
 	_guit=_guit.."[font=default-large-bold][color=#FF5555]--- [color=#55FF55]RESULTS[/color] and [color=#5555FF]STATISTICS[/color]  ---[/color][/font]"
 
 end
-local function set_stats_bottom() --fill up string "local _guib" and table "local _jsonb"
-
-		local fmr_nb=table_size(global.force_map_reset_export_reason) --EVL number of frece-map-reset
+local function set_stats_force_map_reset()	--fill up string "_guib" and table "_json_global["MAP_RESET"]"
+		local fmr_nb=table_size(global.force_map_reset_export_reason) --EVL number of force-map-reset
 		_json_global["MAP_RESET"]={}
 		if fmr_nb>0 then
 			_guib=_guib.."\n[font=default-bold][color=#FF9740]>>FORCE MAP RESETS>>[/color][/font] [font=default-small][color=#999999]"
@@ -133,20 +130,14 @@ local function set_stats_bottom() --fill up string "local _guib" and table "loca
 				table.insert(_json_global["MAP_RESET"],global.force_map_reset_export_reason[_index])
 			end
 			_guib=string.sub(_guib, 1, string.len(_guib)-1)
-			
 		end
 end
-local function set_stats_top() --fill up string "local _guil" and table "local _jsonl"
-	
-	
-	--GUI_LEFT, LEFT COLUMN
-	
-	
+local function set_stats_team()				--fill up string "_guitl & _guitm & _guitr" and tables "json_global & json_north & json_south"
 	local biters = {'small-biter','medium-biter','big-biter','behemoth-biter','small-spitter','medium-spitter','big-spitter','behemoth-spitter'}
 	local worms =  {'small-worm-turret','medium-worm-turret','big-worm-turret'} --remove behemoth ,'behemoth-worm-turret'}
 	local spawners = {'biter-spawner', 'spitter-spawner'}
 	--
-	--GLOBAL STATS
+	--GLOBAL STATS (GUI_LEFT, LEFT COLUMN)
 	--
 	_guitl=_guitl.."[font=default-bold][color=#FF9740]>>GLOBAL>>[/color][/font]\n"
 	_guitl=_guitl.."     GAME_ID="..global.game_id.."\n"
@@ -161,7 +152,7 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 	_guitl=_guitl.."     [color=#97FF40]WINNER=".._bb_game_won_by_team.."[/color]\n"
 	_guitl=_guitl.."     [color=#FF9740]LOSER=".._bb_game_loss_by_team.."[/color]\n"
 
-	_json_global={ --THE JSON GLOBAL STATS (topleft)
+	_json_global={ 		--THE JSON GLOBAL STATS (topleft)
 		["GAME_ID"]	= global.game_id, 
 		["TICK"]		= game.tick, 
 		["REFEREE"]	= "tbd", 
@@ -174,9 +165,10 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 		["WINNER"]		= _bb_game_won_by_team, 
 		["LOSER"]		= _bb_game_loss_by_team
 	}
-	--game.print("JSON GLOBAL STATS:"..serpent.block(_json_global))
-	--game.print("TOP LEFT OK")
-	
+
+	--
+	--TEAM GLOBAL STATS (GUI_LEFT, LEFT COLUMN)
+	--	
 	for _side=1,2,1 do
 		local _guit=""
 		--NORTH SIDE --
@@ -192,8 +184,6 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 			force_name = "south"
 			total_science_of_force  = global.science_logs_total_south
 		end
-
-
 
 		_guit=_guit.."[font=default-bold][color=#FF9740]>>"..string.upper(force_name).." STATS>>[/color][/font]  "
 		_guit=_guit.."[font=default-small][color=#999999]"..#game.forces[force_name].connected_players.." players[/color][/font] \n"
@@ -225,6 +215,7 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 			["MINED"]=0
 			
 		}
+
 		--BITERS WITH DETAILS --EVL DOING SOME FIORITURES
 		local _b = 0 
 		local _b_details = {["small-biter"]=0,["medium-biter"]=0,["big-biter"]=0,["behemoth-biter"]=0}
@@ -274,6 +265,7 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 		--SCRAPS
 		_guit=_guit.."     SCRAPS: "..global.scraps_mined[force_name]..""
 		_json_team["SCRAPS"]= global.scraps_mined[force_name] 
+
 		--SPAWNERS WITH DETAILS
 		local _s = 0
 		local _s_details = ""
@@ -329,8 +321,7 @@ local function set_stats_top() --fill up string "local _guil" and table "local _
 	--OTHER DATAS
 	
 end
-local function set_stats_north_and_south() --fill up string "local _guir" and table "local _jsonr"
-
+local function set_stats_players() 			--fill up tables "json_players_north & json_players_south"
 	
 	local get_score = Score.get_table().score_table
 
@@ -352,6 +343,7 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 	else
 		_score["south"] = get_score["south"]
 	end
+	
 	local biters = {'small-biter','medium-biter','big-biter','behemoth-biter','small-spitter','medium-spitter','big-spitter','behemoth-spitter'}
 	local worms =  {'small-worm-turret','medium-worm-turret','big-worm-turret','behemoth-worm-turret'}
 	local spawners = {}
@@ -481,6 +473,58 @@ local function set_stats_north_and_south() --fill up string "local _guir" and ta
 	end		
 	--OTHER DATAS
 end
+local function set_stats_team_addendum()		--Addendum to tables "json_north & json_south" (sum of deaths|killscore|built|walls|mined)
+	
+	
+	-- Addendum NORTH : Get  the sums of Deaths/KillScore/Built/WallsBuilt/Mined
+	local _sum_deaths=0
+	local _sum_killscore=0
+	local _sum_built_entities=0
+	local _sum_built_walls=0
+	local _sum_mined_entities=0
+	if table_size(_json_players_north)>0 then 
+		for _index,_player in pairs(_json_players_north) do
+			_sum_deaths=_sum_deaths+_player["DEATHS"]
+			_sum_killscore=_sum_killscore+_player["KILLSCORE"]
+			_sum_built_entities=_sum_built_entities+_player["BUILT"]
+			_sum_built_walls=_sum_built_walls+_player["WALLS"]
+			_sum_mined_entities=_sum_mined_entities+_player["MINED"]
+		end
+	end
+	--Add them to North stats
+	_json_north["DEATH_SCORE"]=_sum_deaths
+	_json_north["KILLSCORE"]=_sum_killscore
+	_json_north["BUILT"]=_sum_built_entities
+	_json_north["WALLS"]=_sum_built_walls
+	_json_north["MINED"]=_sum_mined_entities
+	_guitm=_guitm.."     DEATHS: ".._sum_deaths.." | KILLSCORE: ".._sum_killscore.."\n"
+	_guitm=_guitm.."     [item=blueprint]: ".._sum_built_entities.." | [item=stone-wall]: ".._sum_built_walls.." | [item=deconstruction-planner]: ".._sum_mined_entities.."\n"
+	
+
+	-- Addendum SOUTH : Get the sums of Deaths/KillScore/Built/WallsBuilt/Mined
+	_sum_deaths=0
+	_sum_killscore=0
+	_sum_built_entities=0
+	_sum_built_walls=0
+	_sum_mined_entities=0
+	if table_size(_json_players_south)>0 then 
+		for _index,_player in pairs(_json_players_south) do
+			_sum_deaths=_sum_deaths+_player["DEATHS"]
+			_sum_killscore=_sum_killscore+_player["KILLSCORE"]
+			_sum_built_entities=_sum_built_entities+_player["BUILT"]
+			_sum_built_walls=_sum_built_walls+_player["WALLS"]
+			_sum_mined_entities=_sum_mined_entities+_player["MINED"]
+		end
+	end
+	--Add them to South stats
+	_json_south["DEATH_SCORE"]=_sum_deaths
+	_json_south["KILLSCORE"]=_sum_killscore
+	_json_south["BUILT"]=_sum_built_entities
+	_json_south["WALLS"]=_sum_built_walls
+	_json_south["MINED"]=_sum_mined_entities
+	_guitr=_guitr.."     DEATHS: ".._sum_deaths.." | KILLSCORE: ".._sum_killscore.."\n"
+	_guitr=_guitr.."     [item=blueprint]: ".._sum_built_entities.." | [item=stone-wall]: ".._sum_built_walls.." | [item=deconstruction-planner]: ".._sum_mined_entities.."\n"	
+end
 
 --DRAWING EXPORT FRAME (Global / North / South)
 local function draw_results(player)
@@ -525,31 +569,6 @@ local function draw_results(player)
 	local sep = _tabletop.add {type = "label", caption = "   "} --EVL SEPARATOR
 
 	-- TOPMIDDLE:NORTH STATS
-	-- Addendum : Get  the sums of Deaths/KillScore/Built/WallsBuilts/Mined
-	local _sum_deaths=0
-	local _sum_killscore=0
-	local _sum_built_entities=0
-	local _sum_built_walls=0
-	local _sum_mined_entities=0
-	if table_size(_json_players_north)>0 then 
-		for _index,_player in pairs(_json_players_north) do
-			_sum_deaths=_sum_deaths+_player["DEATHS"]
-			_sum_killscore=_sum_killscore+_player["KILLSCORE"]
-			_sum_built_entities=_sum_built_entities+_player["BUILT"]
-			_sum_built_walls=_sum_built_walls+_player["WALLS"]
-			_sum_mined_entities=_sum_mined_entities+_player["MINED"]
-		end
-	end
-	--Add them to North stats
-	_json_team["DEATH_SCORE"]=_sum_deaths
-	_json_team["KILLSCORE"]=_sum_killscore
-	_json_team["BUILT"]=_sum_built_entities
-	_json_team["WALLS"]=_sum_built_walls
-	_json_team["MINED"]=_sum_mined_entities
-	_guitm=_guitm.."     DEATHS: ".._sum_deaths.." | KILLSCORE: ".._sum_killscore.."\n"
-	_guitm=_guitm.."     [item=blueprint]: ".._sum_built_entities.." | [item=stone-wall]: ".._sum_built_walls.." | [item=deconstruction-planner]: ".._sum_mined_entities.."\n"
-	
-	
 	local _ttm = _tabletop.add {type = "label", name = "bb_export_topmid", caption = _guitm}
 	_ttm.style.single_line = false
 	_ttm.style.font = "default"
@@ -559,29 +578,6 @@ local function draw_results(player)
 	local sep = _tabletop.add {type = "label", caption = "   "} --EVL SEPARATOR
 
 	-- TOPRIGHT:SOUTH STATS
-	-- Addendum : Get the sums of Deaths/KillScore/Built/WallsBuilts/Mined
-	_sum_deaths=0
-	_sum_killscore=0
-	_sum_built_entities=0
-	_sum_built_walls=0
-	_sum_mined_entities=0
-	if table_size(_json_players_south)>0 then 
-		for _index,_player in pairs(_json_players_south) do
-			_sum_deaths=_sum_deaths+_player["DEATHS"]
-			_sum_killscore=_sum_killscore+_player["KILLSCORE"]
-			_sum_built_entities=_sum_built_entities+_player["BUILT"]
-			_sum_built_walls=_sum_built_walls+_player["WALLS"]
-			_sum_mined_entities=_sum_mined_entities+_player["MINED"]
-		end
-	end
-	--Add them to South stats
-	_json_team["DEATH_SCORE"]=_sum_deaths
-	_json_team["KILLSCORE"]=_sum_killscore
-	_json_team["BUILT"]=_sum_built_entities
-	_json_team["WALLS"]=_sum_built_walls
-	_json_team["MINED"]=_sum_mined_entities
-	_guitr=_guitr.."     DEATHS: ".._sum_deaths.." | KILLSCORE: ".._sum_killscore.."\n"
-	_guitr=_guitr.."     [item=blueprint]: ".._sum_built_entities.." | [item=stone-wall]: ".._sum_built_walls.." | [item=deconstruction-planner]: ".._sum_mined_entities.."\n"	
 	local _ttr = _tabletop.add {type = "label", name = "bb_export_topright", caption = _guitr}
 	_ttr.style.single_line = false
 	_ttr.style.font = "default"
@@ -782,7 +778,7 @@ local function draw_results(player)
 	end
 
 	--insert the columns
-	--TODO the tooltips, colors etc.
+	--TODO-- the tooltips, colors etc. (not that bad actually)
 	local _tp_name		= _tp.add {type = "label", caption = _col_name, name = "tp_name"}
 	_tp_name.style.single_line = false
 	local _tp_death	= _tp.add {type = "label", caption = _col_death, name = "tp_death", tooltip="Number of deaths"}
@@ -886,12 +882,12 @@ local function export_results(export_to_json)
 		--Global
 		_guit = ""			--_GUI_TITLE FULL WIDTH
 		_guitl = ""		--_GUI_TOP_LEFT	(Global)
-		_json_global = {}	-- JSON TITLE TABLE
+		_json_global = {}	-- JSON GLOBAL STATS (+ force-map-reset)
 		--Teams
-		_guitm = ""		--_GUI_TOP_MID	(North recap)
-		_json_north = {}	-- JSON NORTH RECAP
-		_guitr = ""		--_GUI_TOP_RIGHT	(South recap)
-		_json_south = {}	-- JSON SOUTH RECAP
+		_guitm = ""		--_GUI_TOP_MID (North recap)
+		_json_north = {}	-- JSON NORTH RECAP (North recap)
+		_guitr = ""		--_GUI_TOP_RIGHT (South recap)
+		_json_south = {}	-- JSON SOUTH RECAP (South recap)
 		--Players
 		_json_players_north = {} --JSON WITH ALL NORTH PLAYERS (including spec that have played in north)
 		_json_players_south = {} --JSON WITH ALL SOUTH PLAYERS (including spec that have played in south)
@@ -899,10 +895,11 @@ local function export_results(export_to_json)
 		_guib = ""			--_GUI_BOTTOM
 		
 		if global.bb_debug then game.print(">>>>> Setting results and stats.", {r = 0.22, g = 0.22, b = 0.22}) end
-		set_stats_title()	--Will fill up string "local _guit" and table "local _jsont"
-		set_stats_top()	--Will fill up string "local _guil" and table "local _jsonl"
-		set_stats_north_and_south()	--Will fill up string "local _guin and guis" and table "local _jsonr???"
-		set_stats_bottom()	--Will fill up string "local _guib" and table "local _jsonb"
+		set_stats_title()			--fill up string "_guit" and table "_json_global"
+		set_stats_team()			--fill up string "_guitl & _guitm & _guitr" and tables "_json_global & _json_north & _json_south"
+		set_stats_players()			--fill up tables "json_players_north & json_players_south"
+		set_stats_team_addendum()	--Addendum to tables "json_north & json_south" (sum of deaths|killscore|built|walls|mined)	
+		set_stats_force_map_reset()	--fill up string "_guib" and table "_json_global["MAP_RESET"]"
 		global.export_stats_are_set=true		
 	else 
 		if global.bb_debug then game.print(">>>>> Results and stats are already set.", {r = 0.22, g = 0.22, b = 0.22}) end
@@ -927,7 +924,7 @@ local function export_results(export_to_json)
 
 	--EXPORTING TO FILE JSON
 	if export_to_json then
-		if global.bb_debug then game.print(">>>>> TODO : exporting results and stats to json.") end
+		if global.bb_debug then game.print(">>>>> Exporting results and stats to json file.") end
 		local _json={
 			["GAME_ID"]=global.game_id,
 			["GLOBAL"]=_json_global,
@@ -936,15 +933,20 @@ local function export_results(export_to_json)
 			["NORTH_PLAYERS"]=_json_players_north,
 			["SOUTH_PLAYERS"]=_json_players_south
 		}
-		local _output_txt="game_"..global.game_id..".txt"
-		local _output_json="game_"..global.game_id..".json"
-		local _append=true -- we need this in case of /force-map-reset
-		game.write_file(_output_txt, serpent.block(_json), _append)
-		game.write_file(_output_json, game.table_to_json(_json), _append)
+		if global.game_id and (global.game_id=="training" or global.game_id=="scrim" or global.game_id%123==0) then
+			local _output_txt="game_"..global.game_id..".txt"
+			local _output_json="game_"..global.game_id..".json"
+			local _append=true -- we need this in case of /force-map-reset and we dont want to loose any data
+			game.write_file(_output_txt, serpent.block(_json), _append)
+			game.write_file(_output_json, game.table_to_json(_json), _append)
+		else
+			game.print(">>>>> OUPS ! COULD NOT EXPORT STATS TO FILE, THATS A HUGE ERROR :/ **********************************************", {r = 255, g = 77, b = 77})
+		end
 	else
 		if global.bb_debug then game.print(">>>>> Results and stats have already been exported.") end
 	end
 end
+
 --LITTLE THING TO CLOSE EXPORT GUI (above)
 local function frame_export_click(player, element)
 	--EVL Stats button switch
@@ -957,11 +959,9 @@ local function frame_export_click(player, element)
 			return
 		end
 	end
-	--EVL close export frame when clicked
+	--EVL close export frame when clicked in
 	local _bb_export=string.sub(element.name,1,10) -- EVL we keep "bb_export_"
-	
-	if _bb_export == "bb_export_" then player.gui.center["bb_export_frame"].destroy() return end	
-
+	if player.gui.center["bb_export_frame"] and _bb_export == "bb_export_" then player.gui.center["bb_export_frame"].destroy() return end	
 end
 
 --EVL MANUAL CLEAR CORPSES
@@ -1013,16 +1013,18 @@ end
 --EVL AUTO CLEAR CORPSES
 local function clear_corpses_auto(radius) -- EVL - Automatic clear corpses called every 5 min
 	if not Ai.empty_reanim_scheduler() then
-		if global.bb_debug then game.print("Debug: Some corpses are waiting to be reanimated... Skipping this turn of clear_corpses") end
+		if global.bb_debug then game.print("Debug: Some corpses are waiting to be reanimated... Skipping this turn of clear_corpses", Color.fail) end
 		return
 	end
 	local _param = tonumber(radius)
+	if _param > 500 then
+		if global.bb_debug then game.print("Debug: Radius is too big, set it to 500 in clear_corpses_auto.", Color.fail) end
+		_param=500
+	end
 	local _radius = {{x = (0 + -_param), y = (0 + -_param)}, {x = (0 + _param), y = (0 + _param)}}
 	local _surface = game.surfaces[global.bb_surface_name]
 	for _, entity in pairs(_surface.find_entities_filtered {area = _radius, type = 'corpse'}) do
-		if entity.corpse_expires then
-			entity.destroy()
-		end
+		if entity.corpse_expires then	entity.destroy() end
 	end
 	if global.bb_debug then game.print("Debug: Cleared corpses (dead biters and destroyed entities).", Color.success) 
 	else game.print("Cleared corpses.", Color.success) end --EVL we could count the biters (and only the biters?)
@@ -1045,8 +1047,9 @@ local function on_player_joined_game(event)
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
 	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 225, b = 00})
-	player.print(">>>>> (10-06-21) v0.9 Slightly increased ore in spawn), report unplayable maps and send us the seed : \n       [color=#888888]/c game.print(game.player.surface.map_gen_settings.seed)[/color]",{r = 150, g = 150, b = 250})
-	player.print(">>>>> (10-06-21) v0.9 We're lacking teams for the Biter league, motivate your friends to apply and build a team  !",{r = 150, g = 150, b = 250})
+	player.print(">>>>> (10-12-21) v0.91 New command : <</training>> to auto-send yourself science while in training mode",{r = 150, g = 150, b = 250})
+	player.print(">>>>> (10-06-21) v0.90 Slightly increased ore in spawn, report unplayable maps and send us the seed : \n       [color=#888888]/c game.print(game.player.surface.map_gen_settings.seed)[/color]",{r = 150, g = 150, b = 250})
+	player.print(">>>>> (10-06-21) v0.90 We're lacking teams for the Biter league, motivate your friends to apply and build a team  !",{r = 150, g = 150, b = 250})
 end
 
 local function on_gui_click(event)
@@ -1226,6 +1229,23 @@ local function on_tick()
 
 		if tick % 1200 == 0 then --EVL monitoring game times every 20s for EVO BOOST/ARMAGEDDON
 			--TODO-- Check for AFK players ?
+			--North auto training mode 
+			if global.auto_training["north"]["active"] and tick%(global.auto_training["north"]["timing"]*3600)==0 then
+				local _food=global.auto_training["north"]["science"]
+				local _player=game.players[global.auto_training["north"]["player"]]
+				feed_the_biters(_player, _food, "north")
+				game.print("Auto-sending : "..global.auto_training["north"]["qtity"].." flasks of [color="..Tables.food_values[_food].color.."]" .. Tables.food_values[_food].name .. "[/color] [img=item/".. _food.. "] sent to team north", {r = 77, g = 192, b = 192})
+			end
+			--South auto training mode 
+			if global.auto_training["south"]["active"] and tick%(global.auto_training["south"]["timing"]*3600)==0 then
+				local _food=global.auto_training["south"]["science"]
+				local _player=game.players[global.auto_training["south"]["player"]]
+				feed_the_biters(_player, _food, "south")
+				game.print("Auto-sending : "..global.auto_training["south"]["qtity"].." flasks of [color="..Tables.food_values[_food].color.."]" .. Tables.food_values[_food].name .. "[/color] [img=item/".. _food.. "] sent to team south", {r = 77, g = 192, b = 192})
+
+			end
+
+			
 			
 			if global.freezed_start == 999999999 then -- players are unfreezed
 				if not global.evo_boost_active then -- EVO BOOST AFTER 2H (global.tick_evo_boost=60*60*60*2)
@@ -1445,6 +1465,7 @@ local function on_init()
 	Init.forces()
 	Init.draw_structures()
 	Init.load_spawn()
+	Init.init_waypoints()
 	--EVL Looking why always south gets attacked first <- not true
 	local whoisattackedfirst=math.random(1,2)
 	--if global.bb_debug then game.print("DEBUG: wiaf="..whoisattackedfirst.."  before "..global.next_attack) end 

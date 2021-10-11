@@ -417,7 +417,7 @@ function Public.show_intro(player)
 	local Mtitle=""
 	Mtitle=Mtitle.."[font=default-large-bold][color=#FF5555]                                            "
 	Mtitle=Mtitle.."--- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ![/color][/font]"
-	Mtitle=Mtitle.."                      [color=#DDDDDD]https://bbchampions.org[/color]    v0.9"-- \n
+	Mtitle=Mtitle.."                      [color=#DDDDDD]https://bbchampions.org[/color]    v0.91"-- \n
 	local title = frame.add {type = "label" , name = "biter_battles_map_title", caption = Mtitle} 
 	title.style.single_line = false
 	title.style.font = "default"
@@ -446,7 +446,7 @@ function Public.show_intro(player)
 	local Minfo=""
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Biter Battles Championships (BBC)[/color][/font] consist of [font=default-bold]2 leagues[/font] where teams fight for their global ranking and the final trophy !\n"
 	Minfo=Minfo.."[font=default-bold][color=#5555FF]    [entity=big-biter] BITER[/color][/font] league is meant for ~casual~ players, with normal difficulty and where blueprints are allowed.\n"
-	Minfo=Minfo.."[font=default-bold][color=#55FF55]    [entity=behemoth-biter] BEHEMOTH[/color][/font] league is meant for ~pro~ players, with hard difficulty and where blueprints are disabled.\n"
+	Minfo=Minfo.."[font=default-bold][color=#55FF55]    [entity=behemoth-biter] BEHEMOTH[/color][/font] league is meant for ~pro~ players, with hard difficulty and where blueprint library is disabled.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Matches[/color][/font] are 3[font=default-small][color=#999999](+1)[/color][/font] vs 3[font=default-small][color=#999999](+1)[/color][/font], the [font=default-small-bold][color=#999999](+1)[/color][/font] "
 	Minfo=Minfo.."meaning the coach/spy/substitute. One team is said [font=default-bold][color=#CCBBFF]ATHOME[/color][/font]\n"
@@ -494,7 +494,7 @@ function Public.show_intro_next(player)
 
 	local Minfo=""
 	Minfo=Minfo.."[font=default-large-bold][color=#FF5555]                                    --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
-	Minfo=Minfo.."                         [color=#DDDDDD]https://bbchampions.org[/color]    v0.9\n"
+	Minfo=Minfo.."                         [color=#DDDDDD]https://bbchampions.org[/color]    v0.91\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Some more details about Biter Battles and BBC : [/color][/font]"
 	Minfo=Minfo.."\n"
@@ -515,7 +515,7 @@ function Public.show_intro_next(player)
 	Minfo=Minfo.."                [font=default-small][color=#999999]Note: referee can force unfreezing players after 180s (if players are not responding).[/color][/font]\n"	
 	Minfo=Minfo.."[font=default][color=#FF9740]SPEED : [/color][/font] if both teams agree, referee can reduce the speed of the game with this chat command [color=#DDDDDD]/c game.speed=0.8[/color]\n"
 	Minfo=Minfo.."                  [font=default-small][color=#999999](only in case some players can't keep up with the game and have jumps).[/color][/font]\n"
-	Minfo=Minfo.."[font=default][color=#FF9740]CLEAR-CORPSES [/color][/font] is called every 5 min, clearing biter corpses and remnants.\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]CLEAR-CORPSES [/color][/font] is called every 15 min, clearing biter corpses and remnants.\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default][color=#FF9740]TIPS : [/color][/font] you need to be fast ! Biters are very aggressive, you need to find a good balance between 3 things :\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Defense[/color][/font]    so you don't get overwhelmed,\n"

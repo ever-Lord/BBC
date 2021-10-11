@@ -515,6 +515,7 @@ local function on_built_entity(event)
 	if _typ=="assembling-machine" or _ent=="pumpjack" or _ent=="beacon"		 			then score.built_machines = 1 + (score.built_machines or 0) return end
 	if _ent=="lab"							 											then score.built_labs = 1 + (score.built_labs or 0) return end
 	if _ent=="gun-turret" or _ent=="flamethrower-turret" or _ent=="laser-turret" or _ent=="radar" then score.built_turrets = 1 + (score.built_turrets or 0) return end	
+	if _typ=="electric-pole"															then return end -- do not track electric pole
 	if global.bb_debug then game.print("DEBUG: this entity is not tracked : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
 end
 
