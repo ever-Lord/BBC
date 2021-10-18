@@ -183,7 +183,7 @@ local function select_units_around_spawner(spawner, force_name, side_target)
 
 	local threat = global.bb_threat[biter_force_name] * math_random(8, 32) * 0.01
 
-	--[[ EVL removed for BBC (dont even know what that means)
+	--[[ EVL removed for BBC (group sizes to outposts are reduced)
 	--threat modifier for outposts
 	local m = math_abs(side_target.position.x) - 512
 	if m < 0 then m = 0 end
@@ -214,33 +214,72 @@ local function select_units_around_spawner(spawner, force_name, side_target)
 		end
 	end
 
-	--Manual spawning of units
-	local roll_type = unit_type_raffle[math_random(1, size_of_unit_type_raffle)]
-	for _ = 1, max_unit_count - unit_count, 1 do
-		if threat < 0 then break end
-		local unit_name = BiterRaffle.roll(roll_type, global.bb_evolution[biter_force_name])
-		local position = spawner.surface.find_non_colliding_position(unit_name, spawner.position, 128, 2)
-		if not position then 
-			if global.bb_biters_debug then game.print("DEBUGS: No room for spawning a biter (in select_units_around_spawner)",{200, 20, 20}) end 
-			break 
+	if (max_unit_count - unit_count > 0) and (threat > 0) then --We will need more units
+		--EVL Either new-type or re-used before Manual spawning of units (from global.units_type_table = {["north"]={},["south"]={}})
+		local roll_type=""
+		if math.random(1,3)<3 then --2 out of 3 times, we try to get one previous type that was sent to opponent team
+			local force_opponent=enemy_team_of[force_name]
+			local _nb_units_type_opp=table_size(global.units_type_table[force_opponent])
+			if global.bb_biters_debug2 then game.print("          Opponent "..force_opponent.." has ".._nb_units_type_opp.." types stored", {r = 100, g = 150, b = 100}) end
+			if _nb_units_type_opp > 2 then --we have 3 or more waypoints to choose from
+				local _index=math.random(1,_nb_units_type_opp)
+				if _index>1 then _index=_index-1 end --EVL little trick to go further in the past, last waypoint will never be choosed
+				roll_type=global.units_type_table[force_opponent][_index]
+				table.remove(global.units_type_table[force_opponent],_index)
+				if global.bb_biters_debug2 then game.print("          Taking type from "..force_opponent.." [#".._index.."].", {r = 100, g = 150, b = 100}) end
+			else
+				roll_type = unit_type_raffle[math_random(1, size_of_unit_type_raffle)]
+				local _nb_units_type_force = table_size(global.units_type_table[force_name])
+				if _nb_units_type_force < global.units_type_max then
+					table.insert(global.units_type_table[force_name],roll_type)
+					if global.bb_biters_debug2 then game.print("          Inserting new type at "..force_name.." (forced #"..(#global.units_type_table[force_name])..").", {r = 100, g = 150, b = 100}) end
+				else
+					if global.bb_biters_debug2 then game.print("          Forgetting new type at "..force_name.." (forced).", {r = 100, g = 150, b = 100}) end
+				end
+			end
+		else
+			roll_type = unit_type_raffle[math_random(1, size_of_unit_type_raffle)]
+			local _nb_units_type_force = table_size(global.units_type_table[force_name])
+			if _nb_units_type_force < global.units_type_max then -- avoid infinite table (esp. for training mode)
+				table.insert(global.units_type_table[force_name],roll_type)
+				if global.bb_biters_debug2 then game.print("          Inserting new type at "..force_name.." (regular #"..(#global.units_type_table[force_name])..").", {r = 100, g = 150, b = 100}) end
+			else
+				if global.bb_biters_debug2 then game.print("          Forgetting new type at "..force_name.." (regular).", {r = 100, g = 150, b = 100}) end
+			end
 		end
-		local biter = spawner.surface.create_entity({name = unit_name, force = biter_force_name, position = position})
-		threat = threat - threat_values[biter.name]
-		i = i + 1
-		valid_biters[i] = biter
-		global.active_biters[biter.force.name][biter.unit_number] = {entity = biter, active_since = game.tick}
-		--Announce New Spawn
-		if(global.biter_spawn_unseen[force_name][unit_name]) then
-			--Add some color when new tier of biters happens
-			if string.sub(unit_name,1,3)=="med" then _color="#AA8888"
-			elseif string.sub(unit_name,1,3)=="big" then _color="#7777FF"
-			elseif string.sub(unit_name,1,3)=="beh" then _color="#55FF55"
-			else _color="#EEEEEE" end
-			game.print("A [font=default-large-bold][color=".._color.."]" .. unit_name:gsub("-", " ") .. "[/color][/font] was spotted far away on team " .. force_name .. "...",{200, 20, 20})
-			global.biter_spawn_unseen[force_name][unit_name] = false
+		if roll_type == "" then --Double Verification (could be removed)
+			if global.bb_biters_debug2 then game.print("          OUPS roll_type has not been set in AI.lua/select_units_around_spawner.", {r = 250, g = 150, b = 100}) end
+			roll_type = unit_type_raffle[math_random(1, size_of_unit_type_raffle)]
 		end
+		--Now : Manual spawning of units after roll_type has been set
+		for _ = 1, max_unit_count - unit_count, 1 do
+			if threat < 0 then break end
+			local unit_name = BiterRaffle.roll(roll_type, global.bb_evolution[biter_force_name])
+			local position = spawner.surface.find_non_colliding_position(unit_name, spawner.position, 128, 2)
+			if not position then 
+				if global.bb_biters_debug then game.print("DEBUGS: No room for spawning a biter (in select_units_around_spawner)",{200, 20, 20}) end 
+				break 
+			end
+			local biter = spawner.surface.create_entity({name = unit_name, force = biter_force_name, position = position})
+			threat = threat - threat_values[biter.name]
+			i = i + 1
+			valid_biters[i] = biter
+			global.active_biters[biter.force.name][biter.unit_number] = {entity = biter, active_since = game.tick}
+			--Announce New Spawn
+			if(global.biter_spawn_unseen[force_name][unit_name]) then
+				--Add some color when new tier of biters appears
+				if string.sub(unit_name,1,3)=="med" then _color="#AA8888"
+				elseif string.sub(unit_name,1,3)=="big" then _color="#7777FF"
+				elseif string.sub(unit_name,1,3)=="beh" then _color="#55FF55"
+				else _color="#EEEEEE" end  --not possible in theory
+				game.print("A [font=default-large-bold][color=".._color.."]" .. unit_name:gsub("-", " ") .. "[/color][/font] was spotted far away on team " .. force_name .. "...",{200, 20, 20})
+				global.biter_spawn_unseen[force_name][unit_name] = false
+			end
+		end
+	else
+		if global.bb_biters_debug2 then game.print("          No need for manual spawing of units (threat="..math.floor(threat*100).." or units="..unit_count.."/"..max_unit_count.."), ie enough units were found near spawner.", {r = 100, g = 150, b = 100}) end
 	end
-	get_active_biter_count(biter_force_name, true) -- game.print in the function
+	--get_active_biter_count(biter_force_name, true) -- totally useless ? game.print in the function
 	--if global.bb_biters_debug then game.print("         info: "..get_active_biter_count(biter_force_name, true) .. " active units for " .. biter_force_name,{50, 50, 50}) end --DEBUG-- CAREFUL
 	return valid_biters
 end
@@ -273,9 +312,7 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		if global.bb_biters_debug then game.print("  DEBUGS: No target for " .. force_name .. " biters (in send-group)  skipping group #"..group_numero..".", {r = 177, g = 77, b = 77})  end
 		return 
 	end
-
 	target = target.position
-	--game.print("00000000000000")
 	local commands = {}
 
 	--[[EVL TRYING TO EXPLAIN : (set global.bb_biters_debug=true in init.lua for verbose)
@@ -299,23 +336,16 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 	local _position_is_new=false
 	local _reverse = ""
 	local _kind_of_waypoint = ""				
-	--if global.bb_biters_debug then game.print("2222222222") end
 	local _random_default=math.random(1,20)
 	
 	if _random_default<18 then -- We use default waypoints : most of the time biters will come from same few angles
-		if global.bb_biters_debug then game.print("3333333") end
 		if _random_default<=1 then -- 5% chance to change one of the default waypoints
-			--if global.bb_biters_debug then game.print("444444444") end
 			local _index=math.random(1,global.default_way_points_nb)
-			--if global.bb_biters_debug then game.print("555555555") end
 			table.remove(global.default_way_points,_index)
 			local _way_nb=math.random(1,#global.way_points_base.north)
-			--if global.bb_biters_debug then game.print("777777777") end
 			local _wayPoint=global.way_points_base.north[_way_nb]
 			if _random_default<9 then  _wayPoint[1]=-1*_wayPoint[1] end
-			--if global.bb_biters_debug then game.print("88888888888") end
 			global.default_way_points[#global.default_way_points + 1]=_wayPoint
-			--global.default_way_points[_index]=_wayPoint			
 			-- List of way points after
 			local _dft_wp_str="          New Default WayPoints : "
 			for _dwp= 1,global.default_way_points_nb,1 do
@@ -323,58 +353,45 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 			end
 			if global.bb_biters_debug then game.print(_dft_wp_str,{r = 200, g = 200, b = 250}) end				
 			_kind_of_waypoint="*"
-			--if global.bb_biters_debug then game.print("999999999") end
 		end
 		-- we take a random waypoint from the default list		
-		--if global.bb_biters_debug then game.print("AAAAAAAAAAA") end
 		local _index=math.random(1,global.default_way_points_nb)
-		--if global.bb_biters_debug then game.print("BBBBBBBBB") end
 		local _way_point=global.default_way_points[_index]
 		local distance_modifier = math_random(50, 100) * 0.01
 		local _posX=math.floor(_way_point[1]*distance_modifier)
 		local _posY=math.floor(_way_point[2]*distance_modifier)
 		-- Need to reverse _posY if it is south (default waypoints are copied from global.way_points_table[north]
-		--if global.bb_biters_debug then game.print("CCCCCCCC") end
 		if force_name=="south" then  _posY=-1*_posY end
 		_position = { _posX, _posY}
 		_position_is_new=false
 		_kind_of_waypoint = _kind_of_waypoint .. "DEFAULT#".._index -- waypoint from default list
-		if global.bb_biters_debug then game.print("DDDDDDDDDDD")  end
 	
 	
 	else -- We use random waypoints to surprize teams (but still we store those random waypoints to apply them to other team later)
-		--if global.bb_biters_debug then game.print("EEEEEEEEEE") end
 		--Initialisation for new WAYPOINTS -tobe moved to if not _position then
 		local _way_point = global.way_points_base[force_name][math.random(1,#global.way_points_base.north)] --EVL WE CHOOSE A RANDOM WAYPOINT ON THE QUARTER RING
 		local distance_modifier = math_random(50, 100) * 0.01	--EVL  (circles of way_point_radius 256 to 512)
 		local _posX=math.floor(_way_point[1]*distance_modifier)
 		local _posY=math.floor(_way_point[2]*distance_modifier)
-		--game.print("FFFFFFFFFF")
 		--Initialisation for WAYPOINTS (either new or re-used)
 		if math.random(1,3)<3 then --2 out of 3 times, we try to get one previous waypoint that was sent to opponent team
-			if global.bb_biters_debug then game.print("GGGGGGGGG") end
 			local force_opponent=enemy_team_of[force_name]
 			local _nb_way_points_opp=table_size(global.way_points_table[force_opponent])
 			--game.print("opponent "..force_opponent.." has ".._nb_way_points_opp.." waypoints")
 			if _nb_way_points_opp > 2 then --we have 3 or more waypoints to choose from
 				_kind_of_waypoint = "OTHER SIDE" -- waypoint from previous waypoints of other side
 				local _index=math.random(1,_nb_way_points_opp)
-				--if global.bb_biters_debug then game.print("IIIIIIIIIIII") end
 				if _index>1 then _index=_index-1 end --EVL little trick to go further in the past, last waypoint will never be choosed
 				_position=global.way_points_table[force_opponent][_index]
 				table.remove(global.way_points_table[force_opponent],_index)
 				if global.bb_biters_debug then game.print("          Taking waypoint from "..force_opponent.." [".._index.."]=(".._position[1]..",".._position[2]..").", {r = 97, g = 97, b = 127}) end
 				_position[2]=-_position[2] --EVL switch side of _position (from side to opponent side)
 				--EVL TODO? : send the group to the same side of the target  OR send it to the same side as it was sent to opponents ?
-				if global.bb_biters_debug then game.print("KKKKKKKKKKK") end
 			end
 		end
-		if global.bb_biters_debug then game.print("LLLLLLLLLLLL") end
 		if not _position then -- either we're in the case of 1 out of 3 times, either we had not enough waypoints to copy from other side way points
-			--if global.bb_biters_debug then game.print("MMMMMMMMM") end
 			_kind_of_waypoint = "RANDOM" -- waypoint not from other side
 			if math.random(1,10)>2 then
-				if global.bb_biters_debug then game.print("NNNNNNNNN") end
 				--EVL SEND GROUP ON THE SAME SIDE (X-axis) OF THE MAP THAN THE TARGET
 				if target.x <0 then
 					_position = {-_posX, _posY}
@@ -383,7 +400,6 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 				end
 				_position_is_new=true
 			else
-				if global.bb_biters_debug then game.print("OOOOOOOOOOO") end
 			-- So you build all your base on the same side of X-axis ? and never get attacked on your back ?
 			-- Nope, and this is the patch, 20% chance of reverse attack xd
 				if target.x <0 then
@@ -395,23 +411,15 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 				_position_is_new=true
 				
 			end
-			--if global.bb_biters_debug then game.print("PPPPPPPPPP") end
 		end
-		--if global.bb_biters_debug then game.print("QQQQQQQQQQ") end
 	end
-	if global.bb_biters_debug then game.print("RRRRRRRRRRR") end
-	--
+
 	-- Is there a place to be there (could be a lake)
-	
-	--if global.bb_biters_debug then game.print("#####1111111111") end
 	position = unit_group.surface.find_non_colliding_position("stone-furnace", _position, 96, 1)
-	--if global.bb_biters_debug then game.print("#####2222222222") end
 	if position then
-		--if global.bb_biters_debug then game.print("#####33333333333") end
 		if math.abs(position.y) >= math.abs(unit_group.position.y) then --EVL TEST/DEBUG/UNDERSTAND
 			if global.bb_biters_debug then game.print("  DEBUGS: I dont understand what happened here (send_group in ai.lua)  group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
 		end
-		--if global.bb_biters_debug then game.print("#####4444444444444") end
 		--if math.abs(position.y) < math.abs(unit_group.position.y) then --What is that ? EVL -> remove
 			commands[#commands + 1] = {
 				type = defines.command.attack_area,
@@ -420,7 +428,6 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 				distraction = defines.distraction.by_enemy
 			}
 		--end 
-		if global.bb_biters_debug then game.print("#####55555555555555") end
 		--Everything went fine, we store the _position (and not the position) > we want to always test surface.find_non_colliding_position
 		if _position_is_new then 
 			if table_size(global.way_points_table[force_name]) < global.way_points_max then --EVL we dont remember infinity of waypoints (we prefer to use old ones than new ones, for equity/balance)
@@ -434,7 +441,6 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		if global.bb_biters_debug then game.print("          Debugs : failed to get position (in send_group) [color=#55AA55]skipping waypoint[/color] command for group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
 		--no return here, we just skip way_point command
 	end
-	--if global.bb_biters_debug then game.print("#####666666666666") end
 	-- THEN WE SEND TO TARGET
 	commands[#commands + 1] = {
 		type = defines.command.attack_area,
@@ -442,20 +448,18 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		radius = 32,
 		distraction = defines.distraction.by_enemy
 	}
-	--if global.bb_biters_debug then game.print("#####77777777777") end
 	-- THEN WE SEND TO SILO
 	commands[#commands + 1] = {
 		type = defines.command.attack,
 		target = global.rocket_silo[force_name],
 		distraction = defines.distraction.by_enemy
 	}
-	--if global.bb_biters_debug then game.print("#####88888888888") end
+	--AGGREGATING COMMANDS
 	unit_group.set_command({
 		type = defines.command.compound,
 		structure_type = defines.compound_command.logical_and,
 		commands = commands
 	})
-	--if global.bb_biters_debug then game.print("#####9999999999") end
 	if global.bb_biters_debug then game.print("          Debugs : ".._kind_of_waypoint.." waypoint="..position.x..","..position.y.."  [color=#FFFFFF]sent ![/color] target="..target.x..","..target.y.."   "
 												.._reverse.." ["..force_name.."]  group [color=#FFFFFF]#"..group_numero.."[/color]", {r = 180, g = 180, b = 180}) end
 	if global.bb_biters_debug2 then game.print("          Debugs : ".._kind_of_waypoint.." waypoint="..position.x..","..position.y.."  [color=#FFFFFF]sent ![/color] target="..target.x..","..target.y.."   "
@@ -524,9 +528,9 @@ local function create_attack_group(surface, force_name, biter_force_name, group_
 		if global.bb_biters_debug then game.print("          Debugs: Threat is negative ["..force_name.."] [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return false 
 	end
-	if bb_config.max_active_biters - get_active_biter_count(biter_force_name, false) < bb_config.max_group_size then
-		if global.bb_biters_debug then game.print("          Debugs: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. bb_config.max_active_biters - get_active_biter_count(biter_force_name)
-										.." [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
+	local _active_biter_count = get_active_biter_count(biter_force_name, false)
+	if bb_config.max_active_biters - _active_biter_count < bb_config.max_group_size then
+		if global.bb_biters_debug then game.print("          Debugs: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. (bb_config.max_active_biters-_active_biter_count).." [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return false
 	end
 	local side_target = get_target_entity(force_name)
@@ -544,7 +548,9 @@ local function create_attack_group(surface, force_name, biter_force_name, group_
 		if global.bb_biters_debug then game.print("          Debugs: failed to get unit_group_position for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return 
 	end
+	--if global.bb_biters_debug2 then game.print("          DeBUGs : Calling select_units_around_spawner (#"..group_numero .. ").", {r = 99, g = 99, b = 99}) end
 	local units = select_units_around_spawner(spawner, force_name, side_target)
+	--if global.bb_biters_debug2 then game.print("          DeBUGs : Called select_units_around_spawner (#"..group_numero .. ").", {r = 99, g = 99, b = 99}) end
 	if not units then 
 		if global.bb_biters_debug then game.print("          Debugs: failed to get units for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return 
@@ -567,10 +573,20 @@ Public.pre_main_attack = function()
 	if not global.training_mode or (global.training_mode and #game.forces[force_name].connected_players > 0) then
 		local biter_force_name = force_name .. "_biters"
 		global.main_attack_wave_amount = math.ceil(get_threat_ratio(biter_force_name) * 7)
-		if global.main_attack_wave_amount < 2 then global.main_attack_wave_amount=2 end --EVL even if one team is far ahead, we want at least 3 waves : so waves are 0 (if threat<0) or in 3..7 interval
-		--In training mode with only one team (which is supposed to be the case), global.main_attack_wave_amount will always be=7 (due to threat ratio)
-		if global.training_mode then global.main_attack_wave_amount=math.random(3,6) end -- EVL little patch for training mode need TODO and add threat to opponents too ?
+		if global.main_attack_wave_amount < 2 then global.main_attack_wave_amount=2 end --EVL even if one team is far ahead, we want at least 2 waves : so waves are 0 (if threat<0) or in 2..7 range
 		
+		--In training mode with only one team (which is supposed to be the case), global.main_attack_wave_amount will always be=7 (due to threat ratio)
+		--Well, if 2 teams are training we still override threat_ratio (it doesnt have any sense anyway)
+		if global.training_mode then 
+			if global.wave_training[force_name]["active"] then --/wavetrain command is active
+				global.main_attack_wave_amount=global.wave_training[force_name]["number"]
+				game.print(">>>>> Training Mode, override waves of biters : [color=#FFFFFF]"..global.wave_training[force_name]["number"].."[/color] group(s) are about to be sent to [color=#FFFFFF]"
+							..force_name.."[/color] side (asked by "..global.wave_training[force_name]["player"]..").",{r = 77, g = 192, b = 192})
+			else --/wavetrain command is off, number of waves is random
+				global.main_attack_wave_amount=math.random(3,6) -- EVL little patch for training mode need TODO and add threat to opponents too ?
+			end
+		end
+
 		--CHANGE THIS TO SHOW ADMINS ONLY ? (probably no)
 		if global.bb_biters_debug then game.print("DEBUGS: UP TO "..global.main_attack_wave_amount .. " unit groups designated for " .. force_name .. " biters. [threats N="
 		..math.floor(global.bb_threat["north_biters"]).." S="..math.floor(global.bb_threat["south_biters"]).."]", {r = 192, g = 77, b = 77}) end --EVL

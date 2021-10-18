@@ -279,6 +279,12 @@ function Public.tables()
 	}
 	global.way_points_max=15 -- limit to the number of way_points stored
 
+	--AI.lua GROUPS OF UNITS : TYPE IS STORED THEN REPLICATED
+	global.units_type_table = {  --Store way_points to use them on the other side (equity/balance)
+		["north"]={},
+		["south"]={}
+	}
+	global.units_type_max=15 -- limit to the number of way_points stored
 	
 	global.scraps_mined = {  --We save #scraps that were mined by force
 		["north"]=0,
@@ -330,9 +336,13 @@ function Public.tables()
 	--global.server_restart_timer = 20 -- EVL see main.lua, need to be nil
 	global.god_players={} -- EVL List of players in spec_god force/mode : we have 2 kinds of specs (see spectator_zoom.lua)
 	
-	global.auto_training  = {
+	global.auto_training = { --/training command (see feeding.lua)
 		["north"]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0},
 		["south"]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0}	
+	}
+	global.wave_training = { --/wavetrain command (see feeding.lua)
+		["north"]={["player"]="",["active"]=false,["number"]=0},
+		["south"]={["player"]="",["active"]=false,["number"]=0}	
 	}
 
 end

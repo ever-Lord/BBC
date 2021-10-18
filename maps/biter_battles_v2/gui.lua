@@ -8,6 +8,7 @@ local Functions = require "maps.biter_battles_v2.functions"
 local feed_the_biters = require "maps.biter_battles_v2.feeding"
 local Tables = require "maps.biter_battles_v2.tables"
 local show_inventory = require 'modules.show_inventory_bbc'
+local Where = require 'commands.where'
 
 local wait_messages = Tables.wait_messages
 local food_names = Tables.gui_foods
@@ -229,12 +230,17 @@ function Public.create_main_gui(player)
 		-- Player list EVL Removed button, we always show the player list
 		--if global.bb_view_players[player.name] == true then --EVL always true see global.bb_view_players below
 		if true then
-			local t = frame.add  { type = "table", column_count = 4 }
+			local t = frame.add  { type = "table", column_count = 8 }
 			for _, p in pairs(game.forces[gui_value.force].connected_players) do
 				--game.print("index:"..p.index.."  name:"..p.name) --EVL DEBUG
 				
-				local l = t.add  { type = "label", name="plist_"..p.index ,caption = p.name, tooltip="<< maxim >>"} --EVL Add .index for inventory purpose
-				l.style.font_color = {r = p.color.r * 0.6 + 0.4, g = p.color.g * 0.6 + 0.4, b = p.color.b * 0.6 + 0.4, a = 1}
+				local l_player = t.add  { type = "label", name="plist_"..p.index ,caption = p.name, tooltip="<< maxim >>"} --EVL Add .index for inventory purpose
+				l_player.style.font_color = {r = p.color.r * 0.6 + 0.4, g = p.color.g * 0.6 + 0.4, b = p.color.b * 0.6 + 0.4, a = 1}
+				--local l_camera  = t.add  { type = "sprite", name="pcam_"..p.index ,sprite = "quantity-time", tooltip="click to view player's camera"} --slot-armor-white | select-icon-white | reassign | not-played-yet | expand
+				local l_camera = t.add  { type = "label", name="pcam_"..p.index ,caption = "© ", tooltip="click to view player's camera"} --EVL Add .index for inventory purpose
+				--l_camera.style.font = "heading-2"
+				l_camera.style.font_color = {r = 150, g = 150, b = 150}
+				--local tttime = ttime.add {	type = "sprite", name = "tttime-editor", sprite = "quantity-time"}
 			end
 		end
 
@@ -523,30 +529,6 @@ local function on_gui_click(event)
 
 	if food_names[name] then feed_the_biters(player, name, "regular") return end
 	
-	--[[ EVL Removed, we always show the player list
-	if name == "bb_leave_spectate" then join_team(player, global.chosen_team[player.name])	return end
-
-	if name == "bb_spectate" then
-		if player.position.y ^ 2 + player.position.x ^ 2 < 12000 then
-			spectate(player)
-		else
-			player.print("You are too far away from spawn to spectate.",{ r=0.98, g=0.66, b=0.22})
-		end
-		return
-	end
-
-	if name == "bb_hide_players" then
-		global.bb_view_players[player.name] = false
-		Public.create_main_gui(player)
-		return
-	end
-	if name == "bb_view_players" then
-		global.bb_view_players[player.name] = true
-		Public.create_main_gui(player)
-		return
-	end
-	]]--
-	
 	--EVL SHOW INVENTORY & CRAFTING LIST
 	--EVL Click on player from LeftGUI.playerlist
 	--EVL only available for admins that are spectating
@@ -556,7 +538,7 @@ local function on_gui_click(event)
 		if true then -- EVL  --CODING-- Switch lines to test inventory_gui in any condition
 			local _target_name = event.element.caption
 			if not game.players[_target_name] then
-				if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist)") end
+				if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist) cant show inventory") end
 				return
 			end
 			show_inventory.open_inventory(player, game.players[_target_name]) --EVL player=source, _target=target
@@ -566,6 +548,26 @@ local function on_gui_click(event)
 			return
 		end
 	end
+	--EVL SHOW MINI CAMERA OF PLAYER
+	--EVL Click on © from LeftGUI.playerlist
+	--EVL only available for admins that are spectating	
+	_name=string.sub(name,0,5)
+	if _name=="pcam_" then
+		--if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
+		if true then -- EVL  --CODING-- Switch lines to test inventory_gui in any condition
+			local _target_index = tonumber(string.sub(name,6))
+			if not(_target_index) or (_target_index<1) or not (game.players[_target_index]) then
+				if global.bb_debug then game.print("Debug: Player (#".._target_index..") does not exist (in gui.lua/playerlist) cant show minicam") end
+				return
+			end
+			local _target=game.players[_target_index]
+			Where.create_mini_camera_gui(player, _target.name, _target.position, _target.surface.index)
+			return
+		else
+			player.print(">>>>> Only admins as spectators can view mini-camera of player.", {r = 175, g = 0, b = 0})
+			return
+		end
+	end	
 	--
 	--EVL BUTTONS FOR SPEC_GOD MODE (Larger wiew of the map without revealing other forces)
 	--

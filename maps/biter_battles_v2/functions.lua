@@ -417,7 +417,7 @@ function Public.show_intro(player)
 	local Mtitle=""
 	Mtitle=Mtitle.."[font=default-large-bold][color=#FF5555]                                            "
 	Mtitle=Mtitle.."--- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ![/color][/font]"
-	Mtitle=Mtitle.."                      [color=#DDDDDD]https://bbchampions.org[/color]    v0.91"-- \n
+	Mtitle=Mtitle.."                      [color=#DDDDDD]https://bbchampions.org[/color]    v0.92"-- \n
 	local title = frame.add {type = "label" , name = "biter_battles_map_title", caption = Mtitle} 
 	title.style.single_line = false
 	title.style.font = "default"
@@ -494,7 +494,7 @@ function Public.show_intro_next(player)
 
 	local Minfo=""
 	Minfo=Minfo.."[font=default-large-bold][color=#FF5555]                                    --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
-	Minfo=Minfo.."                         [color=#DDDDDD]https://bbchampions.org[/color]    v0.91\n"
+	Minfo=Minfo.."                         [color=#DDDDDD]https://bbchampions.org[/color]    v0.92\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Some more details about Biter Battles and BBC : [/color][/font]"
 	Minfo=Minfo.."\n"

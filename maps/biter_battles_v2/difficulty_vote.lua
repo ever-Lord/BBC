@@ -2,7 +2,7 @@ local bb_config = require "maps.biter_battles_v2.config"
 local ai = require "maps.biter_battles_v2.ai"
 local event = require 'utils.event'
 local Server = require 'utils.server'
-
+local Tables = require "maps.biter_battles_v2.tables" --EVL (none)
 -- EVL Changing difficulties for BBC 
 --[[
 local difficulties = {
@@ -25,11 +25,19 @@ local difficulties = {
 
 
 local function difficulty_gui()
-	local value = math.floor(global.difficulty_vote_value*100)
+	local str_tooltip = table.concat({"Global map difficulty is ", difficulties[global.difficulty_vote_index].name," (",difficulties[global.difficulty_vote_index].str,")",
+							".\nMutagen has ", math.floor(global.difficulty_vote_value*100), "% effectiveness.\n"})
+	for _science_nb = 1, 7 do
+			local _mutagen_value=Tables.food_values[Tables.food_long_and_short[_science_nb].long_name].value*10000
+			str_tooltip=str_tooltip.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..Tables.food_long_and_short[_science_nb].short_name.."=".._mutagen_value.." | "
+			if _science_nb == 3  or _science_nb == 5 then str_tooltip=str_tooltip.."\n" end
+	end
 	for _, player in pairs(game.connected_players) do
 		if player.gui.top["difficulty_gui"] then player.gui.top["difficulty_gui"].destroy() end
-		local str = table.concat({"Global map difficulty is ", difficulties[global.difficulty_vote_index].name, ".\nMutagen has ", value, "% effectiveness."})
-		local b = player.gui.top.add { type = "sprite-button", caption = difficulties[global.difficulty_vote_index].name, tooltip = str, name = "difficulty_gui" }
+		
+
+		
+		local b = player.gui.top.add { type = "sprite-button", caption = difficulties[global.difficulty_vote_index].name, tooltip = str_tooltip, name = "difficulty_gui" }
 		b.style.font = "heading-2"
 		b.style.font_color = difficulties[global.difficulty_vote_index].print_color
 		b.style.minimal_height = 38

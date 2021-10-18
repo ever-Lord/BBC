@@ -244,12 +244,12 @@ local function feed_biters(player, food, mode)
 	add_stats(player, food, flask_amount ,biter_force_name, evolution_before_feed, threat_before_feed)
 end
 
-commands.add_command(
+commands.add_command( --/training qty-science-delay
     'training',
     ' command :\n'
-	..'     Auto-sending science. Format : [color=#AAFFAA]/training [QTITY]-[SCIENCE]-[TIME][/color] [color=#999999]([qtity] [science] flasks every [time] in minutes).[/color]\n'
+	..'     Auto-sending science. Format : [color=#AAFFAA]/training [QTITY]-[SCIENCE]-[DELAY][/color] [color=#999999]([qtity] [science] flasks every [delay] in minutes).[/color]\n'
 	..'     Ex: [color=#999999]/training 100-chem-10[/color] (auto|logi|mili|chem|prod|util|spac).\n'
-	..'     Use [color=#999999]/training off[/color] to cancel sendings',
+	..'     Use [color=#999999]/training off[/color] to cancel sendings.',
 	function(cmd)
 		local _player = cmd.player_index
 		if not game.players[_player] then game.print("OUPS that should not happen (in <</training>> command)", {r = 175, g = 100, b = 100}) return end
@@ -267,12 +267,12 @@ commands.add_command(
 		--Sets off the auto training command
 		if _param1=="off" or _param1=="OFF" then
 			global.auto_training[_force]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0}
-			game.print("Auto-training mode canceled/desactivated by [color=#FFFFFF]"..game.players[_player].name.."[/color] for ".._force.." side", {r = 175, g = 250, b = 100})			
+			game.print(">>>>> Auto-training mode canceled/deactivated by [color=#FFFFFF]"..game.players[_player].name.."[/color] for ".._force.." side", {r = 77, g = 192, b = 192})			
 			return
 		end
 		--Tests & Find parameters (qtity,science,timing)
 		if string.len(_param1)<7 then
-			game.players[_player].print("Please type [color=#FFFFFF]/training X-YYYY-Z[/color] with X=quantity | YYYY=(auto|logi|mili|chem|prod|util|spac) | Z=timing (in minutes)", {r = 175, g = 100, b = 100})
+			game.players[_player].print("Please type [color=#FFFFFF]/training X-YYYY-Z[/color] with X=quantity | YYYY=(auto|logi|mili|chem|prod|util|spac) | Z=delay (in minutes)", {r = 175, g = 100, b = 100})
 			return
 		end
 		--Find the first param (quantity)
@@ -324,6 +324,46 @@ commands.add_command(
 		-- print
 		game.print(">>>>> Auto-training mode activated by [color=#FFFFFF]"..game.players[_player].name.."[/color] for [color=#FFFFFF]".._force.."[/color] side : [color=#FFFFFF]"
 				.._qtity.."[/color] flasks of [color="..food_values[_science_long].color.."]".._science_long.."[/color] will be sent every [color=#FFFFFF]".._timing.."[/color] minute(s)", {r = 77, g = 192, b = 192})
+		return
+    end
+)
+commands.add_command( --/wavetrain number
+    'wavetrain',
+    ' command :\n'
+	..'     choose how many waves (0..7) of biters that will attack your side every two minutes, instead of random(3,6).'
+	..'     Ex: [color=#999999]/wavetrain 5[/color].\n'
+	..'     Use [color=#999999]/wavetrain off[/color] to go back to random(3,6).',
+	function(cmd)
+		local _player = cmd.player_index
+		if not game.players[_player] then game.print("OUPS that should not happen (in <</wavetrain>> command)", {r = 175, g = 100, b = 100}) return end
+		if not global.training_mode then
+			game.players[_player].print("/wavetrain command can only be used in training mode...", {r = 175, g = 100, b = 100})
+			return
+		end
+
+		local _force = game.players[_player].force.name
+		if _force~="north" and _force~="south" then
+			game.players[_player].print("You can only use /wavetrain when playing on one side...", {r = 175, g = 100, b = 100})
+			return
+		end
+		local _param1= tostring(cmd.parameter)
+		--Sets off the auto training command
+		if _param1=="off" or _param1=="OFF" then
+			global.wave_training[_force]={["player"]="",["active"]=false,["number"]=0}
+			game.print(">>>>> Wave-training mode canceled/deactivated by [color=#FFFFFF]"..game.players[_player].name.."[/color] for ".._force.." side. Back to random(3,6).", {r = 77, g = 192, b = 192})			
+			return
+		end
+		local _number = tonumber(cmd.parameter)
+		if not _number or _number<0 or _number>7 then
+			game.players[_player].print("Number (of waves) is not valid, must be in 0..7 range, please retry.", {r = 175, g = 100, b = 100})
+			return
+		end
+		--OK WE HAVE ALL WE NEED
+		global.wave_training[_force]={["player"]=game.players[_player].name,["active"]=true,["number"]=_number}
+		
+		-- print
+		game.print(">>>>> Wave-training mode activated by [color=#FFFFFF]"..game.players[_player].name.."[/color] : [color=#FFFFFF]"
+				.._number.."[/color] wave(s) of biters will attack [color=#FFFFFF]".._force.."[/color] side every two minutes.", {r = 77, g = 192, b = 192})
 		return
     end
 )

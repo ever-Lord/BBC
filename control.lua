@@ -37,11 +37,11 @@ require 'utils.debug.command'
 
 require 'comfy_panel.main'
 require 'comfy_panel.player_list'
-require 'comfy_panel.admin'
-require 'comfy_panel.group'
---require 'comfy_panel.poll' --EVL we dont need poll
+--require 'comfy_panel.admin'	--EVL we dont need admin panel
+--require 'comfy_panel.group'	--EVL we dont need groups
+--require 'comfy_panel.poll'	--EVL we dont need poll
 require 'comfy_panel.score'
-require 'comfy_panel.config'
+--require 'comfy_panel.config'	--EVL we dont need config
 
 --require 'modules.autostash'
 

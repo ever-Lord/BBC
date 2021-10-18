@@ -1046,9 +1046,10 @@ local function on_player_joined_game(event)
 	
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
-	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is active, Players are "..msg_freeze..", Referee has to open [color=#FF9740]TEAM MANAGER[/color]",{r = 00, g = 225, b = 00})
-	player.print(">>>>> (10-12-21) v0.91 New command : <</training>> to auto-send yourself science while in training mode",{r = 150, g = 150, b = 250})
-	player.print(">>>>> (10-06-21) v0.90 Slightly increased ore in spawn, report unplayable maps and send us the seed : \n       [color=#888888]/c game.print(game.player.surface.map_gen_settings.seed)[/color]",{r = 150, g = 150, b = 250})
+	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is [color=#88FF88]active[/color], Players are [color=#88FF88]"..msg_freeze.."[/color], Referee has to open [color=#FF9740]TEAM MANAGER[/color].",{r = 00, g = 225, b = 00})
+	player.print(">>>>> (10-15-21) v0.92 New command : <</wavetrain>> to set number of waves attacking every 2 min (in training mode).",{r = 150, g = 150, b = 250})
+	player.print(">>>>> (10-12-21) v0.91 New command : <</training>> to auto-send yourself science (in training mode).",{r = 150, g = 150, b = 250})
+	player.print(">>>>> (10-06-21) v0.90 Slightly increased ore in spawn, report problematic maps and send us the seed : \n       [color=#888888]/c game.print(game.player.surface.map_gen_settings.seed)[/color]",{r = 150, g = 150, b = 250})
 	player.print(">>>>> (10-06-21) v0.90 We're lacking teams for the Biter league, motivate your friends to apply and build a team  !",{r = 150, g = 150, b = 250})
 end
 
@@ -1254,9 +1255,9 @@ local function on_tick()
 					--EVL some verbose about coming armageddon
 					if (real_played_time - global.evo_boost_tick)<0 then
 						local tick_to_arma= global.evo_boost_tick-real_played_time
-						if tick%(100800)==0 then -- every 28 min=60*60*28
+						if tick%(129600)==0 then -- every 36 min=60*60*36
 							local min_to_arma=math.floor((global.evo_boost_tick-real_played_time)/3600)
-							game.print(">>>>> TIME IS RUNNING  !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] is coming in ".. min_to_arma .." minutes", {r = 192, g = 77, b = 77})
+							game.print(">>>>> TIME IS RUNNING  !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] in ".. min_to_arma .." minutes", {r = 192, g = 77, b = 77})
 						elseif tick_to_arma<10800 and tick%2400==0 then --every 40sec in the last 3 min
 							local sec_to_arma=math.floor((global.evo_boost_tick-real_played_time)/60)
 							game.print(">>>>> HURRY UP  !!! [font=default-large-bold][color=#FF0000]ARMAGEDDON[/color][/font] is coming in ".. sec_to_arma .." seconds", {r = 192, g = 77, b = 77})
@@ -1276,7 +1277,7 @@ local function on_tick()
 							local boost_north = (0.9-evo_north) / global.evo_boost_duration
 							if boost_north < 0.01 then boost_north = 0.01 end -- MINIMUM SET AT 1% per MIN
 							local evo_ratio = evo_south / evo_north -- NORTH KEEPS ADVANTAGE
-							local evo_corr = (evo_south-evo_north)/(evo_south+evo_north) --ARBITRARY
+							local evo_corr = (evo_south-evo_north)/(evo_south+evo_north)/2 --ARBITRARY CORRECTION, halved it v0.92 (north gain more advantage, or even end matches faster)
 							--game.print(">>>>>> EVO_NORTH=".. evo_north .. "BOOST=" .. boost_north .. " RATIO="..evo_ratio)
 							--game.print(">>>>>> EVO_SOUTH=".. evo_south .. "BOOST=xxxxx" .. " CORR="..evo_corr)							
 							local boost_south = boost_north * evo_ratio * (1 - evo_corr)
@@ -1287,7 +1288,7 @@ local function on_tick()
 							local boost_south = (0.9-evo_south) / global.evo_boost_duration
 							if boost_south < 0.01 then boost_south = 0.01 end -- MINIMUM SET AT 1% per MIN
 							local evo_ratio = evo_north / evo_south -- SOUTH KEEPS ADVANTAGE
-							local evo_corr = (evo_north-evo_south)/(evo_south+evo_north) --ARBITRARY CORRECTION
+							local evo_corr = (evo_north-evo_south)/(evo_south+evo_north)/2 --ARBITRARY CORRECTION, halved it v0.92 (south gain more advantage, or even end matches faster)
 							--game.print(">>>>>> EVO_NORTH=".. evo_north .. "BOOST=xxxxx" .. " RATIO="..evo_ratio)
 							--game.print(">>>>>> EVO_SOUTH=".. evo_south .. "BOOST=" .. boost_south.. " CORR="..evo_corr)
 							local boost_north = boost_south * evo_ratio * (1 - evo_corr)
