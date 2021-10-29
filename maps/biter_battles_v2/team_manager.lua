@@ -574,7 +574,7 @@ local function team_manager_gui_click(event)
 		global.freeze_players = true
 		--draw_manager_gui(player)
 		player.gui.center["team_manager_gui"].destroy()	
-		game.print(">>>> Asking for map reroll - Please wait...", {r = 175, g = 11, b = 11})
+		game.print(">>>> Admin "..player.name.." asked for map reroll - Please wait...", {r = 175, g = 11, b = 11})
 		return
 	end
 	--EVL Reroll
@@ -655,8 +655,9 @@ local function team_manager_gui_click(event)
 		global.freeze_players = true
 		Public.freeze_players()
 		draw_manager_gui(player)
-
 		game.print(">>>>> Players & Biters have been frozen !", {r = 111, g = 111, b = 255}) --EVL
+		--game.tick_paused=true --EVL New way to freeze game (way better : craft, factory, research, everything is frozen but chat stay active)
+		--But need to type command /c game.tick_paused=false in chat to resume...
 		return
 	end
 	

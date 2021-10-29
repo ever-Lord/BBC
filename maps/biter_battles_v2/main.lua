@@ -1047,10 +1047,11 @@ local function on_player_joined_game(event)
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
 	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is [color=#88FF88]active[/color], Players are [color=#88FF88]"..msg_freeze.."[/color], Referee has to open [color=#FF9740]TEAM MANAGER[/color].",{r = 00, g = 225, b = 00})
+	player.print(">>>>> (10-28-21) v0.93 Use <</c game.tick_paused=true>> to pause (while chat still active).",{r = 150, g = 150, b = 250}) --, removed DEBUG options (F4/F5) for non admins
 	player.print(">>>>> (10-15-21) v0.92 New command : <</wavetrain>> to set number of waves attacking every 2 min (in training mode).",{r = 150, g = 150, b = 250})
 	player.print(">>>>> (10-12-21) v0.91 New command : <</training>> to auto-send yourself science (in training mode).",{r = 150, g = 150, b = 250})
-	player.print(">>>>> (10-06-21) v0.90 Slightly increased ore in spawn, report problematic maps and send us the seed : \n       [color=#888888]/c game.print(game.player.surface.map_gen_settings.seed)[/color]",{r = 150, g = 150, b = 250})
-	player.print(">>>>> (10-06-21) v0.90 We're lacking teams for the Biter league, motivate your friends to apply and build a team  !",{r = 150, g = 150, b = 250})
+	--player.print(">>>>> (10-06-21) v0.90 Slightly increased ore in spawn, report problematic maps and send us the seed : \n       [color=#888888]/c game.print(game.player.surface.map_gen_settings.seed)[/color]",{r = 150, g = 150, b = 250})
+	--player.print(">>>>> (10-06-21) v0.90 We're lacking teams for the Biter league, motivate your friends to apply and build a team  !",{r = 150, g = 150, b = 250})
 end
 
 local function on_gui_click(event)
@@ -1085,6 +1086,18 @@ end
 
 local function on_built_entity(event)
 	Functions.no_turret_creep(event)
+	--EVL See target_entity_types for valid targets (furnaces are valid, walls are not valid)
+	--[[ --PATCH-- probably useless, maybe for season 2 ???
+	--EVL could  patch  so furnaces and walls are not target entities ?
+	local _entity = event.created_entity
+	if entity ~= "stone-furnace"  then
+		game.print(_entity.name.."  OK")
+		Functions.add_target_entity(_entity)
+	else
+		game.print(_entity.name.."  NOPE")
+	end
+	]]--
+
 	Functions.add_target_entity(event.created_entity)
 end
 
@@ -1106,6 +1119,7 @@ local function on_entity_died(event)
 	Game_over.silo_death(event)
 end
 --EVL Trying to slowdown sending groups (easier for potatoes to keep up)
+--Every 60 ticks instead of 30
 --[[
 local tick_minute_functions = {
 	[300 * 1] = Ai.raise_evo,
@@ -1277,7 +1291,7 @@ local function on_tick()
 							local boost_north = (0.9-evo_north) / global.evo_boost_duration
 							if boost_north < 0.01 then boost_north = 0.01 end -- MINIMUM SET AT 1% per MIN
 							local evo_ratio = evo_south / evo_north -- NORTH KEEPS ADVANTAGE
-							local evo_corr = (evo_south-evo_north)/(evo_south+evo_north)/2 --ARBITRARY CORRECTION, halved it v0.92 (north gain more advantage, or even end matches faster)
+							local evo_corr = (evo_south-evo_north)/(evo_south+evo_north)/2 --ARBITRARY CORRECTION, halved it (north gain more advantage, or even end matches faster)
 							--game.print(">>>>>> EVO_NORTH=".. evo_north .. "BOOST=" .. boost_north .. " RATIO="..evo_ratio)
 							--game.print(">>>>>> EVO_SOUTH=".. evo_south .. "BOOST=xxxxx" .. " CORR="..evo_corr)							
 							local boost_south = boost_north * evo_ratio * (1 - evo_corr)
@@ -1288,7 +1302,7 @@ local function on_tick()
 							local boost_south = (0.9-evo_south) / global.evo_boost_duration
 							if boost_south < 0.01 then boost_south = 0.01 end -- MINIMUM SET AT 1% per MIN
 							local evo_ratio = evo_north / evo_south -- SOUTH KEEPS ADVANTAGE
-							local evo_corr = (evo_north-evo_south)/(evo_south+evo_north)/2 --ARBITRARY CORRECTION, halved it v0.92 (south gain more advantage, or even end matches faster)
+							local evo_corr = (evo_north-evo_south)/(evo_south+evo_north)/2 --ARBITRARY CORRECTION, halved it (south gain more advantage, or even end matches faster)
 							--game.print(">>>>>> EVO_NORTH=".. evo_north .. "BOOST=xxxxx" .. " RATIO="..evo_ratio)
 							--game.print(">>>>>> EVO_SOUTH=".. evo_south .. "BOOST=" .. boost_south.. " CORR="..evo_corr)
 							local boost_north = boost_south * evo_ratio * (1 - evo_corr)
@@ -1300,6 +1314,7 @@ local function on_tick()
 							if evo_north>=0.001 and evo_south<0.001 then
 								--North is in training mode
 								local boost_north = (0.9-evo_north) / global.evo_boost_duration
+								if boost_north < 0.01 then boost_north = 0.01 end
 								global.evo_boost_values["north_biters"] = boost_north
 								global.evo_boost_values["south_biters"] = 0
 								game.print(">>>>> Training mode detected, boost will only apply to north...", {r = 77, g = 77, b = 192})
@@ -1307,13 +1322,16 @@ local function on_tick()
 								--South is in training mode
 								global.evo_boost_values["north_biters"] = 0
 								local boost_south = (0.9-evo_south) / global.evo_boost_duration
+								if boost_south < 0.01 then boost_south = 0.01 end
 								global.evo_boost_values["south_biters"] = boost_south
 								game.print(">>>>> Training mode detected, boost will only apply to south...", {r = 77, g = 77, b = 192})
 							elseif evo_north>=0.001 and evo_south>=0.001 then
 								--Both team are in training mode, we apply boost independently
 								local boost_north = (0.9-evo_north) / global.evo_boost_duration
+								if boost_north < 0.01 then boost_north = 0.01 end
 								global.evo_boost_values["north_biters"] = boost_north
 								local boost_south = (0.9-evo_south) / global.evo_boost_duration
+								if boost_south < 0.01 then boost_south = 0.01 end
 								global.evo_boost_values["south_biters"] = boost_south
 								game.print(">>>>> Training mode detected, boost will apply independently to both teams...", {r = 77, g = 77, b = 192})
 							else 
@@ -1349,6 +1367,7 @@ local function on_tick()
 			end
 			-- EVL SET global.next_attack = "north" / "south" and global.main_attack_wave_amount=0 --DEBUG--
 			Team_manager.unfreeze_players()
+			--game.tick_paused=false --EVL Not that easy (see team_manager.lua)
 			game.print(">>>>> Players & Biters have been unfrozen !", {r = 255, g = 77, b = 77})
 		end
 	end

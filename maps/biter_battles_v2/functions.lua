@@ -10,6 +10,10 @@ local table_insert = table.insert
 local table_remove = table.remove
 local string_find = string.find
 
+--EVL Publicity for hosts
+local MDiscord="French Discord https://discord.gg/d2ja9wUd"
+--local MDiscord="FreeBB Discord https://discord.gg/yBGYCg5J"
+
 -- Only add upgrade research balancing logic in this section
 -- All values should be in tables.lua
 local function proj_buff(current_value,force_name)
@@ -417,7 +421,7 @@ function Public.show_intro(player)
 	local Mtitle=""
 	Mtitle=Mtitle.."[font=default-large-bold][color=#FF5555]                                            "
 	Mtitle=Mtitle.."--- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ![/color][/font]"
-	Mtitle=Mtitle.."                      [color=#DDDDDD]https://bbchampions.org[/color]    v0.92"-- \n
+	Mtitle=Mtitle.."                      [color=#DDDDDD]https://bbchampions.org[/color]    v0.93"-- \n
 	local title = frame.add {type = "label" , name = "biter_battles_map_title", caption = Mtitle} 
 	title.style.single_line = false
 	title.style.font = "default"
@@ -476,8 +480,11 @@ function Public.show_intro(player)
 	b2.style.font = "default-bold"
 	b2.style.padding = -1
 	--b2.style.width = 20
-	local b3 = b.add {type = "label", name = "biter_battles_map_bright", 
-		caption = " \n                          [font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"} 
+
+	local Mbottom=""
+	Mbottom=Mbottom.."\n                        [font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"
+	Mbottom=Mbottom.."\n                [font=default-small][color=#999999]Server provided by the "..MDiscord.."[/color][/font]"
+	local b3 = b.add {type = "label", name = "biter_battles_map_bright", caption = Mbottom } 
 	b3.style.single_line = false
 	b3.style.font = "default"
 	b3.style.font_color = {r=0.7, g=0.6, b=0.99}
@@ -494,7 +501,7 @@ function Public.show_intro_next(player)
 
 	local Minfo=""
 	Minfo=Minfo.."[font=default-large-bold][color=#FF5555]                                    --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
-	Minfo=Minfo.."                         [color=#DDDDDD]https://bbchampions.org[/color]    v0.92\n"
+	Minfo=Minfo.."                         [color=#DDDDDD]https://bbchampions.org[/color]    v0.93\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Some more details about Biter Battles and BBC : [/color][/font]"
 	Minfo=Minfo.."\n"
@@ -521,13 +528,18 @@ function Public.show_intro_next(player)
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Defense[/color][/font]    so you don't get overwhelmed,\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Building[/color][/font]    so you can keep up with biter evolution,\n"
 	Minfo=Minfo.."     [font=default-bold][color=#CCBBFF]Offensive[/color][/font]  so you boost opponent's biter evolution.\n"
-	--Game is intense, dynamic
 	Minfo=Minfo.."\n"
-	Minfo=Minfo.."[font=default][color=#FF9740]CONTACT : [/color][/font][color=#DDDDDD]bbc.factorio@gmail.com     Twitter: @BiterBattles[/color]\n"
+	Minfo=Minfo.."[font=default][color=#FF9740]CONTACT : [/color][/font][color=#DDDDDD]bbc.factorio@gmail.com     Twitter: @BiterBattles     Discord: everLord#4340[/color]\n"
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."Thanks for reading - Have fun with the game !"
-	Minfo=Minfo.."                                                                                    [font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"
+	Minfo=Minfo.."                                                                                    "
+	Minfo=Minfo.."[font=default-small][color=#999999](c) Biter Battles was created by Mewmew from Comfy's servers[/color][/font]"
+	Minfo=Minfo.."\n                                                                                                                                                               "
+	Minfo=Minfo.."[font=default-small][color=#999999]Server provided by the "..MDiscord.."[/color][/font]"
+
 	local l = frame.add {type = "label", caption = Minfo, name = "biter_battles_map_intro"}
+
+
 	l.style.single_line = false
 	l.style.font = "default"
 	l.style.font_color = {r=0.7, g=0.6, b=0.99}

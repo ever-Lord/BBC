@@ -534,8 +534,8 @@ local function on_gui_click(event)
 	--EVL only available for admins that are spectating
 	local _name=string.sub(name,0,6)
 	if _name=="plist_" then
-		--if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
-		if true then -- EVL  --CODING-- Switch lines to test inventory_gui in any condition
+		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
+		--if true then -- EVL  --CODING-- Switch lines to test inventory_gui in any condition
 			local _target_name = event.element.caption
 			if not game.players[_target_name] then
 				if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist) cant show inventory") end
@@ -553,8 +553,8 @@ local function on_gui_click(event)
 	--EVL only available for admins that are spectating	
 	_name=string.sub(name,0,5)
 	if _name=="pcam_" then
-		--if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
-		if true then -- EVL  --CODING-- Switch lines to test inventory_gui in any condition
+		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
+		--if true then -- EVL  --CODING-- Switch lines to test minicam_view in any condition
 			local _target_index = tonumber(string.sub(name,6))
 			if not(_target_index) or (_target_index<1) or not (game.players[_target_index]) then
 				if global.bb_debug then game.print("Debug: Player (#".._target_index..") does not exist (in gui.lua/playerlist) cant show minicam") end
@@ -670,7 +670,21 @@ local function on_player_joined_game(event)
 	Public.create_main_gui(player)
 end
 
+--EVL switch back spec/god to spec/real before leaving
+local function on_pre_player_left_game(event)
+    local player = game.players[event.player_index]
+	local _name=player.name
+    if global.god_players[_name] and global.god_players[_name] == true then
+		player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
+		player.create_character()
+		player.force = game.forces["spectator"]
+		player.zoom=0.30
+		global.god_players[_name] = false
+		if global.bb_debug then game.print("DEBUG: " .._name.."/".. player.name .." is leabing, switches back to real mode (if needed).") end
+	end
+end
+
 event.add(defines.events.on_gui_click, on_gui_click)
 event.add(defines.events.on_player_joined_game, on_player_joined_game)
-
+event.add(defines.events.on_pre_player_left_game, on_pre_player_left_game)  --EVL switch back spec/god to spec/real before leaving
 return Public

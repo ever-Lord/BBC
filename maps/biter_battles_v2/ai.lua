@@ -559,7 +559,7 @@ local function create_attack_group(surface, force_name, biter_force_name, group_
 	for _, unit in pairs(units) do unit_group.add_member(unit) end
 	--EVL Now we send group
 	--if global.bb_biters_debug then game.print("          DeBUGs : Call send_group (#"..group_numero .. ").", {r = 99, g = 99, b = 99}) end
-	send_group(unit_group, force_name, side_target,group_numero)
+	send_group(unit_group, force_name, side_target, group_numero)
 	global.unit_groups[unit_group.group_number] = unit_group
 end
 

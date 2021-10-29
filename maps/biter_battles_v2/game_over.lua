@@ -360,23 +360,24 @@ function Public.server_restart()
 
 		--EVL spec_god players have to be back on ground/spec force before reinit/reroll/force-map-reset
 		if table_size(global.god_players) > 0 then
-			for _player,_bool in pairs(global.god_players) do
+			for _name,_bool in pairs(global.god_players) do
 				if _bool == true then
-					local player = game.players[_player]
-					player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-					player.create_character()
-					player.force = game.forces["spectator"]
-					player.zoom=0.30
-					global.god_players[_player] = false
-					if global.bb_debug then game.print("DEBUG: reset incoming -> player:" .._player.."/".. player.name .." switches back to real mode") end
+					local player = game.players[_name]
+					if player.connected then --EVL Double check (useless, see on_pre_player_left_game in gui.lua)
+						player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
+						player.create_character()
+						player.force = game.forces["spectator"]
+						player.zoom=0.30
+					end
+					global.god_players[_name] = false
+					if global.bb_debug then game.print("DEBUG: reset incoming -> player:" .._name.."/".. player.name .." switches back to real mode") end
 				end
 			end
 		end
 		--
 		--EVL Starting reset
 		game.print(">>>>> Map is restarting !  (10s before reveal)", {r = 0.22, g = 0.88, b = 0.22}) --EVL BBC has a reveal of 127x127 for reroll purpose
-        local message = 'Map is restarting! '
-        Server.to_discord_bold(table.concat {'*** ', message, ' ***'})
+		Server.to_discord_bold('*** Map is restarting! ***')
 		-- REMOVE STATS BUTTON BEFORE RESTART (see main.lua)
 		for _, player in pairs(game.players) do
 			if player.gui.top["bb_export_button"] then player.gui.top["bb_export_button"].destroy() end
