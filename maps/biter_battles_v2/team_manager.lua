@@ -9,7 +9,9 @@ local forces = {
 	{name = "south",	color = {r = 200, g = 0, b = 0}},
 }
 local colorAdmin="#FFBB77"
+local colorSpecGod="#FF9955"
 
+--EVL list of player of a force  (plus specgod if force=spectator)
 local function get_player_array(force_name)
 	local a = {}	
 	for _, p in pairs(game.forces[force_name].connected_players) do 
@@ -17,6 +19,16 @@ local function get_player_array(force_name)
 		--EVL We add admin tag to the list (so we see easily who is admin)
 		if p.admin then _name="[color="..colorAdmin.."]".._name.."[/color]:A" end
 		a[#a + 1] = _name
+	end
+	if force_name=="spectator" and game.forces["spec_god"] then --add spec-gods if we have any
+		for _, p in pairs(game.forces["spec_god"].connected_players) do 
+			local _name=p.name
+			--EVL We add admin tag to the list (so we see easily who is admin)
+			if p.admin then _name="[color="..colorSpecGod.."]".._name.."[/color]:G"
+			else name="[color="..colorSpecGod.."]".._name.."[/color]:?" end
+			a[#a + 1] = _name
+		end
+		
 	end
 	return a
 end
@@ -172,6 +184,70 @@ function Public.draw_top_toggle_button(player)
 	button.style.bottom_padding = 2
 end
 
+function Public.draw_pause_toggle_button(player)
+	if player.gui.top["team_manager_pause_button"] then player.gui.top["team_manager_pause_button"].destroy() end	
+	local _caption="Pause"
+	local _tooltip="Spam [font=default-bold]pp[/font] in chat so admin will pause the game\n  [font=default-small][color=#999999](while chat still active, use it wisely).[/color][/font]"
+	if game.tick_paused==true then
+		_caption="UnPause"
+		_tooltip="UnPause the game after a 3s countdown (referee/admin)"
+	end
+	local button = player.gui.top.add({type = "sprite-button", name = "team_manager_pause_button", caption = _caption, tooltip = _tooltip })
+	button.style.font = "heading-2"
+	button.style.font_color = {r = 0.11, g = 0.55, b = 0.88}
+	button.style.minimal_height = 38
+	button.style.minimal_width = 60
+	button.style.top_padding = 2
+	button.style.left_padding = 0
+	button.style.right_padding = 0
+	button.style.bottom_padding = 2
+end
+--EVL Add a pause button with countdown in TOP gui
+function switch_pause_toggle_button(admin)
+	local _caption="Pause"
+	local _tooltip="Spam [font=default-bold]pp[/font] in chat so admin will pause the game\n  [font=default-small][color=#999999](while chat still active, use it wisely).[/color][/font]"
+	local _color={r = 0.11, g = 0.55, b = 0.88}
+	if game.tick_paused==true then
+		if global.freeze_players==false then game.print(">>>>> Unexpected value (false) for global.freeze_players", {r = 11, g = 255, b = 11}) return end		
+		game.tick_paused=false
+		game.print(">>>>> Game unpaused by "..admin.name..". Match will resume very shortly !", {r = 11, g = 255, b = 11})
+		global.freeze_players = false
+		global.match_countdown = 3
+		--Public.unfreeze_players() is done in main.lua after countdown
+	else --game.tick_paused=false
+		if not global.match_running then
+			admin.print(">>>>> Game has not started ! You can't pause ;)", {r = 175, g = 11, b = 11}) 
+			return
+		end
+		if global.match_countdown >= 0 then
+			--admin.print(">>>>> Game has not yet (re)started ! You can't pause ;)", {r = 175, g = 11, b = 11}) 
+			admin.print(">>>>> Please wait "..(global.match_countdown+1).."s (game is currently in ~unfreezing~ process) ...", {r = 175, g = 11, b = 11})
+			return
+		end
+		if global.freeze_players==true then game.print(">>>>> Unexpected value (true) for global.freeze_players", {r = 11, g = 255, b = 11}) return end
+		global.freeze_players = true
+		Public.freeze_players()
+		game.print(">>>>> Game paused by "..admin.name..". Players & Biters have been frozen !", {r = 111, g = 111, b = 255}) --EVL
+		_caption="UnPause"
+		_tooltip="UnPause the game after a 3s countdown (referee/admin)"
+		game.tick_paused=true
+		_color={r = 0.11, g = 0.88, b = 0.55}
+	end
+	--Redraw buttons for all players
+	for _, player in pairs(game.connected_players) do	
+		if player.gui.top["team_manager_pause_button"] then player.gui.top["team_manager_pause_button"].destroy() end	
+		local button = player.gui.top.add({type = "sprite-button", name = "team_manager_pause_button", caption = _caption, tooltip = _tooltip })
+		button.style.font = "heading-2"
+		button.style.font_color = _color
+		button.style.minimal_height = 38
+		button.style.minimal_width = 80
+		button.style.top_padding = 2
+		button.style.left_padding = 0
+		button.style.right_padding = 0
+		button.style.bottom_padding = 2
+	end
+end
+
 local function draw_manager_gui(player)
 	if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
 	
@@ -182,10 +258,17 @@ local function draw_manager_gui(player)
 	local i2 = 1
 	for i = 1, #forces * 2 - 1, 1 do
 		if i % 2 == 1 then
-			_maxim="Click to customize team name\n".."<<Put the maxim here>>"
-			if forces[i2].name == "spectator" then _maxim="Whoever assists as a spectator sees clearly,\nwhoever takes sides is led astray." end
+			local _maxim="Click to customize team name\n".."<<Put the maxim here>>" --TODO--
+			local _nb_force_players=#game.forces[forces[i2].name].connected_players
+			if forces[i2].name == "spectator" then 
+				_maxim="Whoever assists as a spectator sees clearly,\nwhoever takes sides is led astray."
+				if game.forces["spec_god"] then
+					_nb_force_players = _nb_force_players + #game.forces["spec_god"].connected_players
+				end
+			end
+			
 			local l = t.add({type = "sprite-button", 
-				caption = string.upper(forces[i2].name).." (".. #game.forces[forces[i2].name].connected_players ..")",
+				caption = string.upper(forces[i2].name).." (".. _nb_force_players ..")",
 				name = forces[i2].name, 
 				tooltip = _maxim})
 			l.style.minimal_width = 160
@@ -201,6 +284,7 @@ local function draw_manager_gui(player)
 	local i2 = 1
 	for i = 1, #forces * 2 - 1, 1 do
 		if i % 2 == 1 then
+			--get_player_array add spec-god players to spectator list
 			local list_box = t.add({type = "list-box", name = "team_manager_list_box_" .. i2, items = get_player_array(forces[i2].name)})
 			list_box.style.minimal_height = 300 --EVL was 360
 			list_box.style.minimal_width = 160
@@ -332,22 +416,37 @@ local function draw_manager_gui(player)
 			caption_tmp="START & UNFREEZE"
 			tooltip_tmp=tooltip_tmp.."\n [color=#FF5555]Once started, settings will be locked,[/color]\n[font=default-small][color=#999999](players can still be switched)[/color][/font]."
 			if global.pack_choosen == "" then color_tmp = {r = 222, g = 22, b = 22} end
+			button = t.add({
+				type = "button",
+				name = "team_manager_freeze_players",
+				caption = caption_tmp,
+				tooltip = tooltip_tmp
+			})
+			button.style.font_color = color_tmp
+		
+		else --EVL deactivation of button once match has started (match paused)
+			button = t.add({
+				type = "button",
+				name = "team_manager_freeze_players_deactivated",
+				--caption = "Freeze (Pause)",
+				caption = "Match paused",
+				--tooltip = "[color=#5555FF]Freeze players and biters,[/color]\n[color=#FF5555]avoid using[/color] [color=#5555FF]FREEZE[/color] [color=#FF5555]when attacks are in progress,[/color]\n[font=default-small][color=#999999](cause turrets will keep shooting)[/color][/font]."
+				tooltip = "[color=#5555FF]Use ~UNPAUSE~ button in top Gui[/color]\n[font=default-small][color=#999999](admin/referee only, type pp in chat to ask for pause)[/color][/font]"
+			})
+			--button.style.font_color = {r = 55, g = 55, b = 222}
+			button.style.font_color = {r = 222, g = 22, b = 22}
 		end
+	else --EVL deactivation of button once match has started (match running)
 		button = t.add({
 			type = "button",
-			name = "team_manager_freeze_players",
-			caption = caption_tmp,
-			tooltip = tooltip_tmp
+			name = "team_manager_freeze_players_deactivated",
+			--caption = "Freeze (Pause)",
+			caption = "Match running",
+			--tooltip = "[color=#5555FF]Freeze players and biters,[/color]\n[color=#FF5555]avoid using[/color] [color=#5555FF]FREEZE[/color] [color=#FF5555]when attacks are in progress,[/color]\n[font=default-small][color=#999999](cause turrets will keep shooting)[/color][/font]."
+			tooltip = "[color=#5555FF]Use ~PAUSE~ button in top Gui[/color]\n[font=default-small][color=#999999](admin/referee only, type pp in chat to ask for pause)[/color][/font]"
 		})
-		button.style.font_color = color_tmp
-	else
-		button = t.add({
-			type = "button",
-			name = "team_manager_freeze_players",
-			caption = "Freeze (Pause)",
-			tooltip = "[color=#5555FF]Freeze players and biters,[/color]\n[color=#FF5555]avoid using[/color] [color=#5555FF]FREEZE[/color] [color=#FF5555]when attacks are in progress,[/color]\n[font=default-small][color=#999999](cause turrets will keep shooting)[/color][/font]."
-		})
-		button.style.font_color = {r = 55, g = 55, b = 222}
+		--button.style.font_color = {r = 55, g = 55, b = 222}
+		button.style.font_color = {r = 222, g = 22, b = 22}
 	end
 	button.style.font = "heading-2"
 	
@@ -478,29 +577,29 @@ local function procedure_game_gui(player)
 	--local frame = frame.add {type = "frame", direction = "vertical"}				
 	local _text = "[font=default-bold][color=#FF9740]While not automatic (todo), you need to fill up the settings and \n switch the players manually       >>>       go to website to get the parameters.[/color][/font]"
 	_text=_text.."\n\n"
-	_text=_text.."When everything is set please [font=default-bold][color=#55FF55]double check[/color][/font] before starting the game :\n\n"
-	_text=_text.."- League [font=default-bold][color=#5555FF]Biter[/color][/font] | [font=default-bold][color=#55FF55]Behemoth[/color][/font] is set via the top button (right to Team Manager).\n"
-	_text=_text.."\n"
-	_text=_text.."- The names of the teams have to be set by clicking on [font=default-bold][color=#2222FF]NORTH[/color][/font] and [font=default-bold][color=#CC2222]SOUTH[/color][/font].\n"
-	_text=_text.."- Team ~AtHome~ chooses its side and can choose to reroll the map up to twice.     \n"
-	_text=_text.."- Team ~AtHome~ also chooses the starter pack (same pack for both teams).\n"
-	_text=_text.."\n"
-	_text=_text.."- 3 players per team, 4th stays in spectator as coach/spy/substitute.\n"
-	_text=_text.."- All the players and spectators must be [color=#FF5555]/c demote[/color] (anti cheat).\n"
-	_text=_text.."- Only Referee and streamers can be [color=#55FF55]/c promote[/color] (admin features).\n"
+	_text=_text.."[font=default-bold]Starting procedure : [/font]\n"
+	_text=_text.."0/ Start with a fresh map with the command <</force-map-reset Fresh-map>>\n"
+	_text=_text.."1/ Ask team at HOME for the rerolls (up to twice)\n"
+	_text=_text.."2/ Set league [font=default-bold][color=#5555FF]Biter[/color][/font] | [font=default-bold][color=#55FF55]Behemoth[/color][/font] via the top button (right to Manager).\n"
+	_text=_text.."3/ Ask team at HOME for SIDE (north | south) and STARTER PACK.\n"
+	_text=_text.."4/ <</demote>> Players and Spys, <</promote>> Streamers.\n"
 	_text=_text.."   [font=default-small][color=#999999]Note: when match has finished, give back permissions[/color][/font]\n"	
+	_text=_text.."5/ Switch 3 players to each side, spy stays as spectator.\n"
+	_text=_text.."6/ Set the team names by clicking on [font=default-bold][color=#2222FF]NORTH[/color][/font] and [font=default-bold][color=#CC2222]SOUTH[/color][/font].\n"
+	_text=_text.."7/ Set the Game Id (must be [color=#55FF55]green[/color]).\n"
+	_text=_text.."8/ [font=default-bold]When everything is set [color=#55FF55]double check[/color] before starting the game.[/font]\n\n"
+	_text=_text.."9/ [color=#33DD33]START & UNFREEZE[/color] when both teams are ready (5 minutes max).\n"
 	_text=_text.."\n"
-	_text=_text.."- Training mode must be [color=#FF5555]DISABLED[/color].\n"
-	_text=_text.."   [font=default-small][color=#999999]Note: on training mode, teams send potions to themselves[/color][/font]\n"
+	_text=_text.."Players ask for [font=default-bold]Pause[/font] with 'pp' in chat, use top button to switch [color=#5555FF]Pause[/color]/[color=#55FF55]UnPause[/color].\n"
 	_text=_text.."\n"
-	_text=_text.."- [font=default-bold]Game Identificator has to be set (and [color=#55FF55]green[/color])[/font].\n"
-	_text=_text.."   [font=default-small][color=#999999]Note: use [/color][color=#55FF55]scrim[/color][color=#999999] for showmatch, "
-	_text=_text.."or [/color][color=#55FF55]training[/color][color=#999999] for training mode[/color][/font]\n"	
+	_text=_text.."- Training mode must be [color=#FF5555]DISABLED[/color] unless :\n"
+	_text=_text.."   [font=default-small][color=#999999]Note: on training mode, teams send potions to themselves.[/color][/font]\n"
+	_text=_text.."   [font=default-small][color=#999999]Note: use [/color][color=#55FF55]scrim[/color][color=#999999] for showmatch/scrims, "
+	_text=_text.."or [/color][color=#55FF55]training[/color][color=#999999] for training mode.[/color][/font]"	
 	_text=_text.."\n"
-	_text=_text.."During the game you can [color=#5555FF]pause/freeze[/color] if asked, use it wisely.\n\n"
-	_text=_text.."[font=default-bold][color=#FF9740]AFTER THE MATCH :[/color][/font]"
-	_text=_text.." - Report the results on the Website (using GameID),\n"
-	_text=_text.."                                       - Upload and Set the url of the replay."
+	--_text=_text.."[font=default-bold][color=#FF9740]AFTER THE MATCH :[/color][/font]"
+	--_text=_text.." - Report the results on the Website (using GameID),\n"
+	--_text=_text.."                                       - Upload and Set the url of the replay."
 
 	local l = frame.add({ type = "label", caption = _text, name = "procedure_game_text" })	
 
@@ -605,7 +704,7 @@ local function team_manager_gui_click(event)
 	--EVL PACK FIN
 	
 	
-	if name == "team_manager_freeze_players" then -- FREEZE/UNFREEZE
+	if name == "team_manager_freeze_players" then -- NO MORE FREEZE/UNFREEZE, only START MATCH
 		if not player.admin then player.print(">>>>> Only admins can switch freeze mode.", {r = 175, g = 11, b = 11}) return end
 		if global.bb_game_won_by_team then player.print(">>>>> You cannot switch freeze mode after match has finished.", {r = 175, g = 11, b = 11}) return end
 		
@@ -637,7 +736,7 @@ local function team_manager_gui_click(event)
 				if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
 			end  	
 			--global.reroll_left=0		-- Match has started, no more reroll -> changed via match_running (so wee save #rerolls for export stats)
-			
+			--section below is deactivated, should not happen (see draw_manager_gui)
 			global.freeze_players = false
 			if global.match_countdown < 0 then -- First unfreeze depends on init, then we use 3 seconds timer (after pause)
 				global.match_countdown = 3
@@ -647,7 +746,11 @@ local function team_manager_gui_click(event)
 			
 			return
 		end
+		--ELSE  global.freeze_players==false
+		--section below is deactivated, should not happen (see draw_manager_gui)
+		--CODING-- remove all this could interact with new pause button
 		--EVL We're PAUSING the game, no change in global.match_running nor in global.pack_choosen (the game was initiated with global.freeze_players=true)
+		
 		if global.match_countdown >= 0 then --WAIT FOR UNFREEZE BEFORE FREEZE AGAIN
 			game.print(">>>>> Please wait "..(global.match_countdown+1).."s (game is currently in ~unfreezing~ process) ...", {r = 175, g = 11, b = 11})
 			return
@@ -728,6 +831,13 @@ function Public.gui_click(event)
 	if name == "team_manager_toggle_button" then
 		if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() return end
 		draw_manager_gui(player)
+		return
+	end
+	--EVL pause button
+	if name == "team_manager_pause_button" then
+		if not player.admin then player.print(">>>>> Ask referee/admin to pause/unpause the game.", {r = 175, g = 11, b = 11}) return end
+		if global.bb_debug then game.print("DEBUG: Switching Pause/Unpause", {r = 175, g = 11, b = 11}) end
+		switch_pause_toggle_button(player)
 		return
 	end
 	

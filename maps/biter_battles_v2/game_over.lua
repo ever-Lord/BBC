@@ -389,12 +389,18 @@ function Public.server_restart()
 		local _freeze_players = global.freeze_players --if player are freezed then dont freeze them again
 		local _reroll_left = global.reroll_left --EVL need to remember how many rolls we did
 		local _force_map_reset_export_reason=global.force_map_reset_export_reason --EVL used in export stats
+		local _difficulty_vote_value=global.difficulty_vote_value
+		local _difficulty_vote_index=global.difficulty_vote_index
 		--EVL REWORK INIT PROCEDURE
 		Init.tables()
+		--EVL RESTORE DATAS AFTER REROLL
 		global.freeze_players = _freeze_players
 		global.reroll_left = _reroll_left
-		global.force_map_reset_export_reason=_force_map_reset_export_reason
+		global.force_map_reset_export_reason =_force_map_reset_export_reason
 		global.server_restart_timer = nil
+		global.difficulty_vote_value = _difficulty_vote_value
+		global.difficulty_vote_index = _difficulty_vote_index
+
 		
 		Init.initial_setup() -- EVL (none)
 		Init.playground_surface()

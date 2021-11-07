@@ -506,4 +506,78 @@ Public.packs_item_value = {
 }		
 --EVL FIN
 
+--EVL MAXIMS--
+Public.maxim_players = {
+
+	["20"]="tbd",
+	["99joneg"]="tbd",
+	["anb505"]="tbd",
+	["AntiElitz"]="tbd",
+	["Antipatience"]="I'm here for a good time, not a bad time",
+	["bev"]="tbd",
+	["bits-orio"]="tbd",
+	["bloke14"]="tbd",
+	["BumbleBeeeRider"]="Its me Again.",
+	["Castinar"]="tbd",
+	["Clutch331"]="tbd",
+	["Cobai"]="tbd",
+	["DaarkToM"]="tbd",
+	["Ermite"]="tbd",
+	["everLord"]="Crusty bread is for those who know how to look for it.",
+	["Firerazer"]="What are we escaping from?",
+	["Gamemodefr"]="tbd",
+	["Grob."]="tbd",
+	["heihaa"]="tbd",
+	["Keithy1980"]="tbd",
+	["kenOger"]="tbd",
+	["KlingonIAG"]="Ce n'est pas un bon jour pour mourir! Quelle odeur!?",
+	["Kohonen"]="tbd",
+	["Krono"]="tbd",
+	["Lumis31"]="tbd",
+	["Megafrot"]="tbd",
+	["Monkey Butt Gamer"]="tbd",
+	["mysticamber"]="tbd",
+	["Nefa35"]="tbd",
+	["Nefrums"]="tbd",
+	["ness056"]="tbd",
+	["neuro666"]="tbd",
+	["Phoenix27833"]="tbd",
+	["pompouspercival"]="tbd",
+	["PunkSkeleton"]="tbd",
+	["RoronoaJedi"]="tbd",
+	["Slapocreeper"]="schmoovin' n' groovin'",
+	["thePiedPiper"]="tbd",
+	["Timin8ore"]="tbd",
+	["typical_guy"]="tbd",
+	["Ugh"]="The biter population must shrink!",
+	["UnknownMurder"]="tbd",
+	["VorceShard"]="tbd",
+	["Warger"]="tbd",
+	["WavePusher"]="tbd",
+	["Wibbert"]="tbd",
+	["XenoCyber"]="tbd",
+	["ximoltus"]="tbd",
+	["z-em"]="Mixed enthousiast",
+	["Zaspar"]="tbd",
+	["zebrajaeger"]="tbd"
+
+}
+Public.maxim_teams = {
+	["Baguette"]="Who gives the bread lays down the authority.",
+	["Burner City"]="tbd",
+	["C4"]="The early bird catches the worm.",
+	["Croissant"]="T'as la rondeur d'un croissant au beurre.",
+	["Fromage"]="tbd",
+	["Green Science Dutch"]="De fabriek moet groeien",
+	["MysticlutchPipenator"]="tbd",
+	["SteelAxe"]="Praise the Steelaxe",
+	["Steelaxe Mafia"]="What Iron? I didn't take any Iron!",
+	["Team of Misfits"]="tbd",
+	["The Old Guard"]="Play to win, not to not lose.",
+	["Zombie Horde"]="tbd"
+}
+--EVL FIN
+
+
+
 return Public

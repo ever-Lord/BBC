@@ -204,8 +204,14 @@ function Public.create_main_gui(player)
 
 		-- Team name
 		local c = gui_value.c1
-		if global.tm_custom_name[gui_value.force] then c = global.tm_custom_name[gui_value.force] end
-		local l = t.add  { type = "label", caption = c, tooltip="<<Put their maxim here>>"}
+		local maxim_team="[font=default-small][color=#777777](missing maxim)[/color][/font]"
+		if global.tm_custom_name[gui_value.force] then 
+			c = global.tm_custom_name[gui_value.force] 
+			if Tables.maxim_teams[c] and Tables.maxim_teams[c]~="" and Tables.maxim_teams[c]~="tbd" then
+				maxim_team="[color=#AAAAAA]"..Tables.maxim_teams[c].."[/color]"
+			end
+		end
+		local l = t.add  { type = "label", caption = c, tooltip=maxim_team}
 		l.style.font = "default-bold"
 		l.style.font_color = gui_value.color1
 		l.style.single_line = false
@@ -233,8 +239,12 @@ function Public.create_main_gui(player)
 			local t = frame.add  { type = "table", column_count = 8 }
 			for _, p in pairs(game.forces[gui_value.force].connected_players) do
 				--game.print("index:"..p.index.."  name:"..p.name) --EVL DEBUG
-				
-				local l_player = t.add  { type = "label", name="plist_"..p.index ,caption = p.name, tooltip="<< maxim >>"} --EVL Add .index for inventory purpose
+				local maxim_player="[font=default-small][color=#777777](missing maxim)[/color][/font]"
+				if Tables.maxim_players[p.name] and Tables.maxim_players[p.name]~="" and Tables.maxim_players[p.name]~="tbd" then
+					maxim_player="[color=#AAAAAA]"..Tables.maxim_players[p.name].."[/color]"
+				end
+		
+				local l_player = t.add  { type = "label", name="plist_"..p.index ,caption = p.name, tooltip=maxim_player} --EVL Add .index for inventory purpose
 				l_player.style.font_color = {r = p.color.r * 0.6 + 0.4, g = p.color.g * 0.6 + 0.4, b = p.color.b * 0.6 + 0.4, a = 1}
 				--local l_camera  = t.add  { type = "sprite", name="pcam_"..p.index ,sprite = "quantity-time", tooltip="click to view player's camera"} --slot-armor-white | select-icon-white | reassign | not-played-yet | expand
 				local l_camera = t.add  { type = "label", name="pcam_"..p.index ,caption = "© ", tooltip="click to view player's camera"} --EVL Add .index for inventory purpose

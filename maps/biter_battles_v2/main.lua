@@ -111,7 +111,7 @@ local _guib = ""				--_GUI_BOTTOM
 --SETTINGS STATS ONCE FOR ALL TO USE IN EXPORT JSON AND DRAW RESULTS
 local function set_stats_title() 				--fill up string "_guit" and table "_json_global"
 	
-	_guit=_guit.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]      v0.9\n" 
+	_guit=_guit.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]      v0.94\n" --CODING--
 	_guit=_guit.."see all results at [color=#DDDDDD]https://bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
 	_guit=_guit.."[font=default-bold][color=#77DD77]ADD the result [/color][color=#999999](gameId)[/color][color=#77DD77] to the website [/color][color=#999999](referee)[/color]"
 	_guit=_guit.."[color=#77DD77] & SET url of the replays [/color][color=#999999](players & streamers)[/color][color=#77DD77] ASAP ![/color][/font]\n"
@@ -146,7 +146,7 @@ local function set_stats_team()				--fill up string "_guitl & _guitm & _guitr" a
 	_guitl=_guitl.."     REROLL="..(global.reroll_max-global.reroll_left).."\n"
 	_guitl=_guitl.."     STARTER PACK="..Tables.packs_list[global.pack_choosen]["caption"].."\n"
 	_guitl=_guitl.."     DIFFICULTY="..global.difficulty_vote_index..":"..diff_vote.difficulties[global.difficulty_vote_index].name.." ("..diff_vote.difficulties[global.difficulty_vote_index].str..")\n"
-		_guitl=_guitl.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
+	_guitl=_guitl.."     DURATION="..math.floor((game.ticks_played-global.freezed_time)/3600).."m | Paused="..math.floor(global.freezed_time/60).."s\n"
 	local _bb_game_won_by_team=global.bb_game_won_by_team
 	local _bb_game_loss_by_team = Tables.enemy_team_of[_bb_game_won_by_team]
 	_guitl=_guitl.."     [color=#97FF40]WINNER=".._bb_game_won_by_team.."[/color]\n"
@@ -967,51 +967,70 @@ end
 --EVL MANUAL CLEAR CORPSES
 local function clear_corpses(cmd) -- EVL After command /clear-corpses radius
 	local player = game.player
-       -- EVL not needed for BBC tournament, trust parameter is never used
-		--local trusted = Session.get_trusted_table()
-        local param = tonumber(cmd.parameter)
+	-- EVL not needed for BBC tournament, trust parameter is never used
+	--local trusted = Session.get_trusted_table()
+	local param = tonumber(cmd.parameter)
 
-        if not player or not player.valid then
-            return
-        end
-        local p = player.print
-        --if not trusted[player.name] then
-        --    if not player.admin then
-        --        p('[ERROR] Only admins and trusted weebs are allowed to run this command!', Color.fail)
-        --        return
-        --    end
-        --end
-        if param == nil then
-            player.print('[ERROR] Must specify radius!', Color.fail)
-            return
-        end
-        if param < 0 then
-            player.print('[ERROR] Value is too low.', Color.fail)
-            return
-        end
-        if param > 500 then
-            player.print('[ERROR] Value is too big.', Color.fail)
-            return
-        end
-
+	if not player or not player.valid then
+		return
+	end
+	local p = player.print
+	--if not trusted[player.name] then --EVL not needed in BBC
+	--    if not player.admin then
+	--        p('[ERROR] Only admins and trusted weebs are allowed to run this command!', Color.fail)
+	--        return
+	--    end
+	--end
+	if param == nil then
+		player.print('[ERROR] Must specify radius!', Color.fail)
+		return
+	end
+	if param < 0 then
+		player.print('[ERROR] Value is too low.', Color.fail)
+		return
+	end
+	if param > 500 then
+		player.print('[ERROR] Value is too big.', Color.fail)
+		return
+	end
 	if not Ai.empty_reanim_scheduler() then
 		player.print("[ERROR] Some corpses are waiting to be reanimated...")
 		player.print(" => Try again in short moment")
 		return
 	end
-
-        local pos = player.position
-
-        local radius = {{x = (pos.x + -param), y = (pos.y + -param)}, {x = (pos.x + param), y = (pos.y + param)}}
-        for _, entity in pairs(player.surface.find_entities_filtered {area = radius, type = 'corpse'}) do
-            if entity.corpse_expires then
-                entity.destroy()
-            end
-        end
-        player.print('Cleared biter-corpses.', Color.success)
+	local pos = player.position
+	--EVL correction to area so manual clear-corpses dont overlap other side
+	local y_top=0
+	local y_bot=0
+	if player.force.name == "north" then
+		y_top=pos.y - param
+		y_bot=min(0,pos.y + param)
+		
+	elseif player.force.name == "south" then
+		y_top=max(0,pos.y - param)
+		y_bot=pos.y + param
+	else --probably spectator-> no clear corpses
+		player.print('[ERROR] You are  are not in a team !', Color.fail)
+		return
+	end
+	
+	local radius = {{x = (pos.x + -param), y = y_top}, {x = (pos.x + param), y = y_bot}}
+	for _, entity in pairs(player.surface.find_entities_filtered {area = radius, type = 'corpse'}) do
+		--EVL we remove 90% of corpses/walls/furnaces
+		if entity.corpse_expires then
+			if string.sub(entity.name,-7,-1)=="-corpse" or entity.name=="wall-remnants" or entity.name=="stone-furnace-remnants" then
+				if math.random(1,10)>1 then
+					--game.print("name: "..entity.name.." / proto: "..entity.type)
+					entity.destroy()
+				end
+			end
+		end
+		_val=_val+1
+	end
+	player.print('Cleared 90% corpses.', Color.success)
 end
 --EVL AUTO CLEAR CORPSES
-local function clear_corpses_auto(radius) -- EVL - Automatic clear corpses called every 5 min
+local function clear_corpses_auto(radius) -- EVL - Automatic clear corpses called every 15 min (see function on_tick)
 	if not Ai.empty_reanim_scheduler() then
 		if global.bb_debug then game.print("Debug: Some corpses are waiting to be reanimated... Skipping this turn of clear_corpses", Color.fail) end
 		return
@@ -1024,10 +1043,18 @@ local function clear_corpses_auto(radius) -- EVL - Automatic clear corpses calle
 	local _radius = {{x = (0 + -_param), y = (0 + -_param)}, {x = (0 + _param), y = (0 + _param)}}
 	local _surface = game.surfaces[global.bb_surface_name]
 	for _, entity in pairs(_surface.find_entities_filtered {area = _radius, type = 'corpse'}) do
-		if entity.corpse_expires then	entity.destroy() end
+		--EVL we remove 90% of corpses/walls/furnaces
+		if entity.corpse_expires then
+			if string.sub(entity.name,-7,-1)=="-corpse" or entity.name=="wall-remnants" or entity.name=="stone-furnace-remnants" then
+				if math.random(1,10)>1 then
+					--game.print("name: "..entity.name.." / proto: "..entity.type)
+					entity.destroy()
+				end
+			end
+		end
 	end
-	if global.bb_debug then game.print("Debug: Cleared corpses (dead biters and destroyed entities).", Color.success) 
-	else game.print("Cleared corpses.", Color.success) end --EVL we could count the biters (and only the biters?)
+	if global.bb_debug then game.print("Debug: Cleared 90% corpses (dead biters and destroyed walls/furnaces).", Color.success) 
+	else game.print("Cleared 90% corpses.", Color.success) end --EVL we could count the biters (and only the biters?)
 end
 
 local function on_player_joined_game(event)
@@ -1039,6 +1066,7 @@ local function on_player_joined_game(event)
 	Functions.create_map_intro_button(player)
 	Functions.create_bbc_packs_button(player)
 	Team_manager.draw_top_toggle_button(player)
+	Team_manager.draw_pause_toggle_button(player)
 	
 	--EVL SET the countdown for intro animation
 	global.player_anim[player.name]=global.player_init_timer
@@ -1047,9 +1075,10 @@ local function on_player_joined_game(event)
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
 	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is [color=#88FF88]active[/color], Players are [color=#88FF88]"..msg_freeze.."[/color], Referee has to open [color=#FF9740]TEAM MANAGER[/color].",{r = 00, g = 225, b = 00})
-	player.print(">>>>> (10-28-21) v0.93 Use <</c game.tick_paused=true>> to pause (while chat still active).",{r = 150, g = 150, b = 250}) --, removed DEBUG options (F4/F5) for non admins
-	player.print(">>>>> (10-15-21) v0.92 New command : <</wavetrain>> to set number of waves attacking every 2 min (in training mode).",{r = 150, g = 150, b = 250})
-	player.print(">>>>> (10-12-21) v0.91 New command : <</training>> to auto-send yourself science (in training mode).",{r = 150, g = 150, b = 250})
+	player.print(">>>>> (11-07-21) v0.94 New pause button (with chat & countdown) | Clear-corpses (biters, furnaces, walls) clears 90% instead of 100%.",{r = 150, g = 150, b = 250}) --, removed DEBUG options (F4/F5) for non admins
+	--player.print(">>>>> (10-28-21) v0.93 Use <</c game.tick_paused=true>> to pause (while chat still active).",{r = 150, g = 150, b = 250}) --, removed DEBUG options (F4/F5) for non admins
+	player.print(">>>>> (10-15-21) v0.92 Command : <</wavetrain>> to set number of waves attacking every 2 min (in training mode).",{r = 150, g = 150, b = 250})
+	player.print(">>>>> (10-12-21) v0.91 Command : <</training>> to auto-send yourself science (in training mode).",{r = 150, g = 150, b = 250})
 	--player.print(">>>>> (10-06-21) v0.90 Slightly increased ore in spawn, report problematic maps and send us the seed : \n       [color=#888888]/c game.print(game.player.surface.map_gen_settings.seed)[/color]",{r = 150, g = 150, b = 250})
 	--player.print(">>>>> (10-06-21) v0.90 We're lacking teams for the Biter league, motivate your friends to apply and build a team  !",{r = 150, g = 150, b = 250})
 end
@@ -1180,6 +1209,7 @@ local function on_tick()
 		if not global.match_running then 
 			diff_vote.difficulty_gui()	
 		else
+			--if global.match_running and tick % 9000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 15 minutes --CODING--
 			if global.match_running and tick % 54000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 15 minutes
 			--Still players should be able to use /clear-corpses <radius> from their position
 		end
