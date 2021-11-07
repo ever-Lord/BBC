@@ -1004,10 +1004,10 @@ local function clear_corpses(cmd) -- EVL After command /clear-corpses radius
 	local y_bot=0
 	if player.force.name == "north" then
 		y_top=pos.y - param
-		y_bot=min(0,pos.y + param)
+		y_bot=math.min(0,pos.y + param)
 		
 	elseif player.force.name == "south" then
-		y_top=max(0,pos.y - param)
+		y_top=math.max(0,pos.y - param)
 		y_bot=pos.y + param
 	else --probably spectator-> no clear corpses
 		player.print('[ERROR] You are  are not in a team !', Color.fail)
@@ -1025,7 +1025,6 @@ local function clear_corpses(cmd) -- EVL After command /clear-corpses radius
 				end
 			end
 		end
-		_val=_val+1
 	end
 	player.print('Cleared 90% corpses.', Color.success)
 end
