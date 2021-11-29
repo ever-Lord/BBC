@@ -19,14 +19,16 @@ local difficulties = {
 
 -- EVL BBC LEAGUES
 local difficulties = {
-	[1] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.4, g=0.4, b=1.0}},
-	[2] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.1, g=0.8, b=0.1}},
+	[1] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.4, g=0.4, b=1.0}, bplib = "[color=#55FF55]opened[/color]"}, --EVL Add blue print library opened/closed
+	[2] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.1, g=0.8, b=0.1}, bplib = "[color=#FF5555]closed[/color]"}
 }
 
 
 local function difficulty_gui()
 	local str_tooltip = table.concat({"Global map difficulty is ", difficulties[global.difficulty_vote_index].name," (",difficulties[global.difficulty_vote_index].str,")",
 							".\nMutagen has ", math.floor(global.difficulty_vote_value*100), "% effectiveness.\n"})
+	str_tooltip = str_tooltip.."[color=#8888FF]Blue print library is "..difficulties[global.difficulty_vote_index].bplib..".[/color]\n"
+
 	for _science_nb = 1, 7 do
 			local _mutagen_value=Tables.food_values[Tables.food_long_and_short[_science_nb].long_name].value*10000
 			str_tooltip=str_tooltip.."[item="..Tables.food_long_and_short[_science_nb].long_name.."]"..Tables.food_long_and_short[_science_nb].short_name.."=".._mutagen_value.." | "

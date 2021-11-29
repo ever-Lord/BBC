@@ -284,7 +284,8 @@ function Public.create_main_gui(player)
 	end
 	--EVL ADD BUTTONS FOR SPEC_GOD MODE (Larger wiew of the map without revealing other forces)
 	--ONLY if admin AND spectator (real & god modes)
-	if is_spec and player.admin then
+	--ONLY if gama has started (so streamers dont reveal ie stream hack)
+	if is_spec and player.admin and global.match_running then
 		frame.add { type = "line", caption = "this line", direction = "horizontal" }
 		local _spec_gui = frame.add { type = "table", column_count = 5 }
 		-- _spec_gui.style.horizontal_align = "center" -- WTF
@@ -537,7 +538,7 @@ local function on_gui_click(event)
 	]]--
 	if name == "raw-fish" then Functions.spy_fish(player, event) return end
 
-	if food_names[name] then feed_the_biters(player, name, "regular") return end
+	if food_names[name] then feed_the_biters(player, name, 0, "regular") return end --EVL add 2 parameters (for training mode see team_manager>training and command in feeding.lua)
 	
 	--EVL SHOW INVENTORY & CRAFTING LIST
 	--EVL Click on player from LeftGUI.playerlist
@@ -545,7 +546,6 @@ local function on_gui_click(event)
 	local _name=string.sub(name,0,6)
 	if _name=="plist_" then
 		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
-		--if true then -- EVL  --CODING-- Switch lines to test inventory_gui in any condition
 			local _target_name = event.element.caption
 			if not game.players[_target_name] then
 				if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist) cant show inventory") end
@@ -564,7 +564,6 @@ local function on_gui_click(event)
 	_name=string.sub(name,0,5)
 	if _name=="pcam_" then
 		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
-		--if true then -- EVL  --CODING-- Switch lines to test minicam_view in any condition
 			local _target_index = tonumber(string.sub(name,6))
 			if not(_target_index) or (_target_index<1) or not (game.players[_target_index]) then
 				if global.bb_debug then game.print("Debug: Player (#".._target_index..") does not exist (in gui.lua/playerlist) cant show minicam") end
@@ -603,6 +602,7 @@ local function on_gui_click(event)
 				if player.character then player.character.destroy() end
 				player.character = nil
 				player.zoom=0.18
+				player.show_on_map=false -- EVL remove red dots on map view for players and spectators (new in 1.1.47)
 				global.god_players[player.name] = true
 				game.print(">>>>> Admin: " ..  player.name .. " has gone into Spec/God mode view.", {r = 75, g = 75, b = 75})
 				if global.bb_debug then game.print("Debug: player: " ..  player.name .." ("..player.force.name..") switches to God mode") end
@@ -612,6 +612,8 @@ local function on_gui_click(event)
 				player.create_character()
 				player.force = game.forces["spectator"]
 				player.zoom=0.30
+				player.show_on_map=true  -- EVL restore dots on map view for players and spectators (new in 1.1.47)
+				player.character.destructible = false --EVL give back the property to the spec
 				global.god_players[player.name] = false
 				if global.bb_debug then game.print("Debug: player: " ..  player.name .." ("..player.force.name..") switches back to Real mode") end
 			else
@@ -689,6 +691,7 @@ local function on_pre_player_left_game(event)
 		player.create_character()
 		player.force = game.forces["spectator"]
 		player.zoom=0.30
+		player.show_on_map=true  -- EVL restore dots on map view for players and spectators (new in 1.1.47)
 		global.god_players[_name] = false
 		if global.bb_debug then game.print("DEBUG: " .._name.."/".. player.name .." is leabing, switches back to real mode (if needed).") end
 	end

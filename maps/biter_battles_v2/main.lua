@@ -6,6 +6,7 @@ local Game_over = require "maps.biter_battles_v2.game_over"
 local Gui = require "maps.biter_battles_v2.gui"
 local Init = require "maps.biter_battles_v2.init"
 local Tables = require "maps.biter_battles_v2.tables" --EVL (none)
+local Sendings_Patterns = require "maps.biter_battles_v2.sendings_tab" --EVL for simulation of previous game sendings
 local Score = require "comfy_panel.score" --EVL (none)
 local Mirror_terrain = require "maps.biter_battles_v2.mirror_terrain"
 require 'modules.simple_tags' -- is this used ?
@@ -18,7 +19,7 @@ local diff_vote = require "maps.biter_battles_v2.difficulty_vote"
 
 local feed_the_biters = require "maps.biter_battles_v2.feeding" --EVL to use with /training command 
 
-require "maps.biter_battles_v2.sciencelogs_tab"
+local Science_logs = require "maps.biter_battles_v2.sciencelogs_tab"
 -- require 'maps.biter_battles_v2.commands' --EVL no need (other way to restart : use /force_map_reset instead)
 require "modules.spawners_contain_biters" -- is this used ?
 
@@ -111,7 +112,7 @@ local _guib = ""				--_GUI_BOTTOM
 --SETTINGS STATS ONCE FOR ALL TO USE IN EXPORT JSON AND DRAW RESULTS
 local function set_stats_title() 				--fill up string "_guit" and table "_json_global"
 	
-	_guit=_guit.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]      v0.94\n" --CODING--
+	_guit=_guit.."[font=default-large-bold][color=#FF5555] --- THANKS FOR PLAYING [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]      v0.95\n" --CODING--
 	_guit=_guit.."see all results at [color=#DDDDDD]https://bbchampions.org[/color] , follow us on twitter [color=#DDDDDD]@BiterBattles[/color]\n"
 	_guit=_guit.."[font=default-bold][color=#77DD77]ADD the result [/color][color=#999999](gameId)[/color][color=#77DD77] to the website [/color][color=#999999](referee)[/color]"
 	_guit=_guit.."[color=#77DD77] & SET url of the replays [/color][color=#999999](players & streamers)[/color][color=#77DD77] ASAP ![/color][/font]\n"
@@ -1074,10 +1075,11 @@ local function on_player_joined_game(event)
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
 	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is [color=#88FF88]active[/color], Players are [color=#88FF88]"..msg_freeze.."[/color], Referee has to open [color=#FF9740]TEAM MANAGER[/color].",{r = 00, g = 225, b = 00})
+	player.print(">>>>> (11-07-21) v0.95 New training gui (with single/auto sendings and new simulator of patterns) | No more red dots with spec-god mode.",{r = 150, g = 150, b = 250}) --, removed DEBUG options (F4/F5) for non admins
 	player.print(">>>>> (11-07-21) v0.94 New pause button (with chat & countdown) | Clear-corpses (biters, furnaces, walls) clears 90% instead of 100%.",{r = 150, g = 150, b = 250}) --, removed DEBUG options (F4/F5) for non admins
 	--player.print(">>>>> (10-28-21) v0.93 Use <</c game.tick_paused=true>> to pause (while chat still active).",{r = 150, g = 150, b = 250}) --, removed DEBUG options (F4/F5) for non admins
-	player.print(">>>>> (10-15-21) v0.92 Command : <</wavetrain>> to set number of waves attacking every 2 min (in training mode).",{r = 150, g = 150, b = 250})
-	player.print(">>>>> (10-12-21) v0.91 Command : <</training>> to auto-send yourself science (in training mode).",{r = 150, g = 150, b = 250})
+	--player.print(">>>>> (10-15-21) v0.92 Command : <</wavetrain>> to set number of waves attacking every 2 min (in training mode).",{r = 150, g = 150, b = 250})
+	--player.print(">>>>> (10-12-21) v0.91 Command : <</training>> to auto-send yourself science (in training mode).",{r = 150, g = 150, b = 250})
 	--player.print(">>>>> (10-06-21) v0.90 Slightly increased ore in spawn, report problematic maps and send us the seed : \n       [color=#888888]/c game.print(game.player.surface.map_gen_settings.seed)[/color]",{r = 150, g = 150, b = 250})
 	--player.print(">>>>> (10-06-21) v0.90 We're lacking teams for the Biter league, motivate your friends to apply and build a team  !",{r = 150, g = 150, b = 250})
 end
@@ -1095,6 +1097,13 @@ local function on_gui_click(event)
 		frame_export_click(player, element)
 		return
 	end	
+	--Exporting sendings for simulation mode (pattern-training)
+	if element.name=="science_logs_export_sendings" then
+		game.print(">>>>> Exporting sendings to file...", {r = 0.22, g = 0.55, b = 0.99})
+		Science_logs.science_logs_export_sendings(event)
+		return
+	end
+	
 	if Functions.map_intro_click(player, element) then 
 		return 
 	end
@@ -1146,6 +1155,58 @@ local function on_entity_died(event)
 	if Functions.biters_landfill(entity) then return end
 	Game_over.silo_death(event)
 end
+
+
+local function simulation_sendings(_gameid,_sendings, _min_played, force)
+
+	--local _sendings=Sendings_Patterns.detail_game_id[_gameid]["Pattern"][_min_played]
+	if #_sendings>0 and #_sendings%2==0 then
+		local _sendings_msg=""
+		for _i=1,#_sendings,2 do
+			--game.print( _sendings[_i].."  -  ".. _sendings[_i+1].."  -  "..Tables.food_short_to_long[_sendings[_i]])
+			if _sendings[_i] and _sendings[_i+1] and Tables.food_short_to_long[_sendings[_i]] then
+				local _food=Tables.food_short_to_long[_sendings[_i]]
+				local _qtity=_sendings[_i+1]
+				local _player=game.players[global.pattern_training[force]["player"]]
+				local _force="north"
+				if force=="north" then _force="south" end
+				feed_the_biters(_player, _food, _qtity, _force)
+				_sendings_msg=_sendings_msg.."[font=default-large-bold][color="..Tables.food_values[_food].color.."]".._qtity.."[/color][/font][img=item/".. _food.. "]   "
+			else
+				game.print(">>>>> Error : Pattern #".. gameId .." is badly formatted (skipped).",{r = 175, g = 25, b = 25})
+			end
+		end
+		if _min_played==999 then 
+			game.print("Maintaining pressure : "..Sendings_Patterns.detail_game_id[_gameid]["Team"].." sent ".._sendings_msg.." to "..force.." biters.", {r = 77, g = 192, b = 192})
+		else
+			game.print("Min ".._min_played.." : "..Sendings_Patterns.detail_game_id[_gameid]["Team"].." sent ".._sendings_msg.." to "..force.." biters.", {r = 77, g = 192, b = 192})
+		end
+	else
+		game.print(">>>>> Error : Pattern #".. gameId .." has odd parameters (skipped).",{r = 175, g = 25, b = 25})
+	end				
+end
+
+local function simulation_training(minute, force)
+	local _gameid=global.pattern_training[force]["gameid"]
+	if Sendings_Patterns.detail_game_id[_gameid] then
+		if Sendings_Patterns.detail_game_id[_gameid]["Pattern"][minute] then
+			simulation_sendings(_gameid,Sendings_Patterns.detail_game_id[_gameid]["Pattern"][minute],minute,force)
+		elseif minute>Sendings_Patterns.detail_game_id[_gameid]["Last"] then
+			if Sendings_Patterns.detail_game_id[_gameid]["Pattern"][999] then
+				simulation_sendings(_gameid,Sendings_Patterns.detail_game_id[_gameid]["Pattern"][999],999,force)
+			else
+				game.print("No more sending in Pattern #".._gameid, {r = 77, g = 192, b = 192})
+			end
+		--else
+			--No sending at this timing/minute
+		end
+	else
+		game.print(">>>>> Couldnt find the registered gameId in list of patterns ???",{r = 175, g = 25, b = 25})
+	end
+end
+
+
+
 --EVL Trying to slowdown sending groups (easier for potatoes to keep up)
 --Every 60 ticks instead of 30
 --[[
@@ -1194,13 +1255,19 @@ local function on_tick()
 		global.bb_threat["north_biters"] = global.bb_threat["north_biters"] + global.bb_threat_income["north_biters"]
 		global.bb_threat["south_biters"] = global.bb_threat["south_biters"] + global.bb_threat_income["south_biters"]
 	end
-
-	--if tick % 300 == 0 then -- EVL WAS 180
-	--	Gui.refresh()
-	--	diff_vote.difficulty_gui()
-	--end
-
+	--if (game.ticks_played - global.freezed_time)%1800==0 then game.print("   "..((game.ticks_played - global.freezed_time)/60).."s") end --30s counter  --CODING--
 	
+	--Simulation(pattern of sendings) from older games (see team_manager>config training and sendings_tab.lua)
+	--Cannot be placed below in if tick % 300 == 0 (because of global.freezed_time)
+	
+	if global.pattern_training["north"]["active"] and global.training_mode and global.match_running and not(global.bb_game_won_by_team) and (game.ticks_played - global.freezed_time)%3600==0 then --every minute of real time played
+		simulation_training((game.ticks_played - global.freezed_time)/3600,"north")	
+	end	
+	if global.pattern_training["south"]["active"] and global.training_mode and global.match_running and not(global.bb_game_won_by_team) and (game.ticks_played - global.freezed_time)%3600==0 then --every minute of real time played
+		simulation_training((game.ticks_played - global.freezed_time)/3600,"south")	
+	end
+	
+	--Grouping all delayable actions 
 	if tick % 300 == 0 then --EVL this is called at the same tick as tick_minute_functions, could be changed to : if (tick+8) % 300 == 0
 
 		Gui.refresh() --EVL from above
@@ -1208,11 +1275,9 @@ local function on_tick()
 		if not global.match_running then 
 			diff_vote.difficulty_gui()	
 		else
-			--if global.match_running and tick % 9000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 15 minutes --CODING--
 			if global.match_running and tick % 54000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 15 minutes
 			--Still players should be able to use /clear-corpses <radius> from their position
 		end
-		
 		
 		Gui.spy_fish() -- EVL check the time of reveal, should be perfect (new chart just when last chart fade out)
 		
@@ -1243,7 +1308,7 @@ local function on_tick()
 		--EVL but we keep possibility to reset for exceptional reasons 
 		if global.force_map_reset_exceptional then		 
 			if not global.server_restart_timer then 
-				global.server_restart_timer=20  --CODING-- was 20 (5 for quick restart)
+				global.server_restart_timer=20  --15s Delay before /force-map-reset
 			end
 			Game_over.reveal_map() --EVL must be repeated
 			Game_over.server_restart()
@@ -1273,23 +1338,35 @@ local function on_tick()
 
 		if tick % 1200 == 0 then --EVL monitoring game times every 20s for EVO BOOST/ARMAGEDDON
 			--TODO-- Check for AFK players ?
-			--North auto training mode 
-			if global.auto_training["north"]["active"] and tick%(global.auto_training["north"]["timing"]*3600)==0 then
-				local _food=global.auto_training["north"]["science"]
-				local _player=game.players[global.auto_training["north"]["player"]]
-				feed_the_biters(_player, _food, "north")
-				game.print("Auto-sending : "..global.auto_training["north"]["qtity"].." flasks of [color="..Tables.food_values[_food].color.."]" .. Tables.food_values[_food].name .. "[/color] [img=item/".. _food.. "] sent to team north", {r = 77, g = 192, b = 192})
-			end
-			--South auto training mode 
-			if global.auto_training["south"]["active"] and tick%(global.auto_training["south"]["timing"]*3600)==0 then
-				local _food=global.auto_training["south"]["science"]
-				local _player=game.players[global.auto_training["south"]["player"]]
-				feed_the_biters(_player, _food, "south")
-				game.print("Auto-sending : "..global.auto_training["south"]["qtity"].." flasks of [color="..Tables.food_values[_food].color.."]" .. Tables.food_values[_food].name .. "[/color] [img=item/".. _food.. "] sent to team south", {r = 77, g = 192, b = 192})
-
-			end
-
 			
+			--North auto training mode (only if game has started)
+			if global.auto_training["north"]["active"] and global.training_mode and not(global.bb_game_won_by_team) and tick%(global.auto_training["north"]["timing"]*3600)==0 then
+				if global.match_running then 
+					local _food=global.auto_training["north"]["science"]
+					local _qtity=global.auto_training["north"]["qtity"]	
+					local _player=game.players[global.auto_training["north"]["player"]]
+					feed_the_biters(_player, _food, _qtity, "north_biters")
+					game.print("Auto-sendings : [font=default-bold][color=#FFFFFF]"..global.auto_training["north"]["qtity"].."[/color][/font] flasks of [color="..Tables.food_values[_food].color.."]" .. Tables.food_values[_food].name
+								.."[/color] [img=item/".. _food.. "] sent to [font=default-bold][color=#FFFFFF]north[/color][/font] biters.", {r = 77, g = 192, b = 192})
+				else
+					game.print("Auto-sendings : waiting for game to start (north).", {r = 77, g = 192, b = 192})
+				end
+			end
+			--South auto training mode  (only if game has started) 
+			if global.auto_training["south"]["active"] and global.training_mode and not(global.bb_game_won_by_team) and tick%(global.auto_training["south"]["timing"]*3600)==0 then
+				if global.match_running then 
+					local _food=global.auto_training["south"]["science"]
+					local _qtity=global.auto_training["south"]["qtity"]	
+					local _player=game.players[global.auto_training["south"]["player"]]
+					feed_the_biters(_player, _food, _qtity, "south_biters")
+					game.print("Auto-sendings : [font=default-bold][color=#FFFFFF]"..global.auto_training["south"]["qtity"].."[/color][/font] flasks of [color="..Tables.food_values[_food].color.."]" .. Tables.food_values[_food].name 
+								.. "[/color] [img=item/".. _food.. "] sent to [font=default-bold][color=#FFFFFF]south[/color][/font] biters.", {r = 77, g = 192, b = 192})
+				else
+					game.print("Auto-sendings : waiting for game to start (south).", {r = 77, g = 192, b = 192})
+				end
+			end
+
+
 			
 			if global.freezed_start == 999999999 then -- players are unfreezed
 				if not global.evo_boost_active then -- EVO BOOST AFTER 2H (global.tick_evo_boost=60*60*60*2)
@@ -1546,6 +1623,6 @@ Event.add(defines.events.on_robot_built_tile, on_robot_built_tile)
 Event.add(defines.events.on_tick, on_tick)
 Event.on_init(on_init)
 
-commands.add_command('clear-corpses', 'Clears all the corpses and remnants in the ~radius~ around you',clear_corpses)
+commands.add_command('clear-corpses', 'Clears 90% of the corpses and 90% of the remnants of stone-furnace and walls in the ~radius~ around you',clear_corpses)
 
 require "maps.biter_battles_v2.spec_spy"

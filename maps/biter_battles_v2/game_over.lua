@@ -367,6 +367,7 @@ function Public.server_restart()
 						player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
 						player.create_character()
 						player.force = game.forces["spectator"]
+						player.show_on_map=true
 						player.zoom=0.30
 					end
 					global.god_players[_name] = false
@@ -428,7 +429,7 @@ function Public.server_restart()
 		return
     end
     if global.server_restart_timer % 15 == 0 then --EVL was 30
-        game.print(">>>>> Map will [color=#FF9740]exceptionally[/color] restart after "..global.server_restart_timer.." seconds ...", {r = 0.22, g = 0.88, b = 0.22})
+        game.print(">>>>> Map will restart after "..global.server_restart_timer.." seconds ...", {r = 0.22, g = 0.88, b = 0.22})
         --if global.server_restart_timer / 15 == 1 then --EVL was 30 NOT NEEDED
         ---   game.print("Good luck with your next match!", {r=0.98, g=0.66, b=0.22})
         --end

@@ -336,13 +336,21 @@ function Public.tables()
 	--global.server_restart_timer = 20 -- EVL see main.lua, need to be nil
 	global.god_players={} -- EVL List of players in spec_god force/mode : we have 2 kinds of specs (see spectator_zoom.lua)
 	
-	global.auto_training = { --/training command (see feeding.lua)
+	global.auto_training = { --/training command (see feeding.lua & team_manager)
 		["north"]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0},
 		["south"]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0}	
 	}
-	global.wave_training = { --/wavetrain command (see feeding.lua)
+	global.wave_training = { --/wavetrain command (see feeding.lua & team_manager)
 		["north"]={["player"]="",["active"]=false,["number"]=0},
 		["south"]={["player"]="",["active"]=false,["number"]=0}	
+	}
+	global.pattern_training = { --simulation of previous pattern of sendings (see team_manager>config_training)
+		["north"]={["player"]="",["active"]=false,["gameid"]=0},
+		["south"]={["player"]="",["active"]=false,["gameid"]=0}	
+	}
+	global.virtual_threat = {
+		["north"]=0,  -- virtual threat from virtual groups in simulation mode
+		["south"]=0
 	}
 
 end

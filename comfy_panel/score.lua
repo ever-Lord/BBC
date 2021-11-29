@@ -509,13 +509,13 @@ local function on_built_entity(event)
 	if _typ=="transport-belt" or _typ=="underground-belt" or _typ=="splitter" 			then score.built_belts = 1 + (score.built_belts or 0) return end
 	if _ent=="pipe" or _ent=="pipe-to-ground" or _ent=="storage-tank" or _ent=="pump"	then score.built_pipes = 1 + (score.built_pipes or 0) return end
 	if _ent=="offshore-pump" or _ent=="boiler" or _ent=="steam-engine" or _ent=="solar-panel" or _ent=="accumulator" then score.built_powers = 1 + (score.built_powers or 0) return end
-	if _typ=="inserter" 													 			then score.built_inserters = 1 + (score.built_inserters or 0) return end
+	if _typ=="inserter" 													 					then score.built_inserters = 1 + (score.built_inserters or 0) return end
 	if _ent=="electric-mining-drill" or _ent=="burner-mining-drill" 					then score.built_miners = 1 + (score.built_miners or 0) return end
-	if _typ=="furnace" 													 				then score.built_furnaces = 1 + (score.built_furnaces or 0) return end
+	if _typ=="furnace" 													 					then score.built_furnaces = 1 + (score.built_furnaces or 0) return end
 	if _typ=="assembling-machine" or _ent=="pumpjack" or _ent=="beacon"		 			then score.built_machines = 1 + (score.built_machines or 0) return end
-	if _ent=="lab"							 											then score.built_labs = 1 + (score.built_labs or 0) return end
+	if _ent=="lab"							 													then score.built_labs = 1 + (score.built_labs or 0) return end
 	if _ent=="gun-turret" or _ent=="flamethrower-turret" or _ent=="laser-turret" or _ent=="radar" then score.built_turrets = 1 + (score.built_turrets or 0) return end	
-	if _typ=="electric-pole"															then return end -- do not track electric pole
+	if _typ=="electric-pole"																	then return end -- do not track electric pole
 	if global.bb_debug then game.print("DEBUG: this entity is not tracked : proto=".._typ.." entity=".._ent, {r = 0.55, g = 0.55, b = 0.55}) end
 end
 

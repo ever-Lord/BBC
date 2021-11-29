@@ -315,7 +315,7 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 	target = target.position
 	local commands = {}
 
-	--[[EVL TRYING TO EXPLAIN : (set global.bb_biters_debug=true in init.lua for verbose)
+	--[[EVL TRYING TO EXPLAIN : (set global.bb_biters_debug2=true in init.lua for verbose)
 	--Each group goes to a waypoint randomly chosen in a ring around the spawn, then they aim a target (not changed) then they aim the silo
 	--BUG? Some groups vanishes right after they find the path to waypoint, why ?
 	--BUG? Sometime a group is assigned (or reassigned?) and is sent (again?) search for "waking up" below
@@ -351,7 +351,7 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 			for _dwp= 1,global.default_way_points_nb,1 do
 				_dft_wp_str = _dft_wp_str .. " ("..global.default_way_points[_dwp][1]..","..global.default_way_points[_dwp][2]..") "
 			end
-			if global.bb_biters_debug then game.print(_dft_wp_str,{r = 200, g = 200, b = 250}) end				
+			if global.bb_biters_debug2 then game.print(_dft_wp_str,{r = 200, g = 200, b = 250}) end				
 			_kind_of_waypoint="*"
 		end
 		-- we take a random waypoint from the default list		
@@ -384,7 +384,7 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 				if _index>1 then _index=_index-1 end --EVL little trick to go further in the past, last waypoint will never be choosed
 				_position=global.way_points_table[force_opponent][_index]
 				table.remove(global.way_points_table[force_opponent],_index)
-				if global.bb_biters_debug then game.print("          Taking waypoint from "..force_opponent.." [".._index.."]=(".._position[1]..",".._position[2]..").", {r = 97, g = 97, b = 127}) end
+				if global.bb_biters_debug2 then game.print("          Taking waypoint from "..force_opponent.." [".._index.."]=(".._position[1]..",".._position[2]..").", {r = 97, g = 97, b = 127}) end
 				_position[2]=-_position[2] --EVL switch side of _position (from side to opponent side)
 				--EVL TODO? : send the group to the same side of the target  OR send it to the same side as it was sent to opponents ?
 			end
@@ -418,7 +418,7 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 	position = unit_group.surface.find_non_colliding_position("stone-furnace", _position, 96, 1)
 	if position then
 		if math.abs(position.y) >= math.abs(unit_group.position.y) then --EVL TEST/DEBUG/UNDERSTAND
-			if global.bb_biters_debug then game.print("  DEBUGS: I dont understand what happened here (send_group in ai.lua)  group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
+			if global.bb_biters_debug2 then game.print("  DEBUGS: I dont understand what happened here (send_group in ai.lua)  group #"..group_numero..". Not a problem at all (imo).", {r = 255, g = 77, b = 77}) end
 		end
 		--if math.abs(position.y) < math.abs(unit_group.position.y) then --What is that ? EVL -> remove
 			commands[#commands + 1] = {
@@ -432,13 +432,13 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		if _position_is_new then 
 			if table_size(global.way_points_table[force_name]) < global.way_points_max then --EVL we dont remember infinity of waypoints (we prefer to use old ones than new ones, for equity/balance)
 				table.insert(global.way_points_table[force_name],_position)
-				if global.bb_biters_debug then game.print("          Inserting new waypoint at "..force_name.." (".._position[1]..",".._position[2]..")", {r = 100, g = 150, b = 100}) end
+				if global.bb_biters_debug2 then game.print("          Inserting new waypoint at "..force_name.." (".._position[1]..",".._position[2]..")", {r = 100, g = 150, b = 100}) end
 			else
-				if global.bb_biters_debug then game.print("          Forgetting new waypoint for "..force_name.." (".._position[1]..",".._position[2]..")", {r = 100, g = 150, b = 100}) end
+				if global.bb_biters_debug2 then game.print("          Forgetting new waypoint for "..force_name.." (".._position[1]..",".._position[2]..")", {r = 100, g = 150, b = 100}) end
 			end
 		end
 	else
-		if global.bb_biters_debug then game.print("          Debugs : failed to get position (in send_group) [color=#55AA55]skipping waypoint[/color] command for group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
+		if global.bb_biters_debug2 then game.print("          Debugs : failed to get position (in send_group) [color=#55AA55]skipping waypoint[/color] command for group #"..group_numero..".", {r = 255, g = 77, b = 77}) end
 		--no return here, we just skip way_point command
 	end
 	-- THEN WE SEND TO TARGET
@@ -460,8 +460,6 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		structure_type = defines.compound_command.logical_and,
 		commands = commands
 	})
-	if global.bb_biters_debug then game.print("          Debugs : ".._kind_of_waypoint.." waypoint="..position.x..","..position.y.."  [color=#FFFFFF]sent ![/color] target="..target.x..","..target.y.."   "
-												.._reverse.." ["..force_name.."]  group [color=#FFFFFF]#"..group_numero.."[/color]", {r = 180, g = 180, b = 180}) end
 	if global.bb_biters_debug2 then game.print("          Debugs : ".._kind_of_waypoint.." waypoint="..position.x..","..position.y.."  [color=#FFFFFF]sent ![/color] target="..target.x..","..target.y.."   "
 												.._reverse.." ["..force_name.."]  group [color=#FFFFFF]#"..group_numero.."[/color]", {r = 180, g = 180, b = 180}) end
 
@@ -521,31 +519,31 @@ local function create_attack_group(surface, force_name, biter_force_name, group_
 	if global.freeze_players then game.print("  DEBUGS: create_attack_group called while freezed", {r = 200, g = 99, b = 99}) return end --EVL not supposed to happen
 	local threat = global.bb_threat[biter_force_name]
 	if get_active_threat(biter_force_name) > threat * 1.20 then 
-		if global.bb_biters_debug then game.print("          Debugs: Enough threat ("..get_active_threat(biter_force_name)..") on " .. force_name .." side > [color=#FFFFFF]skipping[/color] group [color=#FFFFFF]#"..group_numero.."[/color]", {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug2 then game.print("          Debugs: Enough threat ("..get_active_threat(biter_force_name)..") on " .. force_name .." side > [color=#FFFFFF]skipping[/color] group [color=#FFFFFF]#"..group_numero.."[/color]", {r = 99, g = 99, b = 99}) end
 		return
 	end
 	if threat <= 0 then 
-		if global.bb_biters_debug then game.print("          Debugs: Threat is negative ["..force_name.."] [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug2 then game.print("          Debugs: Threat is negative ["..force_name.."] [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return false 
 	end
 	local _active_biter_count = get_active_biter_count(biter_force_name, false)
 	if bb_config.max_active_biters - _active_biter_count < bb_config.max_group_size then
-		if global.bb_biters_debug then game.print("          Debugs: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. (bb_config.max_active_biters-_active_biter_count).." [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug2 then game.print("          Debugs: Not enough slots for biters for team " .. force_name .. ". Available slots: " .. (bb_config.max_active_biters-_active_biter_count).." [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return false
 	end
 	local side_target = get_target_entity(force_name)
 	if not side_target then
-		if global.bb_biters_debug then game.print("          Debugs: No side target found for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug2 then game.print("          Debugs: No side target found for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return
 	end
 	local spawner = get_nearby_biter_nest(side_target)
 	if not spawner then
-		if global.bb_biters_debug then game.print("          Debugs: No spawner found for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug2 then game.print("          Debugs: No spawner found for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return
 	end
 	local unit_group_position = get_unit_group_position(spawner)
 	if not unit_group_position then 
-		if global.bb_biters_debug then game.print("          Debugs: failed to get unit_group_position for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
+		if global.bb_biters_debug2 then game.print("          Debugs: failed to get unit_group_position for " .. force_name .. " (in create_attack_group) [color=#FFFFFF]skipping[/color] group #"..group_numero, {r = 99, g = 99, b = 99}) end
 		return 
 	end
 	--if global.bb_biters_debug2 then game.print("          DeBUGs : Calling select_units_around_spawner (#"..group_numero .. ").", {r = 99, g = 99, b = 99}) end
@@ -557,10 +555,33 @@ local function create_attack_group(surface, force_name, biter_force_name, group_
 	end
 	local unit_group = surface.create_unit_group({position = unit_group_position, force = biter_force_name})
 	for _, unit in pairs(units) do unit_group.add_member(unit) end
+	if global.bb_biters_debug2 then game.print("          DeBUGs : New group #"..group_numero.." (id:"..unit_group.group_number..") with "..#unit_group.members.." units on "..force_name.." side.", {r = 99, g = 99, b = 99}) end
+	
 	--EVL Now we send group
 	--if global.bb_biters_debug then game.print("          DeBUGs : Call send_group (#"..group_numero .. ").", {r = 99, g = 99, b = 99}) end
 	send_group(unit_group, force_name, side_target, group_numero)
-	global.unit_groups[unit_group.group_number] = unit_group
+	
+
+	
+	-- In simulation mode, group is immediatly destroyed
+	local opponent_force_name="north"
+	if force_name=="north" then opponent_force_name="south" end
+	if (global.training_mode and global.pattern_training[opponent_force_name]["active"]) then -- Simulation mode
+		local biter_force_name=force_name.."_biters"
+		for _, unit in pairs(units) do 
+			surface.create_entity({name = "flying-text",position = unit.position,text = "#"..group_numero, color = {r=0.98, g=0.66, b=0.66}})
+			global.active_biters[biter_force_name][unit.unit_number] = nil
+			--global.bb_threat[biter_force_name] = global.bb_threat[biter_force_name] - threat_values[unit.name] delay of threat removals by 2 min
+			--Sum the virtual threat of this group with all groups for this side, will be removed just before we create new waves (so 2 min later)
+			global.virtual_threat[force_name] = global.virtual_threat[force_name] + threat_values[unit.name]
+			unit.destroy()
+		end
+		if global.bb_biters_debug2 then game.print("          DeBUGs : Destroyed last group #"..group_numero.." (id:"..unit_group.group_number..") with "..#unit_group.members.." unit on "..force_name.." side [font=default-small](simulation active)[/font].", {r = 99, g = 99, b = 99}) end
+		--EVL in case of, we destroy LuaUnitGroup
+		if unit_group.valid then unit_group.destroy()end
+	else -- Regular modes (not simulation)
+		global.unit_groups[unit_group.group_number] = unit_group
+	end
 end
 
 Public.pre_main_attack = function()
@@ -569,40 +590,63 @@ Public.pre_main_attack = function()
 	if global.main_attack_wave_amount > 0 then --EVL we still have waves to send
 		if global.bb_biters_debug then game.print("DEBUGS: pre_main_attack called while amount>O (groups still have to be sent, this alert caused by freeze/unfreeze at ~bad~ timings", {r = 192, g = 77, b = 77}) end --EVL
 		return 
-	end 
-	if not global.training_mode or (global.training_mode and #game.forces[force_name].connected_players > 0) then
-		local biter_force_name = force_name .. "_biters"
-		global.main_attack_wave_amount = math.ceil(get_threat_ratio(biter_force_name) * 7)
-		if global.main_attack_wave_amount < 2 then global.main_attack_wave_amount=2 end --EVL even if one team is far ahead, we want at least 2 waves : so waves are 0 (if threat<0) or in 2..7 range
+	end
+	-- Simulation mode : we have some threat to remove from global threat before sending new groups
+	-- In other words, simulation will remove threat from virtual groups after 2 min
+	-- If not delayed, simulation becomes very hard due to sending always 6 or 7 groups to training team
+	if global.virtual_threat[force_name]>0 then 
+		global.bb_threat[force_name.."_biters"] = global.bb_threat[force_name.."_biters"] - global.virtual_threat[force_name]
+		if global.bb_biters_debug then game.print(">>>>> Simulation mode : Removed "..global.virtual_threat[force_name].." virtual threat to "..force_name,{r = 77, g = 192, b = 192}) end
+		global.virtual_threat[force_name]=0
+	end
+	
+	--EVL virtually send groups to team which is simulated (via patterns of sendings)
+
+	local opponent_force_name="north"
+	local real_threat_ratio=0
+	if force_name=="north" then opponent_force_name="south" end
+	if not global.training_mode or (global.training_mode and #game.forces[force_name].connected_players > 0) or (global.training_mode and global.pattern_training[opponent_force_name]["active"]) then --if tournament mode OR regular training mode with players OR simulation training mode
+		real_threat_ratio=get_threat_ratio(force_name .. "_biters") * 7
+		global.main_attack_wave_amount = math.ceil(real_threat_ratio)
 		
-		--In training mode with only one team (which is supposed to be the case), global.main_attack_wave_amount will always be=7 (due to threat ratio)
-		--Well, if 2 teams are training we still override threat_ratio (it doesnt have any sense anyway)
+		--In training mode with only one team (which is supposed to be the case), global.main_attack_wave_amount will always be=7 (due to threat ratio) --to  update with simulation conditions
+		--Well, if 2 teams are training we still override threat_ratio (it doesnt have any sense anyway)--to  update with simulation conditions
 		if global.training_mode then 
-			if global.wave_training[force_name]["active"] then --/wavetrain command is active
+			if global.wave_training[force_name]["active"] then --/wavetrain command is active, override simulation mode
 				global.main_attack_wave_amount=global.wave_training[force_name]["number"]
 				game.print(">>>>> Training Mode, override waves of biters : [color=#FFFFFF]"..global.wave_training[force_name]["number"].."[/color] group(s) are about to be sent to [color=#FFFFFF]"
 							..force_name.."[/color] side (asked by "..global.wave_training[force_name]["player"]..").",{r = 77, g = 192, b = 192})
-			else --/wavetrain command is off, number of waves is random
-				global.main_attack_wave_amount=math.random(3,6) -- EVL little patch for training mode need TODO and add threat to opponents too ?
+			elseif global.pattern_training[force_name]["active"] then -- /simulation mode is activefor this team (so we keep threat ratio)
+				if global.bb_biters_debug then game.print(">>>>> Training Mode, simulation for "..force_name,{r = 77, g = 192, b = 192}) end
+			elseif global.pattern_training[opponent_force_name]["active"] then -- /simulation mode is active for opponent team (so we keep threat ratio)
+				if global.bb_biters_debug then game.print(">>>>> Training Mode, simulation for "..opponent_force_name,{r = 77, g = 192, b = 192}) end
+			else -- no simulation mode, no wavetrain override so we take random amount of waves
+				if global.bb_biters_debug then game.print(">>>>> Training Mode, regular mode for "..opponent_force_name,{r = 77, g = 192, b = 192}) end 
+				global.main_attack_wave_amount=math.random(3,6) -- EVL little patch for regular training mode (so its not 7 groups each time)
 			end
 		end
+		if global.main_attack_wave_amount < 2 then global.main_attack_wave_amount=2 end --EVL even if one team is far ahead, we want at least 2 waves : so waves are 0 (if threat<0) or in 2..7 range
 
-		--CHANGE THIS TO SHOW ADMINS ONLY ? (probably no)
-		if global.bb_biters_debug then game.print("DEBUGS: UP TO "..global.main_attack_wave_amount .. " unit groups designated for " .. force_name .. " biters. [threats N="
-		..math.floor(global.bb_threat["north_biters"]).." S="..math.floor(global.bb_threat["south_biters"]).."]", {r = 192, g = 77, b = 77}) end --EVL
-	else
+	else -- regular training mode without players 
 		global.main_attack_wave_amount = 0
+		game.print(">>>>> Training Mode, no player found at "..force_name,{r = 77, g = 192, b = 192})
 	end
-	
+	-- VERBOSE
+	if global.bb_debug then game.print(">>>>> Up to "..global.main_attack_wave_amount.." [font=default-small](real value:"..(math.floor(real_threat_ratio*100)/100)..")[/font] groups"
+		.." designated for " .. force_name .. " biters. [threats N="..math.floor(global.bb_threat["north_biters"]).." S="..math.floor(global.bb_threat["south_biters"]).."]", {r = 77, g = 192, b = 192}) end --EVL
+
+
 end
 
 
 Public.perform_main_attack = function()
 	--if global.bb_biters_debug then game.print("start of main_attack #"..global.main_attack_wave_amount) end
 	if global.freeze_players then return end -- EVL we dont send groups while freezed
-	local number = (game.tick % 900)/60 --#call from tick functions (main.lua)
 
-	if number==1 and global.bb_biters_debug then show_way_points_table(global.way_points_table) end --show the table at the beginning of the main attacks
+	if global.bb_biters_debug2 and ((game.tick % 900)/60)==1 then  --show the table at the beginning of the main attacks
+		show_way_points_table(global.way_points_table)
+	end
+
 	if global.main_attack_wave_amount > 0 then
 		--if global.bb_biters_debug then game.print("--------START OF SENDING GROUP#"..global.main_attack_wave_amount.."------", {r = 99, g = 99, b = 99}) end
 		local surface = game.surfaces[global.bb_surface_name]
@@ -611,7 +655,7 @@ Public.perform_main_attack = function()
 		if global.bb_biters_debug2 then game.print("  DeBUGs : Call create_attack_group (#"..global.main_attack_wave_amount .. ").", {r = 99, g = 99, b = 99}) end
 		create_attack_group(surface, force_name, biter_force_name, global.main_attack_wave_amount)
 		global.main_attack_wave_amount = global.main_attack_wave_amount - 1
-		if global.main_attack_wave_amount==0 and global.bb_biters_debug then  --show the table at the end of the main attacks
+		if global.bb_biters_debug2 and global.main_attack_wave_amount==0 then  --show the table at the end of the main attacks
 			show_way_points_table(global.way_points_table) 
 			game.print("‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒‒", {r = 50, g = 50, b = 50})
 		end
@@ -671,7 +715,7 @@ Public.raise_evo = function()
 		return 
 	end
 
-	--EVL LINE BELOW TO UNCOMMENT AFTER TESTING --CODING--
+	--EVL Tournament mode, no natural evo until game has started
 	if not global.training_mode and (#game.forces.north.connected_players == 0 or #game.forces.south.connected_players == 0) then return end
 
 
@@ -689,14 +733,18 @@ Public.raise_evo = function()
 
 	local biter_teams = {["north_biters"] = "north", ["south_biters"] = "south"}
 	local a_team_has_players = false
+	
 	for bf, pf in pairs(biter_teams) do
-		--EVL LINE BELOW TO UNCOMMENT AFTER TESTING  --CODING--
-		if #game.forces[pf].connected_players > 0 then --CODING--
+		--EVL Natural evolution is applied to opponent team when pattern-training (ie simulation) is active
+		local simul_pf="north"
+		if pf=="north" then simul_pf="south" end
+		
+		if #game.forces[pf].connected_players > 0 or global.pattern_training[simul_pf]["active"] then --EVL we may have no players but simulation active
 			set_evo_and_threat(amount, "automation-science-pack", bf)
 			a_team_has_players = true
-			global.bb_evolution[bf] = global.bb_evolution[bf] + global.evo_boost_values[bf] --EVL we boost EVO (but not threat)
+			global.bb_evolution[bf] = global.bb_evolution[bf] + global.evo_boost_values[bf] --EVL ARMAGEDDON we boost EVO (but not threat)
 			--game.print("evo "..bf.."="..global.bb_evolution[bf]) --EVL debug
-		end --CODING--
+		end 
 	end
 	if not a_team_has_players then return end
 	global.evo_raise_counter = global.evo_raise_counter + (1 * 0.50)

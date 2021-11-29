@@ -10,9 +10,10 @@ local table_insert = table.insert
 local table_remove = table.remove
 local string_find = string.find
 
---EVL Publicity for hosts
-local MDiscord="French Discord https://discord.gg/d2ja9wUd"
+--EVL Publicity for hosts --CODING--
+--local MDiscord="French Discord https://discord.gg/d2ja9wUd"
 --local MDiscord="FreeBB Discord https://discord.gg/yBGYCg5J"
+local MDiscord="YOURSELF :-)"
 
 -- Only add upgrade research balancing logic in this section
 -- All values should be in tables.lua
@@ -421,7 +422,7 @@ function Public.show_intro(player)
 	local Mtitle=""
 	Mtitle=Mtitle.."[font=default-large-bold][color=#FF5555]                                            "
 	Mtitle=Mtitle.."--- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ![/color][/font]"
-	Mtitle=Mtitle.."                      [color=#DDDDDD]https://bbchampions.org[/color]    v0.94" --CODING--
+	Mtitle=Mtitle.."                      [color=#DDDDDD]https://bbchampions.org[/color]    v0.95" --CODING--
 	local title = frame.add {type = "label" , name = "biter_battles_map_title", caption = Mtitle} 
 	title.style.single_line = false
 	title.style.font = "default"
@@ -444,7 +445,6 @@ function Public.show_intro(player)
 	t2.style.single_line = false
 	t2.style.font = "default"
 	t2.style.font_color = {r=0.7, g=0.6, b=0.99}
-	
 	
 	--MAPINFO
 	local Minfo=""
@@ -501,7 +501,7 @@ function Public.show_intro_next(player)
 
 	local Minfo=""
 	Minfo=Minfo.."[font=default-large-bold][color=#FF5555]                                    --- WELCOME  TO  [/color][color=#5555FF]BITER[/color]  [color=#55FF55]BATTLES[/color]  [color=#FF5555]CHAMPIONSHIPS ---[/color][/font]"
-	Minfo=Minfo.."                         [color=#DDDDDD]https://bbchampions.org[/color]    v0.94\n" --CODING--
+	Minfo=Minfo.."                         [color=#DDDDDD]https://bbchampions.org[/color]    v0.95\n" --CODING--
 	Minfo=Minfo.."\n"
 	Minfo=Minfo.."[font=default-bold][color=#FF9740]Some more details about Biter Battles and BBC : [/color][/font]"
 	Minfo=Minfo.."\n"
@@ -548,7 +548,7 @@ end
 --EVL Frame with Packs listing (repair pack)
 function Public.show_bbc_packs(player)
 	if player.gui.center["bbc_packs_frame"] then player.gui.center["bbc_packs_frame"].destroy() end
-	local frame = player.gui.center.add {type = "frame", name = "bbc_packs_frame", caption = "STARTER PACKS   (clic to expand)", direction = "vertical"}
+	local frame = player.gui.center.add {type = "frame", name = "bbc_packs_frame", caption = "STARTER PACKS   (click to expand)", direction = "vertical"}
 	local t = frame.add({type = "table", name = "bbc_packs_root_table", column_count = Tables.packs_total_nb})
 	t.vertical_centering=false
 	local _pack_score={} -- EVL the score of total items (sum of qtity * item_value)

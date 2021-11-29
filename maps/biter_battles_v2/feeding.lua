@@ -39,7 +39,9 @@ local function set_biter_endgame_modifiers(force)
 end
 
 local function get_enemy_team_of(team)
-	if global.training_mode then
+	if global.training_mode and global.pattern_training[team]["active"] then
+		return enemy_team_of[team]
+	elseif global.training_mode then
 		return team
 	else
 		return enemy_team_of[team]
@@ -93,14 +95,15 @@ local function add_stats(player, food, flask_amount,biter_force_name,evo_before_
 	}
 	if flask_amount > 0 then
 		local tick = game.ticks_played - global.freezed_time --EVL correction to science sendings timing
+		--may need a --DEBUG-- (if sendings happens during frozen mode, because global.freezed_time is not updated until unfreeze)
 		local feed_time_mins = math.round(tick / (60*60), 0)
-		local minute_unit = ""
+		--[[local minute_unit = ""
 		if feed_time_mins <= 1 then
 			minute_unit = "min"
 		else
 			minute_unit = "mins"
-		end
-
+		end]]
+		local minute_unit = "min" --EVL we dont need S, sending is done at THAT min
 		
 		
 		local shown_feed_time_hours = ""
@@ -116,7 +119,23 @@ local function add_stats(player, food, flask_amount,biter_force_name,evo_before_
 		local evo_jump_difference =  math.round(formatted_evo_after_feed - evo_before_science_feed,1)
 		local threat_jump_difference =  math.round(formatted_threat_after_feed - threat_before_science_feed,0)
 		local line_log_stats_to_add = table.concat({ formatted_amount .. " " .. formatted_food .. " by " .. colored_player_name .. " to " })
-		local team_name_fed_by_science = get_enemy_team_of(player.force.name)
+		
+		--EVL Patch so log registers sendings by spec/admins via team_manager>config training
+		local team_name_fed_by_science = ""
+		if player.force.name == "south" or player.force.name == "north" then 
+			team_name_fed_by_science = get_enemy_team_of(player.force.name)
+		else
+			if global.training_mode then
+				if biter_force_name=="north_biters" then
+					team_name_fed_by_science = "north"
+				else
+					team_name_fed_by_science = "south"
+				end
+			else --we have a bug
+				if global.bb_debug then game.print("Debug : unable to add log (player sent flasks without being spec/god/admin).",{r = 175, g = 25, b = 25}) end
+				team_name_fed_by_science = "north" -- we have to choose something in case of
+			end
+		end
 		
 		if global.science_logs_total_north == nil then
 			global.science_logs_total_north = { 0 }
@@ -126,12 +145,23 @@ local function add_stats(player, food, flask_amount,biter_force_name,evo_before_
 				table.insert(global.science_logs_total_south, 0)
 			end
 		end
-		
+		--EVL Patch so log registers sendings by spec/admins via team_manager>config training
 		local total_science_of_player_force = nil
 		if player.force.name == "north" then
 			total_science_of_player_force  = global.science_logs_total_north
-		else
+		elseif player.force.name == "south" then
 			total_science_of_player_force  = global.science_logs_total_south
+		else
+			if global.training_mode then
+				if biter_force_name=="north_biters" then
+					total_science_of_player_force  = global.science_logs_total_south
+				else
+					total_science_of_player_force  = global.science_logs_total_north
+				end
+			else --we have a bug
+				if global.bb_debug then game.print("Debug : impossible to add log (player sent flasks without being spec/god/admin).",{r = 175, g = 25, b = 25}) end
+				total_science_of_player_force  = global.science_logs_total_north -- we have to choose something in case of
+			end		
 		end
 		
 		local indexScience = tables.food_long_to_short[food].indexScience
@@ -155,6 +185,7 @@ local function add_stats(player, food, flask_amount,biter_force_name,evo_before_
 			table.insert(global.science_logs_threat_jump_difference,1, threat_jump_difference)
 			table.insert(global.science_logs_fed_team,1, team_name_fed_by_science)
 			table.insert(global.science_logs_food_name,1, food)
+			table.insert(global.science_logs_food_qtity,1, flask_amount)
 		else
 			global.science_logs_date = { formatted_feed_time }
 			global.science_logs_text = { line_log_stats_to_add }
@@ -164,6 +195,7 @@ local function add_stats(player, food, flask_amount,biter_force_name,evo_before_
 			global.science_logs_threat_jump_difference = { threat_jump_difference }
 			global.science_logs_fed_team = { team_name_fed_by_science }
 			global.science_logs_food_name = { food }
+			global.science_logs_food_qtity = { flask_amount }
 		end
 	end
 end
@@ -175,7 +207,7 @@ function set_evo_and_threat(flask_amount, food, biter_force_name)
 	local instant_threat_player_count_modifier = get_instant_threat_player_count_modifier()
 	
 	local food_value = food_values[food].value * global.difficulty_vote_value
-	
+
 	for _ = 1, flask_amount, 1 do
 		---SET EVOLUTION
 		local e2 = (game.forces[biter_force_name].evolution_factor * 100) + 1
@@ -201,7 +233,7 @@ function set_evo_and_threat(flask_amount, food, biter_force_name)
 	set_biter_endgame_modifiers(game.forces[biter_force_name])
 end
 
-local function feed_biters(player, food, mode)	
+local function feed_biters(player, food, qtity, mode)	
 	--EVL NOPE (science pack cand send science right at the beginning)
 	--if game.ticks_played < global.difficulty_votes_timeout then
 	--	player.print("Please wait for voting to finish before feeding")
@@ -211,10 +243,10 @@ local function feed_biters(player, food, mode)
 	local biter_force_name = ""
 	local flask_amount = 0
 
-	if mode == "regular" then --Regular sending (now we have also auto-sendings with /training command
-		enemy_force_name = get_enemy_team_of(player.force.name)  --return opponent unless training mode
+	if mode == "regular" then --Regular sending (now we have also auto-sendings with /training command and with team_manager>config training
+		enemy_force_name = get_enemy_team_of(player.force.name)  --return opponent tournament mode or in pattern_training (ie simulation);  or self in other training modes
 		biter_force_name = enemy_force_name .. "_biters"
-		local i = player.get_main_inventory()
+		local i = player.get_main_inventory() -- not working if stack of science is in hand ;) and we don't care
 		flask_amount = i.get_item_count(food)
 		if flask_amount == 0 then
 			player.print("You have no [color="..food_values[food].color.."]" .. food_values[food].name .. "[/color] flask [img=item/".. food.. "] in your inventory.", {r = 0.98, g = 0.66, b = 0.22})
@@ -222,21 +254,30 @@ local function feed_biters(player, food, mode)
 		end
 		i.remove({name = food, count = flask_amount})
 		print_feeding_msg(player, food, flask_amount)	
-	--Auto-training mode for north
-	elseif mode=="north" then
+	
+	elseif mode=="north_biters" then 	--Auto-training mode for north and single sendings (evo&threat applied to self)
 		enemy_force_name = "north"
 		biter_force_name = enemy_force_name .. "_biters"
-		flask_amount = global.auto_training["north"]["qtity"]
-	--Auto-training mode for south
-	elseif mode=="south" then
+		flask_amount = qtity 
+	elseif mode=="south_biters" then 	--Auto-training mode for south and single sendings (evo&threat applied to self)
 		enemy_force_name = "south"
 		biter_force_name = enemy_force_name .. "_biters"
-		flask_amount = global.auto_training["south"]["qtity"]		
+		flask_amount = qtity 
+
+	elseif mode=="north" then 			--Pattern-training (ie Simulation mode) (evo&threat applied to other team)
+		enemy_force_name = "south"
+		biter_force_name = enemy_force_name .. "_biters"
+		flask_amount = qtity 
+	elseif mode=="south" then 			--Pattern-training (ie Simulation mode) (evo&threat applied to other team)
+		enemy_force_name = "north"
+		biter_force_name = enemy_force_name .. "_biters"
+		flask_amount = qtity 
 	--Oups
 	else
 		if global.bb_debug then game.print(">>>>> feed_biters (from feeding.lua) was called with inappropriate arguments. Skipping...", {r = 0.98, g = 0.66, b = 0.22}) end
 		return
 	end
+	--game.print(" Admin "..player.name.." sent "..flask_amount.." science ("..food..") to "..biter_force_name)
 	
 	local evolution_before_feed = global.bb_evolution[biter_force_name]
 	local threat_before_feed = global.bb_threat[biter_force_name]	
@@ -252,27 +293,27 @@ commands.add_command( --/training qty-science-delay
 	..'     Use [color=#999999]/training off[/color] to cancel sendings.',
 	function(cmd)
 		local _player = cmd.player_index
-		if not game.players[_player] then game.print("OUPS that should not happen (in <</training>> command)", {r = 175, g = 100, b = 100}) return end
+		if not game.players[_player] then game.print(">>>>> OUPS that should not happen (in <</training>> command)", {r = 175, g = 100, b = 100}) return end
 		if not global.training_mode then
-			game.players[_player].print("/training command can only be used in training mode...", {r = 175, g = 100, b = 100})
+			game.players[_player].print("<</training>> command can only be used in training mode...", {r = 175, g = 100, b = 100})
 			return
 		end
 
 		local _force = game.players[_player].force.name
 		if _force~="north" and _force~="south" then
-			game.players[_player].print("You can only use /training command when playing on one side...", {r = 175, g = 100, b = 100})
+			game.players[_player].print("You can only use <</training>> command when playing on one side...", {r = 175, g = 100, b = 100})
 			return
 		end
 		local _param1= tostring(cmd.parameter)
 		--Sets off the auto training command
 		if _param1=="off" or _param1=="OFF" then
 			global.auto_training[_force]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0}
-			game.print(">>>>> Auto-training mode canceled/deactivated by [color=#FFFFFF]"..game.players[_player].name.."[/color] for ".._force.." side", {r = 77, g = 192, b = 192})			
+			game.print(">>>>> Auto-training mode canceled/deactivated by [font=default-large-bold][color=#FFFFFF]"..game.players[_player].name.."[/color][/font] for [font=default-large-bold][color=#FFFFFF]".._force.."[/color][/font] side", {r = 77, g = 192, b = 192})			
 			return
 		end
 		--Tests & Find parameters (qtity,science,timing)
 		if string.len(_param1)<7 then
-			game.players[_player].print("Please type [color=#FFFFFF]/training X-YYYY-Z[/color] with X=quantity | YYYY=(auto|logi|mili|chem|prod|util|spac) | Z=delay (in minutes)", {r = 175, g = 100, b = 100})
+			game.players[_player].print("Please type [color=#FFFFFF]/training X-YYYY-Z[/color] with X=quantity | YYYY=(auto|logi|mili|chem|prod|util|spac) | Z=frequency (in minutes)", {r = 175, g = 100, b = 100})
 			return
 		end
 		--Find the first param (quantity)
@@ -319,11 +360,17 @@ commands.add_command( --/training qty-science-delay
 			return
 		end
 		--OK WE HAVE ALL WE NEED
-		global.auto_training[_force]={["player"]=game.players[_player].name,["active"]=true,["qtity"]=_qtity,["science"]=_science_long,["timing"]=_timing}
-		
+
+		-- DEACTIVATE SIMULATION : incompatibility between auto-training and pattern-training (simulation)
+		if global.pattern_training[_force]["active"] then
+			game.print(">>>>> Deactivation of Pattern-training (ie simulation), incompatible with auto-training.", {r = 125, g = 100, b = 100})
+			global.pattern_training[_force] = {["player"]="",["active"]=false,["gameid"]=0}
+		end	
+		-- SET auto-training parameters
+		global.auto_training[_force]={["player"]=game.players[_player].name,["active"]=true,["qtity"]=_qtity,["science"]=_science_long,["timing"]=_timing}		
 		-- print
-		game.print(">>>>> Auto-training mode activated by [color=#FFFFFF]"..game.players[_player].name.."[/color] for [color=#FFFFFF]".._force.."[/color] side : [color=#FFFFFF]"
-				.._qtity.."[/color] flasks of [color="..food_values[_science_long].color.."]".._science_long.."[/color] will be sent every [color=#FFFFFF]".._timing.."[/color] minute(s)", {r = 77, g = 192, b = 192})
+		game.print(">>>>> Auto-training mode activated by [font=default-large-bold][color=#FFFFFF]"..game.players[_player].name.."[/color][/font] for [font=default-large-bold][color=#FFFFFF]".._force.."[/color][/font] side : [font=default-large-bold][color=#FFFFFF]"
+				.._qtity.."[/color][/font] flasks of [color="..food_values[_science_long].color.."]".._science_long.."[/color] will be sent every [font=default-large-bold][color=#FFFFFF]".._timing.."[/color][/font] minute(s)", {r = 77, g = 192, b = 192})
 		return
     end
 )
@@ -337,20 +384,20 @@ commands.add_command( --/wavetrain number
 		local _player = cmd.player_index
 		if not game.players[_player] then game.print("OUPS that should not happen (in <</wavetrain>> command)", {r = 175, g = 100, b = 100}) return end
 		if not global.training_mode then
-			game.players[_player].print("/wavetrain command can only be used in training mode...", {r = 175, g = 100, b = 100})
+			game.players[_player].print("<</wavetrain>> command can only be used in training mode...", {r = 175, g = 100, b = 100})
 			return
 		end
 
 		local _force = game.players[_player].force.name
 		if _force~="north" and _force~="south" then
-			game.players[_player].print("You can only use /wavetrain when playing on one side...", {r = 175, g = 100, b = 100})
+			game.players[_player].print("You can only use <</wavetrain>> when playing on one side...", {r = 175, g = 100, b = 100})
 			return
 		end
 		local _param1= tostring(cmd.parameter)
 		--Sets off the auto training command
 		if _param1=="off" or _param1=="OFF" then
 			global.wave_training[_force]={["player"]="",["active"]=false,["number"]=0}
-			game.print(">>>>> Wave-training mode canceled/deactivated by [color=#FFFFFF]"..game.players[_player].name.."[/color] for ".._force.." side. Back to random(3,6).", {r = 77, g = 192, b = 192})			
+			game.print(">>>>> Wave-training mode canceled/deactivated by [font=default-large-bold][color=#FFFFFF]"..game.players[_player].name.."[/color][/font] for [font=default-large-bold][color=#FFFFFF]".._force.."[/color][/font] side. Back to random(3,6).", {r = 77, g = 192, b = 192})			
 			return
 		end
 		local _number = tonumber(cmd.parameter)
@@ -360,10 +407,10 @@ commands.add_command( --/wavetrain number
 		end
 		--OK WE HAVE ALL WE NEED
 		global.wave_training[_force]={["player"]=game.players[_player].name,["active"]=true,["number"]=_number}
-		
+		-- DEACTIVATE SIMULATION ??? (need to think deep about this) --CODING--
 		-- print
-		game.print(">>>>> Wave-training mode activated by [color=#FFFFFF]"..game.players[_player].name.."[/color] : [color=#FFFFFF]"
-				.._number.."[/color] wave(s) of biters will attack [color=#FFFFFF]".._force.."[/color] side every two minutes.", {r = 77, g = 192, b = 192})
+		game.print(">>>>> Wave-training mode activated by [font=default-large-bold][color=#FFFFFF]"..game.players[_player].name.."[/color][/font] : [font=default-large-bold][color=#FFFFFF]".._number
+			.."[/color][/font] wave(s) of biters will attack [font=default-large-bold][color=#FFFFFF]".._force.."[/color][/font] side every [font=default-large-bold][color=#FFFFFF]2[/color][/font] minutes.", {r = 77, g = 192, b = 192})
 		return
     end
 )

@@ -100,7 +100,7 @@ local function add_science_logs(player, element)
 	science_scrollpanel.add({type = "line"})
 	
 	--EVL BOOST mode infos
-	local t_boost_info = "   Note : ARMAGEDDON/BOOST mode (after ".. math.floor(global.evo_boost_tick/3600) .." minutes) does not appear here (TODO)"
+	local t_boost_info = "   Note : ARMAGEDDON (after ".. math.floor(global.evo_boost_tick/3600) .." minutes) does not appear here (TODO)"
 	local t_boost = science_scrollpanel.add {type = "label", name = "science_logs_boost_info", caption = t_boost_info }
 	t_boost.style.font_color = { r=0.66, g=0.66, b=0.66 }
 	science_scrollpanel.add({type = "line"})
@@ -122,11 +122,25 @@ local function add_science_logs(player, element)
 
 	
 	
-	local t_filter = science_scrollpanel.add { type = "table", name = "science_logs_filter_table", column_count = 3 }
+	local t_filter = science_scrollpanel.add { type = "table", name = "science_logs_filter_table", column_count = 5 }
 	
 	local dropdown_force = t_filter.add { name = "dropdown-force", type = "drop-down", items = forces_list, selected_index = global.dropdown_users_choice_force[player.name] }
 	local dropdown_science = t_filter.add { name = "dropdown-science", type = "drop-down", items = science_list, selected_index = global.dropdown_users_choice_science[player.name] }
 	local dropdown_evofilter = t_filter.add { name = "dropdown-evofilter", type = "drop-down", items = evofilter_list, selected_index = global.dropdown_users_choice_evo_filter[player.name] }
+	--EVL Add export button for simulation mode (ie pattern-training)
+	t_filter.add({ type = "label", caption = "     "})
+	if player.name=="everLord" then
+		local button = t_filter.add({
+				type = "button",
+				name = "science_logs_export_sendings",
+				caption = "  Export sendings  ",
+				tooltip = "Into file <<script-output/sendings_xxxx.txt>>."
+			})
+		button.style.font_color = {r=0.10, g=0.5, b=0.1}
+		button.style.height = 20
+		button.style.top_padding = -5
+		button.style.horizontal_align = "center"
+	end
 	
 	local t = science_scrollpanel.add { type = "table", name = "science_logs_header_table", column_count = 4 }
 	local column_widths = {tonumber(75), tonumber(310), tonumber(165), tonumber(230)}
@@ -137,13 +151,13 @@ local function add_science_logs(player, element)
 		[4] = "Threat jump",
 	}
 	for _, w in ipairs(column_widths) do
-	local label = t.add { type = "label", caption = headers[_] }
-	label.style.minimal_width = w
-	label.style.maximal_width = w
-	label.style.font = "default-bold"
-	label.style.font_color = { r=0.98, g=0.66, b=0.22 }
-	if _ == 1 then
-		label.style.horizontal_align = "center"
+		local label = t.add { type = "label", caption = headers[_] }
+		label.style.minimal_width = w
+		label.style.maximal_width = w
+		label.style.font = "default-bold"
+		label.style.font_color = { r=0.98, g=0.66, b=0.22 }
+		if _ == 1 then
+			label.style.horizontal_align = "center"
 		end
 	end
 	
@@ -239,3 +253,135 @@ end
 event.add(defines.events.on_gui_selection_state_changed, on_gui_selection_state_changed)
 
 comfy_panel_tabs["MutagenLog"] = {gui = build_config_gui, admin = false}
+
+local Public = {}
+function Public.science_logs_export_sendings(event)
+	
+	local _exp_north = {}			-- TABLE SENDINGS FROM NORTH
+	local _exp_south = {}			-- TABLE SENDINGS FROM SOUTH
+	
+	if global.science_logs_date and #global.science_logs_date>0 then
+		_exp_north["Collect"]={}		
+		_exp_north["Pattern"]={}
+		_exp_south["Collect"]={}
+		_exp_south["Pattern"]={}
+
+		--COLLECT THE SENDINGS BY SIDE
+		for i = 1, #global.science_logs_date, 1 do
+			local _min = tonumber(string.sub(global.science_logs_date[i],0,-4))
+			local _food = food_long_to_short[global.science_logs_food_name[i]].short_name
+			local _qtity=global.science_logs_food_qtity[i]
+			
+			if global.science_logs_fed_team[i]=="south" then
+				--game.print("North | ".._min.." min | Food: ".._food.." | Qtity:".._qtity.." | Text:"..global.science_logs_text[i].." | "..global.science_logs_fed_team[i])
+				if not(_exp_north["Collect"][_min]) then _exp_north["Collect"][_min]={} end
+				if _exp_north["Collect"][_min][_food] then
+					_exp_north["Collect"][_min][_food]=_exp_north["Collect"][_min][_food]+_qtity
+				else
+					_exp_north["Collect"][_min][_food]=_qtity
+				end
+
+			elseif global.science_logs_fed_team[i]=="north" then
+				--game.print("South | ".._min.." min | Food: ".._food.." | Qtity:".._qtity.." | Text:"..global.science_logs_text[i].." | "..global.science_logs_fed_team[i])
+				if not(_exp_south["Collect"][_min]) then _exp_south["Collect"][_min]={} end
+				if _exp_south["Collect"][_min][_food] then
+					_exp_south["Collect"][_min][_food]=_exp_south["Collect"][_min][_food]+_qtity
+				else
+					_exp_south["Collect"][_min][_food]=_qtity
+				end					
+			else 
+				game.print("WTF?? | ".._min.." min | Food: "..global.science_logs_food_name[i].." | Qtity:".._qtity.." | Text:"..global.science_logs_text[i].." | "..global.science_logs_fed_team[i])
+			end
+		end
+		--game.print("--------------------------------------------------------------------------------------------")
+
+		
+		--CONCAT THE SENDINGS OF NORTH SIDE
+		for _min,_sendings in pairs(_exp_north["Collect"]) do
+			_exp_north["Pattern"][_min]=''
+			for _science=1,7,1 do
+				if _sendings[food_long_and_short[_science].short_name] then
+					_exp_north["Pattern"][_min]=_exp_north["Pattern"][_min]..'"'..food_long_and_short[_science].short_name..'",'.._sendings[food_long_and_short[_science].short_name]..','
+				end
+			end
+			_exp_north["Pattern"][_min]=string.sub(_exp_north["Pattern"][_min], 1, string.len(_exp_north["Pattern"][_min])-1) --remove last ","
+			_exp_north["Pattern"][_min]='{'.._exp_north["Pattern"][_min]..'}'
+			--game.print("North | Min ".._min.." | ".._exp_north["Pattern"][_min])
+		end
+		--game.print(".......................")
+		
+		--CONCAT THE SENDINGS OF SOUTH SIDE
+		for _min,_sendings in pairs(_exp_south["Collect"]) do
+			_exp_south["Pattern"][_min]=''
+			for _science=1,7,1 do
+				if _sendings[food_long_and_short[_science].short_name] then
+					_exp_south["Pattern"][_min]=_exp_south["Pattern"][_min]..'"'..food_long_and_short[_science].short_name..'",'.._sendings[food_long_and_short[_science].short_name]..','
+				end
+			end
+			_exp_south["Pattern"][_min]=string.sub(_exp_south["Pattern"][_min], 1, string.len(_exp_south["Pattern"][_min])-1) --remove last ","
+			_exp_south["Pattern"][_min]='{'.._exp_south["Pattern"][_min]..'}'
+			--game.print("South | Min ".._min.." | ".._exp_south["Pattern"][_min])
+		end
+		
+		--EXPORT GLOBAL VALUES
+		local _pack_chosen=global.pack_choosen
+		if _pack_chosen=="" then _pack_chosen="pack_xx" end
+		local output_north_gameid="xx+0"
+		local output_south_gameid="xx+1"
+		local output_file_name="sendings_xxxx"
+		local output_file_append=true
+		if global.game_id and global.game_id~="" then -- what is the game Id (also to determine output file name)
+			if global.game_id=="training" or global.game_id=="scrim" then
+				output_north_gameid=global.game_id.."#north"
+				output_south_gameid=global.game_id.."#south"
+				output_file_name="sendings_"..global.game_id
+				
+			elseif global.game_id%123==0 then
+				output_north_gameid=global.game_id
+				output_south_gameid=global.game_id+1
+				output_file_name="sendings_"..global.game_id
+				--output_file_append=false
+				output_file_append=true --CODING--
+			else 
+				game.print(">>>>> UNABLE TO EXPORT PATTERNS.", {r = 0.99, g = 0.33, b = 0.33})
+				return
+			end
+		end
+		output_file_name=output_file_name..".txt"
+
+		--EXPORT NORTH/SOUTH SENDINGS
+		local output_north_team="North"
+		if global.tm_custom_name["north"] then output_north_team=global.tm_custom_name["north"] end
+		local output_north='Public.detail_game_id['..output_north_gameid..'] = { ["Team"]="'..output_north_team..'", ["Info"]="Pattern info", ["Pack"]="'.._pack_chosen..'", ["Versus"]="'..'South'..'", ["Date"]="dd mon yy",\n'
+		output_north=output_north..'    ["Pattern"]={\n'
+
+		local output_south_team="South"
+		if global.tm_custom_name["south"] then output_south_team=global.tm_custom_name["south"] end
+		local output_south='Public.detail_game_id['..output_south_gameid..'] = { ["Team"]="'..output_south_team..'", ["Info"]="Pattern info", ["Pack"]="'.._pack_chosen..'", ["Versus"]="'..'North'..'", ["Date"]="dd mon yy",\n'
+		output_south=output_south..'    ["Pattern"]={\n'
+
+		-- sorting manually (don't know how to table.sort indexes)
+		for _min=0,300 do -- from min 0 to min 300 meaning 5 first hours.. enough ?
+			if _exp_north["Pattern"][_min] then output_north=output_north..'       ['.._min..']='.. _exp_north["Pattern"][_min]..',\n' end
+			if _exp_south["Pattern"][_min] then output_south=output_south..'       ['.._min..']='.. _exp_south["Pattern"][_min]..',\n' end
+		end
+		
+		output_north=output_north..'       [999]={"logistic",0,"military",0,"chemical",0}\n'
+		output_north=output_north..'    }'
+		--game.print(output_north)
+	
+		--game.print("   ")
+		
+		output_south=output_south..'       [999]={"logistic",0,"military",0,"chemical",0}\n'
+		output_south=output_south..'    }'
+		--game.print(output_south)
+
+		game.write_file(output_file_name, output_north..'\n\n'..output_south..'\n\n__________________________________________\n\n', output_file_append)
+		game.print(">>>>>Sendings exported to file "..output_file_name.. " !", {r = 0.22, g = 0.99, b = 0.55})
+	else
+		game.print("No data to export.")
+	end
+	
+	
+end
+return Public

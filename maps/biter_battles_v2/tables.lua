@@ -94,6 +94,66 @@ Public.food_long_to_short = {
 	["utility-science-pack"] = {short_name= "utility", indexScience = 6},
 	["space-science-pack"] = {short_name= "space", indexScience = 7}
 }
+Public.food_short_to_long = {
+	["automation"] = "automation-science-pack",
+	["logistic"] = "logistic-science-pack",
+	["military"] = "military-science-pack",
+	["chemical"] = "chemical-science-pack",
+	["production"] = "production-science-pack",
+	["utility"] = "utility-science-pack",
+	["space"] = "space-science-pack"
+}
+--EVL config training tables of science/qtity/timing for drop-down (see team_manager)
+Public.food_config_training = { 
+	"[color=#444444]Select science pack[/color]",
+	"[color=#880000]  none (off)[/color]",
+	"[item=automation-science-pack]   Automation", 
+	"[item=logistic-science-pack]   Logistic",
+	"[item=military-science-pack]   Military",
+	"[item=chemical-science-pack]   Chemical",
+	"[item=production-science-pack]   Production",
+	"[item=utility-science-pack]   Utility",
+	"[item=space-science-pack]   Space" 
+}
+Public.qtity_config_training = {
+	"[color=#444444]select quantity[/color]",
+	"[color=#880000]none (off)[/color]",
+	10,
+	25,
+	50,
+	75,
+	100,
+	150,
+	200,
+	300,
+	500,
+}
+Public.timing_config_training = {
+	"[color=#444444]select frequency[/color]",
+	"[color=#880000]never (off)[/color]",
+	"  1 min",
+	"  2 min",
+	"  3 min",
+	"  4 min",
+	"  5 min",
+	"  6 min",
+	"  7 min",
+	"  8 min",
+	"  9 min",
+	"10 min",
+}
+Public.waves_config_training = {
+	" [color=#880000]off (random)[/color]",
+	" 0 (no attack)",
+	" 1 group",
+	" 2 groups",
+	" 3 groups",
+	" 4 groups",
+	" 5 groups",
+	" 6 groups",
+	" 7 (maximum)"
+}
+--EVL end
 
 -- This array contains parameters for spawn area ore patches.
 -- These are non-standard units and they do not map to values used in factorio
@@ -173,7 +233,7 @@ Public.food_value_table_version = { Public.food_values["automation-science-pack"
 	Public.packs_list = {
 		["pack_01"] = {name = "pack_01", title = "Regular", caption = "[img=item.iron-gear-wheel] Regular", tooltip = "Raw materials, free for crafting", item_list=nil },
 		["pack_02"] = {name = "pack_02", title = "Science", caption = "[img=item.lab] Science", tooltip = "Labs, red potions & power", item_list=nil },
-		["pack_03"] = {name = "pack_03", title = "Robots", caption = "[img=item.construction-robot] Robots", tooltip = "One personal robotport", item_list=nil }, -- THIS PACK HAS BONUS (bot speed) -see terrain.lua-
+		["pack_03"] = {name = "pack_03", title = "Robots", caption = "[img=item.construction-robot] Robots", tooltip = "One personal robotport", item_list=nil }, -- THIS PACK HAS BONUS (bot speed x2) -see terrain.lua-
 		["pack_04"] = {name = "pack_04", title = "Combat", caption = "[img=item.grenade] Combat", tooltip = "One heavy armor, fishes, grenades...", item_list=nil } --,
 		--["pack_05"] = {name = "pack_05", title = "Advanced", caption = "[img=item.assembling-machine-2] Advanced", tooltip = "Electric miners & machines MK2", item_list=nil }
 	}
@@ -528,13 +588,13 @@ Public.maxim_players = {
 	["Gamemodefr"]="tbd",
 	["Grob."]="tbd",
 	["heihaa"]="tbd",
-	["Keithy1980"]="tbd",
+	["Keithy1980"]="BRAIIIIIIIIIIIINS",
 	["kenOger"]="tbd",
 	["KlingonIAG"]="Ce n'est pas un bon jour pour mourir! Quelle odeur!?",
 	["Kohonen"]="tbd",
 	["Krono"]="tbd",
 	["Lumis31"]="tbd",
-	["Megafrot"]="tbd",
+	["Megafrot"]="Metafrog, Megafort, Megarofl? Megafrot!",
 	["Monkey Butt Gamer"]="tbd",
 	["mysticamber"]="tbd",
 	["Nefa35"]="tbd",
@@ -543,7 +603,7 @@ Public.maxim_players = {
 	["neuro666"]="tbd",
 	["Phoenix27833"]="tbd",
 	["pompouspercival"]="tbd",
-	["PunkSkeleton"]="tbd",
+	["PunkSkeleton"]="Never imitate others, always find your own way.",
 	["RoronoaJedi"]="tbd",
 	["Slapocreeper"]="schmoovin' n' groovin'",
 	["thePiedPiper"]="tbd",

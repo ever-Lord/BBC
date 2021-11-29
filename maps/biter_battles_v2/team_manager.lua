@@ -1,7 +1,9 @@
 local Public = {}
 local Server = require 'utils.server'
 local Tables = require "maps.biter_battles_v2.tables" --EVL (none)
+local Sendings_Patterns = require "maps.biter_battles_v2.sendings_tab" --EVL (none)
 local Terrain = require "maps.biter_battles_v2.terrain" --EVL (none)
+local feed_the_biters = require "maps.biter_battles_v2.feeding" --EVL to use with config training > single sending
 
 local forces = {
 	{name = "north", color = {r = 0, g = 0, b = 200}},
@@ -385,7 +387,7 @@ local function draw_manager_gui(player)
 	end
 	frame.add({type = "label", caption = ""})	
 	-- END EVL Buttons for packs
-	local t = frame.add({type = "table", name = "team_manager_bottom_buttons", column_count = 4})	
+	local t = frame.add({type = "table", name = "team_manager_bottom_buttons", column_count = 5})	
 	local button = t.add({type = "button", name = "team_manager_close", caption = "Close", tooltip = "Close this window."})
 	button.style.font = "heading-2"
 	
@@ -393,7 +395,7 @@ local function draw_manager_gui(player)
 		button = t.add({
 			type = "button",
 			name = "team_manager_activate_tournament",
-			caption = "Tournament Mode Enabled",
+			caption = "Tournament Enabled",
 			tooltip = "Only admins can move players and vote for difficulty.\nActive players can no longer go spectate.\nNew joining players are spectators."
 		})
 		button.style.font_color = {r = 222, g = 22, b = 22}
@@ -401,7 +403,7 @@ local function draw_manager_gui(player)
 		button = t.add({
 			type = "button",
 			name = "team_manager_activate_tournament",
-			caption = "Tournament Mode Disabled",
+			caption = "Tournament Disabled",
 			tooltip = "Only admins can move players.\nActive players can no longer go spectate.\nNew joining players are spectators."
 		})
 		button.style.font_color = {r = 55, g = 55, b = 55}
@@ -454,20 +456,27 @@ local function draw_manager_gui(player)
 		button = t.add({
 			type = "button",
 			name = "team_manager_activate_training",
-			caption = "Training Mode Activated",
-			tooltip = "Feed your own team's biters and\nonly teams with players gain threat & evo."
+			caption = "Training Activated",
+			tooltip = "Feed your own team's biters, auto-training, limit waves, pattern-training\nClick on [img=item.iron-gear-wheel] to set parameters."
 		})
 		button.style.font_color = {r = 222, g = 22, b = 22}
+		button.style.font = "heading-2"
+		--EVL Add button for managing training mode
+		button = t.add({type = "button",	name = "team_manager_config_training", caption = "[img=item.iron-gear-wheel]", tooltip = "Config training mode" })
+		button.style.font = "heading-2"	
+		button.style.width = 50
+		
 	else
 		button = t.add({
 			type = "button",
 			name = "team_manager_activate_training",
-			caption = "Training Mode Disabled",
+			caption = "Training Disabled",
 			tooltip = "Feed your own team's biters and\nonly teams with players gain threat & evo."
 		})
 		button.style.font_color = {r = 55, g = 55, b = 55}
+		button.style.font = "heading-2"
 	end
-	button.style.font = "heading-2"
+	
 end
 
 local function set_custom_team_name(force_name, team_name)
@@ -575,10 +584,10 @@ local function procedure_game_gui(player)
 	
 	local frame = player.gui.center.add({type = "frame", name = "procedure_game", caption = "How to use the team manager in BBC", direction = "vertical"})
 	--local frame = frame.add {type = "frame", direction = "vertical"}				
-	local _text = "[font=default-bold][color=#FF9740]While not automatic (todo), you need to fill up the settings and \n switch the players manually       >>>       go to website to get the parameters.[/color][/font]"
+	local _text = "[font=default-bold][color=#FF9740]While not automatic (todo), you need to fill up the settings and \n switch the players manually\n       >>>       go to website to get the parameters.[/color][/font]"
 	_text=_text.."\n\n"
 	_text=_text.."[font=default-bold]Starting procedure : [/font]\n"
-	_text=_text.."0/ Start with a fresh map with the command <</force-map-reset Fresh-map>>\n"
+	_text=_text.."0/ Start with a fresh map with the command <</starting-sequence>>\n"
 	_text=_text.."1/ Ask team at HOME for the rerolls (up to twice)\n"
 	_text=_text.."2/ Set league [font=default-bold][color=#5555FF]Biter[/color][/font] | [font=default-bold][color=#55FF55]Behemoth[/color][/font] via the top button (right to Manager).\n"
 	_text=_text.."3/ Ask team at HOME for SIDE (north | south) and STARTER PACK.\n"
@@ -587,16 +596,16 @@ local function procedure_game_gui(player)
 	_text=_text.."5/ Switch 3 players to each side, spy stays as spectator.\n"
 	_text=_text.."6/ Set the team names by clicking on [font=default-bold][color=#2222FF]NORTH[/color][/font] and [font=default-bold][color=#CC2222]SOUTH[/color][/font].\n"
 	_text=_text.."7/ Set the Game Id (must be [color=#55FF55]green[/color]).\n"
-	_text=_text.."8/ [font=default-bold]When everything is set [color=#55FF55]double check[/color] before starting the game.[/font]\n\n"
+	_text=_text.."8/ [font=default-bold]When everything is set, [color=#55FF55]double check[/color] before starting the game.[/font]\n\n"
 	_text=_text.."9/ [color=#33DD33]START & UNFREEZE[/color] when both teams are ready (5 minutes max).\n"
 	_text=_text.."\n"
 	_text=_text.."Players ask for [font=default-bold]Pause[/font] with 'pp' in chat, use top button to switch [color=#5555FF]Pause[/color]/[color=#55FF55]UnPause[/color].\n"
 	_text=_text.."\n"
 	_text=_text.."- Training mode must be [color=#FF5555]DISABLED[/color] unless :\n"
+	_text=_text.."   [font=default-small][color=#999999]Set GAME_ID to [/color][color=#55FF55]scrim[/color][color=#999999] for showmatch/scrims, "
+	_text=_text.."or [/color][color=#55FF55]training[/color][color=#999999] for training mode.[/color][/font]\n"	
 	_text=_text.."   [font=default-small][color=#999999]Note: on training mode, teams send potions to themselves.[/color][/font]\n"
-	_text=_text.."   [font=default-small][color=#999999]Note: use [/color][color=#55FF55]scrim[/color][color=#999999] for showmatch/scrims, "
-	_text=_text.."or [/color][color=#55FF55]training[/color][color=#999999] for training mode.[/color][/font]"	
-	_text=_text.."\n"
+	_text=_text.."   [font=default-small][color=#999999]Also: config training mode by clicking on [item=iron-gear-wheel] button.[/color][/font]\n"
 	--_text=_text.."[font=default-bold][color=#FF9740]AFTER THE MATCH :[/color][/font]"
 	--_text=_text.." - Report the results on the Website (using GameID),\n"
 	--_text=_text.."                                       - Upload and Set the url of the replay."
@@ -619,10 +628,553 @@ local function procedure_game_gui(player)
 	button.style.font = "heading-2"
 end
 
+--CONSTRUCT TOOLTIP WITH ALL SENDINGS FROM A PATTERN
+local function build_tooltip_pattern(pattern)		
+	local _tooltip = "[font=default-bold][color=#FFFFFF]"..pattern["Team"].."[/color][/font] with "..Tables.packs_list[pattern["Pack"]].caption.." Pack :"
+					.."\n [font=default-small][color=#999999]"..pattern["Info"].."[/color][/font]"
+					.." [font=default-small][color=#999999]vs "..pattern["Versus"].."[/color][/font]"
+					.." [font=default-small][color=#999999]on "..pattern["Date"].."[/color][/font]\n"
+	--Can't make 2 columns (tooltip is limited in width)
+	for _time,_sendings in pairs(pattern["Pattern"]) do
+		--local _nb_sendings=#_sendings/2
+		if #_sendings>0 and #_sendings%2==0 then
+			if _time == 999 then
+				_tooltip = _tooltip.."        [font=default-bold]then[/font] ► "
+			elseif _time<10 then
+				_tooltip = _tooltip.."    min 0".._time.." ► "
+			else
+				_tooltip = _tooltip.."    min ".._time.." ► "
+			end
+
+			for _i=1,#_sendings,2 do
+				--game.print( _sendings[_i].."  -  ".. _sendings[_i+1].."  -  "..Tables.food_short_to_long[_sendings[_i]])
+				if _sendings[_i] and _sendings[_i+1] and Tables.food_short_to_long[_sendings[_i]] then
+					local _food=_sendings[_i]
+					local _qtity=_sendings[_i+1]
+					_tooltip = _tooltip.._qtity.." [item="..Tables.food_short_to_long[_food].."]    "
+				else
+					game.print(">>>>> Error : Pattern #".. gameId .." is badly formatted (skipped)",{r = 175, g = 25, b = 25})
+				end
+			end
+			_tooltip = _tooltip.."\n"
+		else
+			game.print(">>>>> Error : Pattern #".. gameId .." has odd parameters (skipped).",{r = 175, g = 25, b = 25})
+		end
+	end
+	_tooltip = _tooltip.."[font=default-small][color=#999999](this last qtity will be sent every min after min "..pattern["Last"]..")[/color][/font]"
+	return _tooltip
+end	
+----CONSTRUCT GUI WITH ALL SENDINGS FROM A PATTERN "ctg_" ie "config_training_gui"
+local function build_gui_pattern(player, gameId, pattern)
+	
+	if player.gui.center["ctg_pattern"] then player.gui.center["ctg_pattern"].destroy() end	
+	local frame = player.gui.center.add({type = "frame", name = "ctg_pattern", caption = "[font=default-bold]Full list of sendings[/font] [font=default][color=#999999](pattern #"..gameId..")[/color][/font]", direction = "vertical"})
+	
+	local _global_info1 = "Executed by [font=default-bold][color=#AAAAFF]"..pattern["Team"].."[/color][/font] with "..Tables.packs_list[pattern["Pack"]].caption.." Pack :"
+	local _global_info2 = "[font=default-bold][color=#AAAAFF]"..pattern["Info"].."[/color][/font]"
+					.." [font=default][color=#CCCCCC]vs "..pattern["Versus"].."[/color][/font]"
+					.." [font=default][color=#CCCCCC]on "..pattern["Date"].."[/color][/font]\n"
+	frame.add({ type = "label", caption = _global_info1})
+	frame.add({ type = "label", caption = _global_info2})
+	local _total_sendings=table_size(pattern["Pattern"])
+	
+	local _max_lines=25 --maximum lines for 1080p resolution
+	local _tot_column=math.ceil(_total_sendings/_max_lines) --so we need this nb columns
+	_max_lines=math.ceil(_total_sendings/_tot_column) --equalization of columns height
+	
+	--game.print("send=".._total_sendings.." line=".._max_lines.."col=".._tot_column)
+	local _table_details=frame.add {type = "table", name = "ctg_pattern_table", column_count = _tot_column*2}
+	_table_details.vertical_centering=false
+	
+	local _line=0
+	local _column=1
+	local _table_column=_table_details.add {type = "table", column_count = 1}
+
+	for _time,_sendings in pairs(pattern["Pattern"]) do
+		--local _nb_sendings=#_sendings/2
+		local _cell_str=""
+		if #_sendings>0 and #_sendings%2==0 then
+			if _time == 999 then
+				_cell_str = _cell_str.."  [font=default-bold]then[/font] ►"
+			elseif _time<10 then
+				_cell_str = _cell_str.."0".._time.."m ►"
+			else
+				_cell_str = _cell_str.."".._time.."m ►"
+			end
+
+			for _i=1,#_sendings,2 do
+				--game.print( _sendings[_i].."  -  ".. _sendings[_i+1].."  -  "..Tables.food_short_to_long[_sendings[_i]])
+				if _sendings[_i] and _sendings[_i+1] and Tables.food_short_to_long[_sendings[_i]] then
+					local _food=_sendings[_i]
+					local _qtity=_sendings[_i+1]
+					_cell_str = _cell_str.." ".._qtity.." [item="..Tables.food_short_to_long[_food].."],"
+				else
+					game.print(">>>>> Error : Pattern #".. gameId .." is badly formatted (skipped)",{r = 175, g = 25, b = 25})
+				end
+			end
+			_cell_str = string.sub(_cell_str,1,string.len(_cell_str)-1)
+			if _line==_max_lines then
+				_table_details.add({ type = "label", caption = "  "})
+				_table_column=_table_details.add {type = "table", column_count = 1}
+				_table_column.add({ type = "label", caption = _cell_str })
+				_line=1
+				_column=_column+1
+				
+			else
+				--game.print(_column.."-".._line)
+				_table_column.add({ type = "label", caption = _cell_str })
+				_line=_line+1
+			end
+			
+		else
+			game.print(">>>>> Error : Pattern #".. gameId .." has odd parameters (skipped).",{r = 175, g = 25, b = 25})
+		end
+	end
+
+	--LAST QTITY (maintain pressure) & CLOSE WINDOW
+	local _table_end=frame.add {type = "table", column_count = 2}
+	_table_end.add({ type = "label", caption = "[font=default-small][color=#999999](the last qtity will be sent every min after min "..pattern["Last"]..")[/color][/font]                           "})
+
+	local button = _table_end.add({
+			type = "button",
+			name = "ctg_pattern_close_button",
+			caption = "     Close details     ",
+			tooltip = "Close this window."
+		})
+	--button.style.font = "heading-2"
+	button.style.font_color = {r=0.40, g=0, b=0}
+	button.style.height = 20
+	button.style.top_padding = -5
+	button.style.horizontal_align = "center"
+end
+
+
+-- NEW GUI FOR CONFIG TRAINING SETTINGS (single sending, automatic sendings, limit groups, simulate past game)
+local function config_training_gui(player)
+	
+	if player.gui.center["config_training"] then player.gui.center["config_training"].destroy() return end	
+	
+	local frame = player.gui.center.add({type = "frame", name = "config_training", caption = "Configure training mode  [font=default-small][color=#999999](admin only)[/color][/font]", direction = "vertical"})
+	local _simul_tooltip="Simulate pattern from previous game\n[font=default-bold][color=#FF9740]Important:[/color][/font] your sendings will feed opponent's biters, not yours\n ie you really fight against "
+	------------------	
+	--NORTH SETTINGS--
+	------------------
+	frame.add({ type = "label", 
+		caption = "[font=default-bold][color=#FF9740]NORTH Settings[/color][/font]  [color=#999999](these will send science[/color] [color=#FF3333]to[/color] [color=#999999]north)[/color]" })
+	local north_training= frame.add {type = "table", name = "north_config_training", column_count = 5}
+	--
+	--SELECT SINGLE/UNIQUE SENDING
+	--
+	north_training.add({ type = "label", caption = "Single sending :" })
+	
+	local north_send_food = north_training.add { name = "north_send_food", type = "drop-down", items = Tables.food_config_training, selected_index = 1 }
+	north_send_food.style.height = 20
+	north_send_food.style.top_padding = -6
+	north_send_food.style.vertical_align = 'top'
+	
+	local north_send_qtity = north_training.add { name = "north_send_qtity", type = "drop-down", items = Tables.qtity_config_training, selected_index = 1 }
+	north_send_qtity.style.height = 20
+	north_send_qtity.style.top_padding = -6
+	north_send_qtity.style.vertical_align = 'top'
+	
+	north_training.add({ type = "label", caption = " " })
+	
+	local north_send_button = north_training.add { name = "north_send_button", type = "button",	caption = "Send",	tooltip = "Send one batch of science to north_biters." }
+	north_send_button.style.height = 20
+	north_send_button.style.top_padding = -6
+	north_send_button.style.vertical_align = 'top'
+	north_send_button.style.width = 65
+	north_send_button.style.font = "default-bold"
+	north_send_button.style.font_color = {r=0, g=0.35, b=0}
+	--
+	--SELECT AUTOMATIC SENDINGS
+	--
+	north_training.add({ type = "label", caption = "Automatic sendings :" })
+	--Set the selected indexes to values from automatic sendings if active
+	local selected_food=1
+	local selected_qtity=1
+	local selected_timing=1
+	if global.auto_training["north"]["active"] then
+		for _index_food=1,7,1 do
+			--game.print(global.auto_training["north"]["science"].."  -  "..Tables.food_long_and_short[_index_food].long_name)
+			if global.auto_training["north"]["science"]==Tables.food_long_and_short[_index_food].long_name then
+				selected_food=_index_food+2
+				break
+			end
+		end
+		for _index_qtity,_qtity in pairs(Tables.qtity_config_training) do
+			if global.auto_training["north"]["qtity"]==_qtity then
+				selected_qtity=_index_qtity
+				break
+			end
+		end		
+		for _index_timing,_ in pairs(Tables.timing_config_training) do
+			if global.auto_training["north"]["timing"]==(_index_timing-2) then
+				selected_timing=_index_timing
+				break
+			end
+		end
+	end
+	
+	local north_training_food = north_training.add { name = "north_training_food", type = "drop-down", items = Tables.food_config_training, selected_index = selected_food }
+	north_training_food.style.height = 20
+	north_training_food.style.top_padding = -6
+	north_training_food.style.vertical_align = 'top'
+	
+	local north_training_qtity = north_training.add { name = "north_training_qtity", type = "drop-down", items = Tables.qtity_config_training, selected_index = selected_qtity }  
+	north_training_qtity.style.height = 20
+	north_training_qtity.style.top_padding = -6
+	north_training_qtity.style.vertical_align = 'top'
+	
+	local north_training_timing = north_training.add { name = "north_training_timing", type = "drop-down", items = Tables.timing_config_training, selected_index = selected_timing }  
+	north_training_timing.style.height = 20
+	north_training_timing.style.top_padding = -6
+	north_training_timing.style.vertical_align = 'top'
+	
+	local north_training_button = north_training.add { name = "north_training_button", type = "button",	caption = "Apply",	tooltip = "Will send ## of science every xx minutes to self (north_biters)." }
+	north_training_button.style.height = 20
+	north_training_button.style.vertical_align = 'top'
+	north_training_button.style.top_padding = -6
+	north_training_button.style.width = 65
+	north_training_button.style.font = "default-bold"
+	north_training_button.style.font_color = {r=0, g=0.35, b=0}
+	--
+	--SELECT NUMBER OF GROUPS ATTACKING EVERY 2 MIN
+	--
+	north_training.add({ type = "label", caption = "             Limit number" })
+	north_training.add({ type = "label", caption = " of groups attacking every" })
+	north_training.add({ type = "label", caption = "two minutes :" })
+	--Set the selected index to number from wave sendings if active
+	local selected_number=1
+	if global.wave_training["north"]["active"] then
+		selected_number=global.wave_training["north"]["number"]+2
+	end
+	local north_waves_qtity = north_training.add { name = "north_waves_qtity", type = "drop-down", items = Tables.waves_config_training, selected_index = selected_number }
+	north_waves_qtity.style.height = 20
+	north_waves_qtity.style.top_padding = -6
+	north_waves_qtity.style.vertical_align = 'top'
+	north_waves_qtity.style.width = 135
+	
+	local north_waves_button = north_training.add { name = "north_waves_button", type = "button",	caption = "Set",	tooltip = "Will send ## groups every 2 min (unless insufficient threat)." }
+	north_waves_button.style.height = 20
+	north_waves_button.style.top_padding = -6
+	north_waves_button.style.vertical_align = 'top'
+	north_waves_button.style.width = 65
+	north_waves_button.style.font = "default-bold"
+	north_waves_button.style.font_color = {r=0, g=0.35, b=0}
+	--
+	-- SELECT A PATTERN FOR SIMULATION
+	--
+	north_training.add({ type = "label", caption = "         Currently using" })
+	local _caption_ngp="[color=#999999](no pattern active)[/color]"
+	local _tooltip_ngp=""
+	if global.pattern_training["north"]["active"] then
+		_caption_ngp="pattern [color=#88FF88]#"..global.pattern_training["north"]["gameid"].."[/color]"
+		_tooltip_ngp=build_tooltip(Sendings_Patterns.detail_game_id[global.pattern_training["north"]["gameid"]])
+	end
+	north_training.add({ name = "north_gameid_pattern", type = "label", caption = _caption_ngp, tooltip = _tooltip_ngp })
+	north_training.add({ type = "label", caption = "Change to pattern :" })
+	
+	local north_pattern_gameid = north_training.add { name = "north_pattern_gameid", type = "drop-down", items = Sendings_Patterns.list_game_id, selected_index = 1 }
+	north_pattern_gameid.style.height = 20
+	north_pattern_gameid.style.top_padding = -6
+	north_pattern_gameid.style.vertical_align = 'top'
+	
+	local north_pattern_button = north_training.add { name = "north_pattern_button", type = "button",	caption = "Use",	tooltip = _simul_tooltip.."South." }
+	north_pattern_button.style.height = 20
+	north_pattern_button.style.top_padding = -6
+	north_pattern_button.style.vertical_align = 'top'
+	north_pattern_button.style.width = 65
+	north_pattern_button.style.font = "default-bold"
+	north_pattern_button.style.font_color = {r=0, g=0.35, b=0}
+		--
+	frame.add { type = "line", caption = "this line", direction = "horizontal" }
+	
+	-------------------
+	--SOUTH SETTINGS --
+	-------------------
+	
+	frame.add({ type = "label", 
+		caption = "[font=default-bold][color=#FF9740]SOUTH Settings[/color][/font]  [color=#999999](these will send science[/color] [color=#FF3333]to[/color] [color=#999999]south)[/color]" })
+	local south_training= frame.add {type = "table", name = "south_config_training", column_count = 5}
+	--
+	--SELECT SINGLE/UNIQUE SENDING
+	--
+	south_training.add({ type = "label", caption = "Single sending :" })
+	
+	local south_send_food = south_training.add { name = "south_send_food", type = "drop-down", items = Tables.food_config_training, selected_index = 1 }
+	south_send_food.style.height = 20
+	south_send_food.style.top_padding = -6
+	south_send_food.style.vertical_align = 'top'
+	
+	local south_send_qtity = south_training.add { name = "south_send_qtity", type = "drop-down", items = Tables.qtity_config_training, selected_index = 1 }
+	south_send_qtity.style.height = 20
+	south_send_qtity.style.top_padding = -6
+	south_send_qtity.style.vertical_align = 'top'
+	
+	south_training.add({ type = "label", caption = " " })
+	
+	local south_send_button = south_training.add { name = "south_send_button", type = "button",	caption = "Send",	tooltip = "Send one batch of science to south_biters." }
+	south_send_button.style.height = 20
+	south_send_button.style.top_padding = -6
+	south_send_button.style.vertical_align = 'top'
+	south_send_button.style.width = 65
+	south_send_button.style.font = "default-bold"
+	south_send_button.style.font_color = {r=0, g=0.35, b=0}
+	--
+	--SELECT AUTOMATIC SENDINGS
+	--
+	south_training.add({ type = "label", caption = "Automatic sendings :" })
+	--Set the selected indexes to values from automatic sendings if active
+	local selected_food=1
+	local selected_qtity=1
+	local selected_timing=1
+	if global.auto_training["south"]["active"] then
+		for _index_food=1,7,1 do
+			--game.print(global.auto_training["north"]["science"].."  -  "..Tables.food_long_and_short[_index_food].long_name)
+			if global.auto_training["south"]["science"]==Tables.food_long_and_short[_index_food].long_name then
+				selected_food=_index_food+2
+				break
+			end
+		end
+		for _index_qtity,_qtity in pairs(Tables.qtity_config_training) do
+			if global.auto_training["south"]["qtity"]==_qtity then
+				selected_qtity=_index_qtity
+				break
+			end
+		end		
+		for _index_timing,_ in pairs(Tables.timing_config_training) do
+			if global.auto_training["south"]["timing"]==(_index_timing-2) then
+				selected_timing=_index_timing
+				break
+			end
+		end
+	end
+	
+	local south_training_food = south_training.add { name = "south_training_food", type = "drop-down", items = Tables.food_config_training, selected_index = selected_food }  
+	south_training_food.style.height = 20
+	south_training_food.style.top_padding = -6
+	south_training_food.style.vertical_align = 'top'
+	
+	local south_training_qtity = south_training.add { name = "south_training_qtity", type = "drop-down", items = Tables.qtity_config_training, selected_index = selected_qtity }  
+	south_training_qtity.style.height = 20
+	south_training_qtity.style.top_padding = -6
+	south_training_qtity.style.vertical_align = 'top'
+	
+	local south_training_timing = south_training.add { name = "south_training_timing", type = "drop-down", items = Tables.timing_config_training, selected_index = selected_timing }  
+	south_training_timing.style.height = 20
+	south_training_timing.style.top_padding = -6
+	south_training_timing.style.vertical_align = 'top'
+	
+	local south_training_button = south_training.add { name = "south_training_button", type = "button",	caption = "Apply",	tooltip = "Will send ## of science every xx minutes to self (south_biters)." }
+	south_training_button.style.height = 20
+	south_training_button.style.vertical_align = 'top'
+	south_training_button.style.top_padding = -6
+	south_training_button.style.width = 65
+	south_training_button.style.font = "default-bold"
+	south_training_button.style.font_color = {r=0, g=0.35, b=0}
+	--
+	--SELECT NUMBER OF GROUPS ATTACKING EVERY 2 MIN
+	--
+	south_training.add({ type = "label", caption = "             Limit number" })
+	south_training.add({ type = "label", caption = " of groups attacking every" })
+	south_training.add({ type = "label", caption = "two minutes :" })
+	--Set the selected index to number from wave sendings if active
+	local selected_number=1
+	if global.wave_training["south"]["active"] then
+		selected_number=global.wave_training["south"]["number"]+2
+	end
+	local south_waves_qtity = south_training.add { name = "south_waves_qtity", type = "drop-down", items = Tables.waves_config_training, selected_index = selected_number }
+	south_waves_qtity.style.height = 20
+	south_waves_qtity.style.top_padding = -6
+	south_waves_qtity.style.vertical_align = 'top'
+	south_waves_qtity.style.width = 135
+	
+	local south_waves_button = south_training.add { name = "south_waves_button", type = "button",	caption = "Set",	tooltip = "Will send ## groups every 2 min (unless insufficient threat)." }
+	south_waves_button.style.height = 20
+	south_waves_button.style.top_padding = -6
+	south_waves_button.style.vertical_align = 'top'
+	south_waves_button.style.width = 65
+	south_waves_button.style.font = "default-bold"
+	south_waves_button.style.font_color = {r=0, g=0.35, b=0}
+	--
+	-- SELECT A PATTERN FOR SIMULATION
+	--
+	south_training.add({ type = "label", caption = "         Currently using" })
+	local _caption_ngp="[color=#999999](no pattern active)[/color]"
+	local _tooltip_ngp=""
+	if global.pattern_training["south"]["active"] then
+		_caption_ngp="pattern [color=#88FF88]#"..global.pattern_training["south"]["gameid"].."[/color]"
+		_tooltip_ngp=build_tooltip(Sendings_Patterns.detail_game_id[global.pattern_training["south"]["gameid"]])
+	end
+	south_training.add({ name = "south_gameid_pattern", type = "label", caption = _caption_ngp, tooltip = _tooltip_ngp})
+	south_training.add({ type = "label", caption = "Change to pattern :" })
+	
+	local south_pattern_gameid = south_training.add { name = "south_pattern_gameid", type = "drop-down", items = Sendings_Patterns.list_game_id, selected_index = 1 }
+	south_pattern_gameid.style.height = 20
+	south_pattern_gameid.style.top_padding = -6
+	south_pattern_gameid.style.vertical_align = 'top'
+	
+	local south_pattern_button = south_training.add { name = "south_pattern_button", type = "button",	caption = "Use",	tooltip = _simul_tooltip.."North."}
+	south_pattern_button.style.height = 20
+	south_pattern_button.style.top_padding = -6
+	south_pattern_button.style.vertical_align = 'top'
+	south_pattern_button.style.width = 65
+	south_pattern_button.style.font = "default-bold"
+	south_pattern_button.style.font_color = {r=0, g=0.35, b=0}
+	
+	frame.add { type = "line", caption = "this line", direction = "horizontal" }
+
+	---------------------
+	--LIST OF PATTERNS --
+	---------------------
+	frame.add({ type = "label", caption = "[font=default-bold][color=#FF9740]LIST OF PATTERNS[/color][/font]  [font=default-small][color=#999999](hover to see full details)[/color][/font]" })
+	local pattern_training= frame.add {type = "table", name = "pattern_training", column_count = 6}
+
+	for gameId, pattern in pairs(Sendings_Patterns.detail_game_id) do
+		local _caption = "[font=default-bold][color=#FFFFFF]"..gameId.."[/color][/font] by "..pattern["Team"].." : [font=default-small][color=#999999]"..pattern["Info"].."[/color][/font]"
+		if global.pattern_training["north"]["active"] and global.pattern_training["north"]["gameid"]==gameId then
+			_caption = "[font=default-bold][color=#4444FF]"..gameId.."[/color][/font] by [color=#44FF44]"..pattern["Team"].."[/color] : [font=default-small][color=#999999]"..pattern["Info"].."[/color][/font]"
+		elseif global.pattern_training["south"]["active"] and global.pattern_training["south"]["gameid"]==gameId then
+			_caption = "[font=default-bold][color=#FF4444]"..gameId.."[/color][/font] by [color=#44FF44]"..pattern["Team"].."[/color] : [font=default-small][color=#999999]"..pattern["Info"].."[/color][/font]"
+		end
+
+		local _tooltip = build_tooltip_pattern(pattern)		
+		if #pattern["Pattern"]>30 then --If pattern is very long, we open a gui table;  "training_cpd_" ie "training_config_pattern_detail"
+			local detail_button = pattern_training.add({ type = "button", name="training_cpd_"..gameId, caption = " ", tooltip = "[color=#22BB22]Open full listing of this pattern.[/color]"})
+			detail_button.style.height = 10
+			detail_button.style.width = 10
+		else
+			pattern_training.add({ type = "label", caption = " "})
+		end
+		pattern_training.add({ type = "label", caption = _caption, tooltip = _tooltip })
+		pattern_training.add({ type = "label", caption = "     "})
+	end
+	--CLOSE WINDOW
+	pattern_training.add({ type = "label", caption = "  "})
+	local button = pattern_training.add({
+			type = "button",
+			name = "config_training_close_button",
+			caption = "     Back to team manager     ",
+			tooltip = "Close this window (without saving parameters)."
+		})
+	button.style.font_color = {r=0.40, g=0, b=0}
+	button.style.height = 20
+	button.style.top_padding = -5
+	button.style.horizontal_align = "center"
+end
+
+--EVL SINGLE/UNIQUE SENDING FROM CONFIG TRAINING
+local function training_single_sending(player, food_index, qtity_index, force)
+
+	if food_index==1 or food_index==2 then player.print(">>>>> Single sending : Choose science first.", {r = 175, g = 11, b = 11}) return end
+	food_index=food_index-2 --first 2 index are not science pack[i]
+	local _food=Tables.food_long_and_short[food_index].long_name
+	
+	if qtity_index==1 or qtity_index==2 then player.print(">>>>> Single sending : Choose quantity first.", {r = 175, g = 11, b = 11}) return end
+	local _qtity=Tables.qtity_config_training[qtity_index] -- no offset
+	
+	feed_the_biters(player, _food, _qtity, force.."_biters")	
+	game.print("Single sending : [font=default-bold][color=#FFFFFF]".._qtity.."[/color][/font] flasks of [color="..Tables.food_values[_food].color.."]" .. Tables.food_values[_food].name .. "[/color]"
+				.."[img=item/".. _food.. "] sent to [font=default-bold][color=#FFFFFF]"..force.."-biters[/color][/font] by [color=#AAAAAA]"..player.name.."[/color]", {r = 77, g = 192, b = 192})
+	return
+end
+--EVL AUTOMATIC SENDINGS FROM CONFIG TRAINING
+local function training_auto_sendings(player, food_index, qtity_index, timing_index, force)
+
+	if food_index==2 or qtity_index==2 or timing_index==2 then -- Set autosending to OFF
+		global.auto_training[force]={["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0}
+		player.gui.center["config_training"][force.."_config_training"][force.."_training_food"].selected_index=1
+		player.gui.center["config_training"][force.."_config_training"][force.."_training_qtity"].selected_index=1
+		player.gui.center["config_training"][force.."_config_training"][force.."_training_timing"].selected_index=1		
+		game.print(">>>>> Auto-training mode canceled/deactivated by [font=default-large-bold][color=#FFFFFF]"..player.name.."[/color][/font] for [font=default-large-bold][color=#FFFFFF]"..force.."[/color][/font] side", {r = 77, g = 192, b = 192})	
+		return 
+	end
+	
+	if food_index==1 then player.print(">>>>> Choose science first.", {r = 175, g = 11, b = 11}) return end
+	food_index=food_index-2 --first 2 index are not science pack[i]
+	local _food=Tables.food_long_and_short[food_index].long_name
+
+	if qtity_index==1 then player.print(">>>>> Choose quantity first.", {r = 175, g = 11, b = 11}) return end
+	local _qtity=Tables.qtity_config_training[qtity_index] --no offset
+	
+	if timing_index==1 then player.print(">>>>> Choose timing first.", {r = 175, g = 11, b = 11}) return end
+	local _timing=timing_index-2 --first 2 index are not timings
+	--OK WE HAVE ALL WE NEED
+	
+	-- DEACTIVATE SIMULATION : incompatibility between auto-training and pattern-training (simulation)
+	if global.pattern_training[force]["active"] then
+		game.print(">>>>> Deactivation of Pattern-training (ie simulation), incompatible with auto-training.", {r = 125, g = 100, b = 100})
+		global.pattern_training[force] = {["player"]="",["active"]=false,["gameid"]=0}
+		
+		player.gui.center["config_training"][force.."_config_training"][force.."_gameid_pattern"].caption="[color=#999999](no pattern active)[/color]"
+		player.gui.center["config_training"][force.."_config_training"][force.."_gameid_pattern"].tooltip=""
+		player.gui.center["config_training"][force.."_config_training"][force.."_pattern_gameid"].selected_index=1
+	end	
+	
+	-- SET auto-training parameters
+	global.auto_training[force]={["player"]=player.name,["active"]=true,["qtity"]=_qtity,["science"]=_food,["timing"]=_timing}
+	game.print(">>>>> Auto-training mode activated by [font=default-large-bold][color=#FFFFFF]"..player.name.."[/color][/font] for [font=default-large-bold][color=#FFFFFF]"..force.."[/color][/font] side : [font=default-large-bold][color=#FFFFFF]"
+				.._qtity.."[/color][/font] flasks of [img=item/".. _food.. "] [color="..Tables.food_values[_food].color.."]".._food.."[/color] will be sent every [font=default-large-bold][color=#FFFFFF]".._timing.."[/color][/font] minute(s).", {r = 77, g = 192, b = 192})
+	if not global.match_running then 
+		game.print(">>>>> Auto-training mode : Sendings will start after game has started", {r = 77, g = 192, b = 192})
+	end
+	return
+end
+--EVL LIMIT GROUPS FROM CONFIG TRAINING
+local function training_limit_groups(player, qtity_index, force)
+
+	if qtity_index==1 then -- DEACTIVATE LIMIT GROUPS
+		global.wave_training[force]={["player"]="",["active"]=false,["number"]=0}
+		game.print(">>>>> Wave-training mode canceled/deactivated by [font=default-large-bold][color=#FFFFFF]"..player.name.."[/color][/font] for [font=default-large-bold][color=#FFFFFF]"..force.."[/color][/font] side. Back to random(3,6).", {r = 77, g = 192, b = 192})		
+	else --ACTIVATE LIMIT GROUPS
+		local _qtity=qtity_index-2 --offset from drop-down (including 0 group)
+		global.wave_training[force]={["player"]=player.name,["active"]=true,["number"]=_qtity}
+		game.print(">>>>> Wave-training mode activated by [font=default-large-bold][color=#FFFFFF]"..player.name.."[/color][/font] : [font=default-large-bold][color=#FFFFFF]".._qtity
+			.."[/color][/font] wave(s) of biters will attack [font=default-large-bold][color=#FFFFFF]"..force.."[/color][/font] side every [font=default-large-bold][color=#FFFFFF]2[/color][/font] minutes.", {r = 77, g = 192, b = 192})
+	end
+	return
+
+end
+--EVL SIMULATE PREVIOUS GAME (PATTERN) FROM CONFIG TRAINING
+local function training_simul_pattern(player, gameid_index, force)
+	if gameid_index==1 then 
+		player.print(">>>>> Choose pattern/ gameID first.", {r = 175, g = 11, b = 11})	
+		return
+	elseif gameid_index==2 then --DEACTIVATE SIMULATOR
+		global.pattern_training[force]={["player"]="",["active"]=false,["gameid"]=0}
+		player.gui.center["config_training"][force.."_config_training"][force.."_gameid_pattern"].caption="[color=#999999](no pattern active)[/color]"
+		player.gui.center["config_training"][force.."_config_training"][force.."_gameid_pattern"].tooltip=""
+		
+		game.print(">>>>> Wave-training mode canceled/deactivated by [font=default-large-bold][color=#FFFFFF]"..player.name.."[/color][/font] for [font=default-large-bold][color=#FFFFFF]"..force.."[/color][/font] side.", {r = 77, g = 192, b = 192})		
+		return
+	else --ACTIVATE SIMULATOR
+		local _game_id=Sendings_Patterns.list_game_id[gameid_index]
+		global.pattern_training[force]={["player"]=player.name,["active"]=true,["gameid"]=_game_id}
+		player.gui.center["config_training"][force.."_config_training"][force.."_gameid_pattern"].caption="pattern [color=#88FF88]#".._game_id.."[/color]"
+		player.gui.center["config_training"][force.."_config_training"][force.."_gameid_pattern"].tooltip=build_tooltip(Sendings_Patterns.detail_game_id[_game_id])
+
+		-- BUT DEACTIVATE AUTO-TRAINING : incompatibility between auto-training and pattern-training (simulation)
+		if global.auto_training[force]["active"] then
+			game.print(">>>>> Deactivation of Auto-training, incompatible with pattern-training (ie simulation).", {r = 125, g = 100, b = 100})
+			global.auto_training[force] = {["player"]="",["active"]=false,["qtity"]=0,["science"]="",["timing"]=0}
+			player.gui.center["config_training"][force.."_config_training"][force.."_training_food"].selected_index=1
+			player.gui.center["config_training"][force.."_config_training"][force.."_training_qtity"].selected_index=1
+			player.gui.center["config_training"][force.."_config_training"][force.."_training_timing"].selected_index=1
+		end	
+	
+		game.print(">>>>> Simulation activated by [font=default-large-bold][color=#FFFFFF]"..player.name.."[/color][/font] for [font=default-large-bold][color=#FFFFFF]"..force.."[/color][/font] with Pattern #[font=default-large-bold][color=#FFFFFF]".._game_id
+			.."[/color][/font] (ie gameID) by [color=#FFFFFF]"..Sendings_Patterns.detail_game_id[_game_id]["Team"].."[/color] : [color=#AAAAAA]"..Sendings_Patterns.detail_game_id[_game_id]["Info"].."[/color].", {r = 77, g = 192, b = 192})
+	end
+	return
+
+end
+
 local function team_manager_gui_click(event)
+
 	local player = game.players[event.player_index]
 	local name = event.element.name
-	
+
 	if game.forces[name] then
 		if not player.admin then player.print(">>>>> Only admins can change team names.", {r = 175, g = 11, b = 11}) return end
 		custom_team_name_gui(player, name)
@@ -633,8 +1185,8 @@ local function team_manager_gui_click(event)
 	if name == "team_manager_gameid" then
 		if not player.admin then player.print(">>>>> Only admins can set the Game Identificator.", {r = 175, g = 11, b = 11}) return end
 		if global.match_running then player.print(">>>>> Cannot modify GameId after match has started (contact website admin).", {r = 175, g = 11, b = 11}) return end
-		custom_game_id_gui(player)
 		player.gui.center["team_manager_gui"].destroy()
+		custom_game_id_gui(player)
 		return
 	end	
 	if name == "team_manager_procedure" then
@@ -642,6 +1194,16 @@ local function team_manager_gui_click(event)
 		procedure_game_gui(player)
 		return
 	end	
+	
+	--EVL CONFIG TRAINING MODE
+	if name == "team_manager_config_training" then
+		--if not player.admin then player.print(">>>>> Only admins can open config training mode.", {r = 175, g = 11, b = 11}) return end
+		--everyone can see the training config but only admins can use it
+		player.gui.center["team_manager_gui"].destroy()
+		config_training_gui(player)
+		return
+	end	
+	--EVL END OF CONFIG TRAINING MODE
 	
 	if name == "team_manager_close" then
 		player.gui.center["team_manager_gui"].destroy()	
@@ -759,8 +1321,8 @@ local function team_manager_gui_click(event)
 		Public.freeze_players()
 		draw_manager_gui(player)
 		game.print(">>>>> Players & Biters have been frozen !", {r = 111, g = 111, b = 255}) --EVL
-		--game.tick_paused=true --EVL New way to freeze game (way better : craft, factory, research, everything is frozen but chat stay active)
-		--But need to type command /c game.tick_paused=false in chat to resume...
+		--game.tick_paused=true --EVL New way to freeze game (way better : craft, factory, research, everything is frozen but chat stay active) not accurate now
+		--But need to type command /c game.tick_paused=false in chat to resume... not accurate now
 		return
 	end
 	
@@ -884,6 +1446,97 @@ function Public.gui_click(event)
 			player.gui.center["procedure_game"].destroy()
 			return
 		end		
+	end	
+	--EVL CLOSE THE FRAME "CONFIG TRAINING"(without saving)
+	if name == "config_training_close_button" then
+		player.gui.center["config_training"].destroy()
+		draw_manager_gui(player)
+		return
+	end	
+	
+	--EVL CONFIG TRAINING
+	--Single sending
+	if name == "north_send_button" then --Single sending to north_biters
+		if not player.admin then player.print(">>>>> Only admins can use config training pane (single/north).", {r = 175, g = 11, b = 11}) return end
+		if not global.match_running then player.print(">>>>> Cannot send flasks until match has started (north).", {r = 175, g = 11, b = 11}) return end
+		local _food=player.gui.center["config_training"]["north_config_training"]["north_send_food"].selected_index
+		local _qtity=player.gui.center["config_training"]["north_config_training"]["north_send_qtity"].selected_index
+		training_single_sending(player, _food, _qtity, "north") --careful food&qtity are selected_index, not real values yet
+		return
+	end
+	if name == "south_send_button" then --Single sending to south_biters
+		if not player.admin then player.print(">>>>> Only admins can use config training pane (single/south).", {r = 175, g = 11, b = 11}) return end
+		if not global.match_running then player.print(">>>>> Cannot send flasks until match has started (south).", {r = 175, g = 11, b = 11}) return end
+		local _food=player.gui.center["config_training"]["south_config_training"]["south_send_food"].selected_index
+		local _qtity=player.gui.center["config_training"]["south_config_training"]["south_send_qtity"].selected_index
+		training_single_sending(player, _food, _qtity, "south") --careful food&qtity are selected_index, not real values yet
+		return		
+	end
+	--Automatic sendings
+	if name == "north_training_button" then --Automatic sending to north_biters
+		if not player.admin then player.print(">>>>> Only admins can use config training pane (auto/north).", {r = 175, g = 11, b = 11}) return end
+		local _food=player.gui.center["config_training"]["north_config_training"]["north_training_food"].selected_index
+		local _qtity=player.gui.center["config_training"]["north_config_training"]["north_training_qtity"].selected_index
+		local _timing=player.gui.center["config_training"]["north_config_training"]["north_training_timing"].selected_index   
+		training_auto_sendings(player, _food, _qtity, _timing, "north") --careful food&qtity&timing are selected_index, not real values yet
+		return		
+	end
+	if name == "south_training_button" then --Automatic sending to south_biters
+		if not player.admin then player.print(">>>>> Only admins can use config training pane (auto/south).", {r = 175, g = 11, b = 11}) return end
+		local _food=player.gui.center["config_training"]["south_config_training"]["south_training_food"].selected_index
+		local _qtity=player.gui.center["config_training"]["south_config_training"]["south_training_qtity"].selected_index
+		local _timing=player.gui.center["config_training"]["south_config_training"]["south_training_timing"].selected_index   
+		training_auto_sendings(player, _food, _qtity, _timing, "south") --careful food&qtity&timing are selected_index, not real values yet
+		return		
+	end	
+	--	Limit groups
+	if name == "north_waves_button" then --Limit number of groups attacking every 2 min
+		if not player.admin then player.print(">>>>> Only admins can use config training pane (groups/north).", {r = 175, g = 11, b = 11}) return end
+		local _qtity=player.gui.center["config_training"]["north_config_training"]["north_waves_qtity"].selected_index
+		training_limit_groups(player, _qtity, "north") --careful qtity is selected_index, not real value yet
+		return		
+	end		
+	if name == "south_waves_button" then --Limit number of groups attacking every 2 min
+		if not player.admin then player.print(">>>>> Only admins can use config training pane (groups/south).", {r = 175, g = 11, b = 11}) return end
+		local _qtity=player.gui.center["config_training"]["south_config_training"]["south_waves_qtity"].selected_index
+		training_limit_groups(player, _qtity, "south") --careful qtity is selected_index, not real value yet
+		return		
+	end	
+	--	Simulate previous game (pattern)
+	if name == "north_pattern_button" then --Limit number of groups attacking every 2 min
+		if not player.admin then player.print(">>>>> Only admins can use config training pane (pattern/north).", {r = 175, g = 11, b = 11}) return end
+		local _gameid=player.gui.center["config_training"]["north_config_training"]["north_pattern_gameid"].selected_index
+		training_simul_pattern(player, _gameid, "north") --careful qtity is selected_index, not real value yet
+		return		
+	end		
+	if name == "south_pattern_button" then --Limit number of groups attacking every 2 min
+		if not player.admin then player.print(">>>>> Only admins can use config training pane (pattern/south).", {r = 175, g = 11, b = 11}) return end
+		local _gameid=player.gui.center["config_training"]["south_config_training"]["south_pattern_gameid"].selected_index
+		training_simul_pattern(player, _gameid, "south") --careful qtity is selected_index, not real value yet
+		return		
+	end	
+
+	--EVL FULL LIST OF PATTERN FROM CONFIG TRAINING
+	if string.sub(name,1,13) == "training_cpd_" then
+		local _gameId=tonumber(string.sub(name,14))
+		--game.print("gameId="..serpent.block(_gameId))
+		if not(_gameId) or _gameId<=0 or not(Sendings_Patterns.detail_game_id[_gameId]) then
+			game.print("WTF can't find gameId for full listing...")
+			return
+		else
+			--player.gui.center["team_manager_gui"].destroy()
+			--config_training_gui(player)
+			--game.print("GameId=".._gameId)
+			build_gui_pattern(player, _gameId, Sendings_Patterns.detail_game_id[_gameId])	
+			return
+		end
+	end	
+	
+	--EVL CLOSE FULL LIST OF PATTERN FROM CONFIG TRAINING "ctg_" ie "config_training_gui"
+	if name == "ctg_pattern_close_button" then
+		player.gui.center["ctg_pattern"].destroy()
+		--draw_manager_gui(player)
+		return
 	end	
 end
 
