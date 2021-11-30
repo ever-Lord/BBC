@@ -865,12 +865,12 @@ local function config_training_gui(player)
 	--
 	-- SELECT A PATTERN FOR SIMULATION
 	--
-	north_training.add({ type = "label", caption = "         Currently using" })
+	north_training.add({ type = "label", caption = "         Simulator using" })
 	local _caption_ngp="[color=#999999](no pattern active)[/color]"
 	local _tooltip_ngp=""
 	if global.pattern_training["north"]["active"] then
 		_caption_ngp="pattern [color=#88FF88]#"..global.pattern_training["north"]["gameid"].."[/color]"
-		_tooltip_ngp=build_tooltip(Sendings_Patterns.detail_game_id[global.pattern_training["north"]["gameid"]])
+		_tooltip_ngp=build_tooltip_pattern(Sendings_Patterns.detail_game_id[global.pattern_training["north"]["gameid"]])
 	end
 	north_training.add({ name = "north_gameid_pattern", type = "label", caption = _caption_ngp, tooltip = _tooltip_ngp })
 	north_training.add({ type = "label", caption = "Change to pattern :" })
@@ -1000,12 +1000,12 @@ local function config_training_gui(player)
 	--
 	-- SELECT A PATTERN FOR SIMULATION
 	--
-	south_training.add({ type = "label", caption = "         Currently using" })
+	south_training.add({ type = "label", caption = "         Simulator using" })
 	local _caption_ngp="[color=#999999](no pattern active)[/color]"
 	local _tooltip_ngp=""
 	if global.pattern_training["south"]["active"] then
 		_caption_ngp="pattern [color=#88FF88]#"..global.pattern_training["south"]["gameid"].."[/color]"
-		_tooltip_ngp=build_tooltip(Sendings_Patterns.detail_game_id[global.pattern_training["south"]["gameid"]])
+		_tooltip_ngp=build_tooltip_pattern(Sendings_Patterns.detail_game_id[global.pattern_training["south"]["gameid"]])
 	end
 	south_training.add({ name = "south_gameid_pattern", type = "label", caption = _caption_ngp, tooltip = _tooltip_ngp})
 	south_training.add({ type = "label", caption = "Change to pattern :" })
@@ -1152,7 +1152,7 @@ local function training_simul_pattern(player, gameid_index, force)
 		local _game_id=Sendings_Patterns.list_game_id[gameid_index]
 		global.pattern_training[force]={["player"]=player.name,["active"]=true,["gameid"]=_game_id}
 		player.gui.center["config_training"][force.."_config_training"][force.."_gameid_pattern"].caption="pattern [color=#88FF88]#".._game_id.."[/color]"
-		player.gui.center["config_training"][force.."_config_training"][force.."_gameid_pattern"].tooltip=build_tooltip(Sendings_Patterns.detail_game_id[_game_id])
+		player.gui.center["config_training"][force.."_config_training"][force.."_gameid_pattern"].tooltip=build_tooltip_pattern(Sendings_Patterns.detail_game_id[_game_id])
 
 		-- BUT DEACTIVATE AUTO-TRAINING : incompatibility between auto-training and pattern-training (simulation)
 		if global.auto_training[force]["active"] then

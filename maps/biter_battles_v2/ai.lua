@@ -629,7 +629,7 @@ Public.pre_main_attack = function()
 
 	else -- regular training mode without players 
 		global.main_attack_wave_amount = 0
-		game.print(">>>>> Training Mode, no player found at "..force_name,{r = 77, g = 192, b = 192})
+		if global.bb_debug then game.print(">>>>> Training Mode, no player found at "..force_name,{r = 77, g = 192, b = 192}) end
 	end
 	-- VERBOSE
 	if global.bb_debug then game.print(">>>>> Up to "..global.main_attack_wave_amount.." [font=default-small](real value:"..(math.floor(real_threat_ratio*100)/100)..")[/font] groups"
