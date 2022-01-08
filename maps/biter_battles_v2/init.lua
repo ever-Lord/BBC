@@ -5,6 +5,7 @@ local fifo = require "maps.biter_battles_v2.fifo"
 local team_manager = require "maps.biter_battles_v2.team_manager"
 
 local Public = {}
+global.dbg="" -- dbg=debug variable to use in initsequence (since game.print is not available) use : global.dbg=global.dbg..""
 
 function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.enemy_evolution.time_factor = 0
@@ -13,6 +14,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.pollution.enabled = false
 	game.map_settings.enemy_expansion.enabled = false
 
+	global.version="v0.96" --CODING--
 	global.bb_debug = false --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
 	global.bb_biters_debug = false --EVL ADD MUCH VERBOSE TO BITERS AI
 	global.bb_biters_debug2 = false --EVL ADD EVEN MUCH VERBOSE TO BITERS AI
@@ -22,10 +24,8 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	local _first_init=true --EVL for disabling nauvis (below)
 	if not game.forces["north"] then 
 		game.create_force("north")
-		--game.print(">>>>> WELCOME TO BBC ! Tournament mode is active, Players are frozen, Referee has to open [color=#FF9740]TEAM MANAGER[/color] <<<<<",{r = 00, g = 175, b = 00}) --EVL double message --DEBUG-- ?
 	else
 		if global.bb_debug then game.print("Debug : Executing initial setup (again)",{r = 00, g = 175, b = 00}) end
-		--game.print(">>>>> You may need to refresh [color=#FF9740]TEAM MANAGER[/color] GUI manually",{r = 127, g = 127, b = 127})
 		for _, player in pairs(game.players) do
 			if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
 		end
@@ -47,7 +47,6 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	for action_name, _ in pairs(defines.input_action) do
 		p.set_allows_action(defines.input_action[action_name], false)
 	end
-
 	local defs = {
 		defines.input_action.activate_copy,
 		defines.input_action.activate_cut,
@@ -98,26 +97,21 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 			surface.delete_chunk({chunk.x, chunk.y})
 		end
 	end
-
 	global.tournament_mode = true -- EVL (none)
 	global.training_mode  = false -- EVL (none)
-	
-	--global.freezed_start = 999999999 --EVL will be set to actual ticks_played game.ticks_played
-	--global.freeze_players = true -- EVL (none)
-	--team_manager.freeze_players() -- EVL (none) do we care about biters ?
 	
 	if global.freeze_players then --We are already frozen
 		global.freezed_time=0 --EVL (none)
 		--EVL we save tick when players started to be frozen (none)
 		global.freezed_start=game.ticks_played
 		--do nothing
-		if global.bb_debug then game.print("Debug : Initial setup, players are already frozen",{r = 00, g = 175, b = 00}) end		
+		if global.bb_debug then game.print("Debug : Initial setup, players are already frozen",{r = 00, g = 175, b = 00}) end
 	else
 		global.freezed_time=0
 		global.freezed_start=999999999 -- EVL Will be set to game.ticks_played
 		global.freeze_players = true -- EVL (none)
 		team_manager.freeze_players() -- EVL (none) do we care about biters ?
-		if global.bb_debug then game.print("Debug : Initial setup, players are set to frozen",{r = 00, g = 175, b = 00}) end		
+		if global.bb_debug then game.print("Debug : Initial setup, players are set to frozen",{r = 00, g = 175, b = 00}) end
 	end	
 	
 end
@@ -126,16 +120,25 @@ end
 function Public.playground_surface()
 	local map_gen_settings = {}
 	local int_max = 2 ^ 31
-	map_gen_settings.seed = math.random(1, int_max) --EVL first math.random send always same value (since tick=0) ???
-	--map_gen_settings.seed = 996357343 --CODING--
-	--[[ SEEDS TO BE VERIFIED
-		996357343
-		1354075952
-		1497223384
-		1152708049
-		1407416735 (ugh)
-		1304692754 (copper in water)
-	]]--
+	
+	if global.seed_forcing and global.seed_forcing>0 and global.seed_forcing<int_max then
+		game.print(">>>>> Forcing seed #"..global.seed_forcing,{r = 00, g = 175, b = 00})
+		map_gen_settings.seed = global.seed_forcing
+		global.seed_forcing=false
+	else
+		if global.bb_debug then game.print(">>>>> Generation of random seed.",{r = 00, g = 175, b = 00}) end
+		map_gen_settings.seed = math.random(1, int_max) --EVL first math.random send always same value (since tick=0)
+		if not global.history_seed  then
+			global.history_seed={}
+			table.insert(global.history_seed, map_gen_settings.seed.."  (initialisation)")
+		end
+
+		
+		--map_gen_settings.seed = your_value -- 2044398054--1607717091 --996357343 --CODING--
+	end
+	
+	
+	
 	map_gen_settings.water = math.random(15, 60) * 0.01 --EVL was 15,65
 	map_gen_settings.starting_area = 2.5
 	map_gen_settings.terrain_segmentation = math.random(30, 40) * 0.1
@@ -155,6 +158,8 @@ function Public.playground_surface()
 		["enemy-base"] = {frequency = 0, size = 0, richness = 0}
 	}
 	local surface = game.create_surface(global.bb_surface_name, map_gen_settings)
+	surface.min_brightness  = 0.15
+	surface.brightness_visual_weights = { -0.5 , -0.4 , -0.2 }
 	surface.request_to_generate_chunks({x = 0, y = -256}, 7)
 	surface.force_generate_chunk_requests()
 end
@@ -162,13 +167,19 @@ end
 function Public.draw_structures()
 	local surface = game.surfaces[global.bb_surface_name]
 	Terrain.draw_spawn_area(surface)
-	--Terrain.clear_ore_in_main(surface)
-	--Terrain.generate_spawn_ore(surface)
+	--Terrain.clear_ore_in_main(surface)--EVL FreeBB removes initial ore 
+	--Terrain.generate_spawn_ore(surface)--EVL and adds huge quantities, BBChampions does not like that ;) 
+
 
 	Terrain.generate_additional_rocks(surface)
+	--Terrain.generate_trees_on_island(surface) --not here, will be symmetrize, move to clear_ore_in_island (see below)
 	Terrain.draw_spawn_circle(surface)
-	Terrain.check_ore_in_main(surface)
-	Terrain.generate_silo(surface)	
+	Terrain.check_ore_in_main(surface) --EVL analyse ores in spawn and adjust quantities with randomness
+
+	Terrain.generate_silo(surface)
+	--EVL clear_ore_in_island may not mork if placed in init.lua/Public.draw_structures()
+	--Are we generating some chunk over the managers spots are later ? -> need to inspect
+	--Terrain.clear_ore_in_island(surface)  --EVL with this version, ore can be seen on island and manager spots (why?) --> clear
 	
 	--Terrain.generate_spawn_goodies(surface)
 end
@@ -186,19 +197,38 @@ function Public.tables()
 	else
 		global.bb_surface_name = "bb0"
 	end
-
 	global.active_biters = {}
 	global.bb_evolution = {}
 	global.bb_game_won_by_team = nil
+	global.bb_game_won_tick = nil
 	global.bb_threat = {}
 	global.bb_threat_income = {}
-	global.chosen_team = {}
+	global.chosen_team = {} --Stores team of players (not used in BBChampions, see freeBB)
+	global.disconnected = { --EVL Players disconnected (to be use in team_manager)
+		--["player"]="force"
+	}
+	global.disco_chests={["north"]={},["south"]={}} --EVL Chests used to get back inv of disco players and corpses expired
+	
 	global.combat_balance = {}
 	global.difficulty_player_votes = {}
 	global.evo_raise_counter = 1
 	global.force_area = {}
 	global.map_pregen_message_counter = {} --EVL never used ?
-	global.rocket_silo = {}
+	global.rocket_silo = {} --EVL silo entity + logo_team Id
+	--EVL Team_manager.lua MANAGERS (spy/coach/controller/inspector etc.)
+	global.manager_table = {  --Store name of managers
+		["north"]=nil,
+		["south"]=nil
+	}
+	--global.manager_speaker = {} --EVL Speakers on manager spots
+	global.manager_speaker = { -- EVL lolilol (see main.lua)
+		["north_text"]=0,
+		["north_orientation"]=0,
+		["north_increment"]=0.002,
+		["south_text"]=0,
+		["south_orientation"]=0,
+		["south_increment"]=-0.002
+	}
 	global.spectator_rejoin_delay = {}
 	global.spy_fish_timeout = {}
 	global.target_entities = {}
@@ -215,6 +245,10 @@ function Public.tables()
 		["south"] = {
 			["medium-spitter"] = true, ["medium-biter"] = true, ["big-spitter"] = true, ["big-biter"] = true, ["behemoth-spitter"] = true, ["behemoth-biter"] = true
 		}
+	}
+	global.biters_kills=  { --EVL track entities killed by biters
+		["north_biters"] = {["walls"]=0, ["furnaces"]=0, ["entities"]=0},
+		["south_biters"] = {["walls"]=0, ["furnaces"]=0, ["entities"]=0}		
 	}
 	global.difficulty_vote_value = 1
 	global.difficulty_vote_index = 1 --EVL We set to biter_league by default
@@ -256,6 +290,9 @@ function Public.tables()
 	fifo.init()
 	game.reset_time_played()
 	
+	--------------------------------------------------
+	--EVL All these under are added for BBChampions --
+	--------------------------------------------------
 	global.main_attack_wave_amount = 0
 	global.next_attack = "north" --EVL Coinflip moved to main.lua (and game_over.lua after reroll/reset) 
 	--EVL Need a patch so first attack goes to team OUTSIDE (give an advantage top team ATHOME) not sure its an advantage though
@@ -278,7 +315,8 @@ function Public.tables()
 		["south"]={}
 	}
 	global.way_points_max=15 -- limit to the number of way_points stored
-
+	global.way_points_max_reached=false  --if true, will be announced in stats.json
+	
 	--AI.lua GROUPS OF UNITS : TYPE IS STORED THEN REPLICATED
 	global.units_type_table = {  --Store way_points to use them on the other side (equity/balance)
 		["north"]={},
@@ -296,13 +334,17 @@ function Public.tables()
 	--global.game_id=12546 --CODING--
 	
 	global.player_init_timer=20 -- 20 half seconds for intro animation
-	--global.player_init_timer=0 --CODING--
+	--global.player_init_timer=1 --CODING--
 	global.player_anim={} -- each player has his countdown when joined in
-
+	global.reveal_init_map=true --EVL 
+	global.is_island_cleared=false --EVL see Public.clear_ore_in_island(surface) in terrain.lua and main.lua
+	
 	global.reroll_max=2 --EVL Maximum # of rerolls (only used in export stats, see main.lua)
 	--global.reroll_max=100 --EVL TO be removed  --CODING-- 2 or 3 ???????
 	global.reroll_left=global.reroll_max --EVL = global.reroll_max as we init (will be set to real value after a reroll has been asked)
+	global.reroll_confirm = false --EVL ask for confirmation before reroll
 	global.reroll_do_it=false --EVL (none)
+
 
 	global.bbc_pack_details = "" -- EVL USED IN functions.lua FOR listing of packs details
 	global.pack_choosen = ""	--EVL starter pack choosen
@@ -313,11 +355,16 @@ function Public.tables()
 	
 	global.match_running = false  --EVL determine if this is first unfreeze (start match) or nexts (pause/unpause)
 
+	global.min_players=2 --(2) EVL Game will not start if less than this player on one side (unless training mode)
+	global.max_players=3 --(3) EVL Send alerts if too many players
+	global.viewing_inventories = {} --EVL Store who's viewing who and where (show_inventory_bbc.lua)
+	global.afk_players = {} --EVL track afk players ie global.afk_players[player.name]=true/nil
+	global.corpses_force = {} --Store force.name from died players (multiple corpses wont matter unless a player dies at least one time in both sides --> unlikely to happen)
+
 	global.freezed_time=0 --EVL (none)
 	global.freezed_start=game.ticks_played --EVL we save tick when players started to be frozen (none)
-	global.reveal_init_map=true --EVL (none)
 	global.evo_boost_tick=2*60*60*60 --EVL ARMAGEDDON We boost evo starting at 2h=120m 
-	--global.evo_boost_tick=2*60*60 --EVL  --CODING--
+	--global.evo_boost_tick=10*60*60 --EVL  --CODING--
 	global.evo_boost_duration=30 -- Duration before evo goes to 90 (in minutes)
 	global.evo_boost_active=false --EVL we dont need to check that too often, once its done its done
 	global.evo_boost_values={ 	-- EVL set to boost values after global.evo_boost_tick (1%=0.01)
@@ -327,6 +374,8 @@ function Public.tables()
 	
 	global.force_map_reset_exceptional=false -- set to true if a map reset is called via chat command
 	global.force_map_reset_export_reason={} -- we save infos about force-map-resets
+	--global.history_seed={} --EVL historic of seeds in case a reroll is called by mistake (init in Public.playground_surface())
+	global.seed_forcing=false --EVL store the #seed for a map reset with a given seed (see main.lua)
 	
 	global.export_stats_are_set = false -- first : At the end of the match we first we set the datas
 	global.export_stats_done=nil -- then : Set to true after match is over and stats are exported
@@ -348,18 +397,29 @@ function Public.tables()
 		["north"]={["player"]="",["active"]=false,["gameid"]=0},
 		["south"]={["player"]="",["active"]=false,["gameid"]=0}	
 	}
+	global.pattern_team_select="All" -- Team selected in list of patterns (so gui is less big)
 	global.virtual_threat = {
 		["north"]=0,  -- virtual threat from virtual groups in simulation mode
 		["south"]=0
 	}
-
+	global.count_in_init=0 --EVL (debug) global variable to use in init sequence then use command /c game.print("init counter =  "..global.count_in_init)
+	global.vartmp=""--nil --EVL (debug)
+	
+	global.sound_intro	="utility/crafting_finished"-- ie: game.play_sound{path = global.sound_intro, volume_modifier = 0.8}
+	global.sound_error	="utility/cannot_build"-- ie: game.play_sound{path = global.sound_error, volume_modifier = 0.8}
+	global.sound_success="utility/armor_insert"-- ie: game.play_sound{path = global.sound_success, volume_modifier = 0.8}
+	global.sound_low_bip="utility/paste_activated"-- ie: game.play_sound{path = global.sound_low_bip, volume_modifier = 0.8}
+	global.sound_died	="utility/deconstruction_selection_ended"-- ie: game.play_sound{path = global.sound_died, volume_modifier = 0.8}
+	
+	--------------------------------------------------
+	--EVL All those above are added for BBChampions --
+	--------------------------------------------------	
 end
 
 function Public.load_spawn()
 	local surface = game.surfaces[global.bb_surface_name]
 	surface.request_to_generate_chunks({x = 0, y = 0}, 1)
 	surface.force_generate_chunk_requests()
-
 	surface.request_to_generate_chunks({x = 0, y = 0}, 2)
 	surface.force_generate_chunk_requests()
 
@@ -380,7 +440,7 @@ function Public.load_spawn()
 	end
 end
 
---Initialize base of way_points_base and default waypoints (from on_init() in main.lua, to use in ai.lua)
+--EVL Initialize base of way_points_base and default waypoints (from on_init() in main.lua, to use in ai.lua)
 function Public.init_waypoints()
 	-- FIRST BASE OF WAYPOINTS
 	local p=0.49
@@ -437,7 +497,6 @@ function Public.forces()
 			force.reset_evolution()
 		end
 	end
-
 	local surface = game.surfaces[global.bb_surface_name]
 
 	local f = game.forces["north"]
@@ -488,7 +547,6 @@ function Public.forces()
 	f.set_cease_fire('north', true)
 	f.set_cease_fire('south', true)
 	f.share_chart = false
-
 	for _, force in pairs(game.forces) do
 		game.forces[force.name].technologies["artillery"].enabled = false
 		game.forces[force.name].technologies["artillery-shell-range-1"].enabled = false

@@ -3,6 +3,7 @@ local Gui = require "maps.biter_battles_v2.gui"
 local Init = require "maps.biter_battles_v2.init"
 local Score = require "comfy_panel.score"
 local Server = require 'utils.server'
+local Tables = require "maps.biter_battles_v2.tables" --EVL (none)
 
 local math_random = math.random
 
@@ -111,6 +112,7 @@ local function get_sorted_list(column_name, score_list)
     return score_list
 end
 
+--EVL Add new values (build walls and damaged own walls)
 local function get_mvps(force)
     local get_score = Score.get_table().score_table
     if not get_score[force] then return false end
@@ -139,14 +141,19 @@ local function get_mvps(force)
             if score.players[p.name].built_walls then
                 built_walls = score.players[p.name].built_walls
             end			
-			
+			--EVL ADD Damaged own walls in MVPs
+            local damaged_own_walls = 0
+            if score.players[p.name].damaged_own_walls then
+                damaged_own_walls = score.players[p.name].damaged_own_walls
+            end				
             table.insert(score_list, {
-                name = p.name,
-                killscore = killscore,
-                deaths = deaths,
-                built_entities = built_entities-built_walls, -- Deduce walls
-                built_walls = built_walls,--EVL ADD Built walls in MVPs
-                mined_entities = mined_entities
+				name = p.name,
+				killscore = killscore,
+				deaths = deaths,
+				built_entities = built_entities-built_walls, -- Deduce walls
+				built_walls = built_walls, --EVL ADD Built walls in MVPs
+				mined_entities = mined_entities,
+				damaged_own_walls = damaged_own_walls --EVL ADD Damaged own walls in MVPs
             })
         end
     end
@@ -165,10 +172,17 @@ local function get_mvps(force)
     mvp.built_walls = {
         name = score_list[1].name,
         score = score_list[1].built_walls
-    }	
+    }
+    --EVL ADD Built walls in MVPs
+	score_list = get_sorted_list("damaged_own_walls", score_list)
+    mvp.damaged_own_walls = {
+        name = score_list[1].name,
+        score = score_list[1].damaged_own_walls
+    }		
     return mvp
 end
 
+--EVL Add new values (build walls and damaged own walls)
 local function show_mvps(player)
     local get_score = Score.get_table().score_table
     if not get_score then return end
@@ -178,7 +192,8 @@ local function show_mvps(player)
         name = "mvps",
         direction = "vertical"
     })
-    local name_North="North"
+    --NORTH
+	local name_North="North"
 	if global.tm_custom_name["north"] then name_North = global.tm_custom_name["north"]	end
 	local l = frame.add({type = "label", caption = "MVPs - "..name_North..":"})
     l.style.font = "default-listbox"
@@ -197,7 +212,7 @@ local function show_mvps(player)
         })
         l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
-		--EVL score is built-walls (deducing walls from built entities)
+		--EVL score is built minus walls (deducing walls from built entities)
         local l = t.add({type = "label", caption = "Builder >> "})
         l.style.font = "default-listbox"
         l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
@@ -207,6 +222,7 @@ local function show_mvps(player)
         })
         l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
+		
 		--EVL ADD Built walls in MVPs
         local l = t.add({type = "label", caption = "Waller >> "})
         l.style.font = "default-listbox"
@@ -214,6 +230,17 @@ local function show_mvps(player)
         local l = t.add({
             type = "label",
             caption = mvp.built_walls.name .. " built " .. mvp.built_walls.score .. " walls"
+        })
+        l.style.font = "default-bold"
+        l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
+
+		--EVL ADD Damaged own walls in MVPs
+        local l = t.add({type = "label", caption = "Insidious >> "})
+        l.style.font = "default-listbox"
+        l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
+        local l = t.add({
+            type = "label",
+            caption = mvp.damaged_own_walls.name .. " dealt " .. Functions.inkilos(math.floor(mvp.damaged_own_walls.score)) .. " dmg to walls"
         })
         l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
@@ -241,6 +268,11 @@ local function show_mvps(player)
 			table.insert(result, 'MVP Waller: \\n')
 			table.insert(result, mvp.built_walls.name .. " built " .. mvp.built_walls.score .. " walls\\n")
 			table.insert(result, '\\n')
+			--EVL ADD Damaged own walls in MVPs
+			table.insert(result, 'MVP Insidious: \\n')
+			table.insert(result, mvp.damaged_own_walls.name .. " dealt " .. mvp.damaged_own_walls.score .. " dmg to walls\\n")
+			table.insert(result, '\\n')
+			
 			table.insert(result, 'MVP Deaths: \\n')
 			table.insert(result, mvp.deaths.name .. " died " .. mvp.deaths.score .. " times")
 			local message = table.concat(result)
@@ -290,6 +322,18 @@ local function show_mvps(player)
 		 l.style.font = "default-bold"
         l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
 		
+		--EVL ADD Damaged own walls in MVPs
+        local l = t.add({type = "label", caption = "Insidious >> "})
+        l.style.font = "default-listbox"
+        l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
+        local l = t.add({
+            type = "label",
+            caption = mvp.damaged_own_walls.name .. " dealt " .. Functions.inkilos(math.floor(mvp.damaged_own_walls.score)) .. " dmg to walls"
+        })
+        l.style.font = "default-bold"
+        l.style.font_color = {r = 0.33, g = 0.66, b = 0.9}
+
+		
         local l = t.add({type = "label", caption = "Deaths >> "})
         l.style.font = "default-listbox"
         l.style.font_color = {r = 0.22, g = 0.77, b = 0.44}
@@ -312,7 +356,12 @@ local function show_mvps(player)
 			--EVL ADD Built walls in MVPs
 			table.insert(result, 'MVP Waller: \\n')			
 			table.insert(result, mvp.built_walls.name .. " built " .. mvp.built_walls.score .. " walls\\n")
-			table.insert(result, '\\n')							 
+			table.insert(result, '\\n')	
+			--EVL ADD Damaged own walls in MVPs
+			table.insert(result, 'MVP Insidious: \\n')
+			table.insert(result, mvp.damaged_own_walls.name .. " dealt " .. mvp.damaged_own_walls.score .. " dmg to walls\\n")
+			table.insert(result, '\\n')
+			
 			table.insert(result, 'MVP Deaths: \\n')
 			table.insert(result, mvp.deaths.name .. " died " .. mvp.deaths.score .. " times")
 			local message = table.concat(result)
@@ -321,8 +370,6 @@ local function show_mvps(player)
         end
     end
 end
-
-
 
 local enemy_team_of = {["north"] = "south", ["south"] = "north"}
 
@@ -358,23 +405,7 @@ function Public.server_restart()
         end
 		]]--
 
-		--EVL spec_god players have to be back on ground/spec force before reinit/reroll/force-map-reset
-		if table_size(global.god_players) > 0 then
-			for _name,_bool in pairs(global.god_players) do
-				if _bool == true then
-					local player = game.players[_name]
-					if player.connected then --EVL Double check (useless, see on_pre_player_left_game in gui.lua)
-						player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-						player.create_character()
-						player.force = game.forces["spectator"]
-						player.show_on_map=true
-						player.zoom=0.30
-					end
-					global.god_players[_name] = false
-					if global.bb_debug then game.print("DEBUG: reset incoming -> player:" .._name.."/".. player.name .." switches back to real mode") end
-				end
-			end
-		end
+
 		--
 		--EVL Starting reset
 		game.print(">>>>> Map is restarting !  (10s before reveal)", {r = 0.22, g = 0.88, b = 0.22}) --EVL BBC has a reveal of 127x127 for reroll purpose
@@ -390,6 +421,10 @@ function Public.server_restart()
 		local _freeze_players = global.freeze_players --if player are freezed then dont freeze them again
 		local _reroll_left = global.reroll_left --EVL need to remember how many rolls we did
 		local _force_map_reset_export_reason=global.force_map_reset_export_reason --EVL used in export stats
+		--Save the seed
+		table.insert(global.history_seed,game.surfaces[global.bb_surface_name].map_gen_settings.seed.."  at tick = "..game.tick)
+		local _history_seed=global.history_seed
+		local _seed_forcing=global.seed_forcing
 		local _difficulty_vote_value=global.difficulty_vote_value
 		local _difficulty_vote_index=global.difficulty_vote_index
 		--EVL REWORK INIT PROCEDURE
@@ -398,6 +433,8 @@ function Public.server_restart()
 		global.freeze_players = _freeze_players
 		global.reroll_left = _reroll_left
 		global.force_map_reset_export_reason =_force_map_reset_export_reason
+		global.history_seed=_history_seed
+		global.seed_forcing=_seed_forcing
 		global.server_restart_timer = nil
 		global.difficulty_vote_value = _difficulty_vote_value
 		global.difficulty_vote_index = _difficulty_vote_index
@@ -475,9 +512,6 @@ local function freeze_all_biters(surface)
 	if global.bb_debug then game.print("Debug: Biters are frozen (Game_over.lua).") end
 end
 
-
-
-
 local function biter_killed_the_silo(event)
 	local force = event.force
 	if force ~= nil then
@@ -522,18 +556,33 @@ function Public.silo_death(event)
     if entity.name ~= "rocket-silo" then return end
     if global.bb_game_won_by_team then return end
     if entity == global.rocket_silo.south or entity == global.rocket_silo.north then
-
 		-- Respawn Silo in case of friendly fire
 		if not biter_killed_the_silo(event) then
 			respawn_silo(event)
 			return
 		end
-		
 		global.bb_game_won_by_team = enemy_team_of[entity.force.name]
+		global.bb_game_won_tick = game.tick
+		-- color for message "team wins !"
+		local _color="#DDDDDD"
+		--EVL Remove logo above dead silo
+		if entity.force.name=="north" then
+			if global.rocket_silo["north_logo"] and global.rocket_silo["north_logo"]>0 then
+				rendering.destroy(global.rocket_silo["north_logo"])
+			end
+			_color="#7a1919"-- south color wins
+		elseif entity.force.name=="south" then
+			if global.rocket_silo["south_logo"] and global.rocket_silo["south_logo"]>0 then
+				rendering.destroy(global.rocket_silo["south_logo"])
+			end
+			_color="#3737ff"-- north color wins
+		else
+			if global.bb_debug then game.print(">>>>> Error in Public.silo_death(event) (wrong force):"..entity.force.name,{r = 255, g = 25, b = 25}) end
+			return
+		end
 		set_victory_time()
 		north_players = "NORTH PLAYERS: \\n"
 		south_players = "SOUTH PLAYERS: \\n"
-			
 		for _, player in pairs(game.connected_players) do
 			player.play_sound {path = "utility/game_won", volume_modifier = 1}
 			if player.gui.left["bb_main_gui"] then
@@ -541,16 +590,68 @@ function Public.silo_death(event)
 			end
 			create_victory_gui(player)
 			show_mvps(player)
+			
 			if (player.force.name == "south") then
 				south_players = south_players .. player.name .. "   "
 			elseif (player.force.name == "north") then
 				north_players = north_players .. player.name .. "   "
+
+			end
+			
+			--EVL ADD screen with "team wins !"
+			for _, gui_names in pairs (player.gui.center.children_names) do 
+				player.gui.center[gui_names].destroy() --first clear screen
+			end
+			local _team_name="Team "..global.bb_game_won_by_team
+			if global.tm_custom_name[global.bb_game_won_by_team] then
+				_team_name = global.tm_custom_name[global.bb_game_won_by_team]
+				--game.print("team win : ".._team_name)
+			end
+			
+			local frame = player.gui.center.add {type = "frame", name = "team_has_won", direction = "vertical"}
+			local _table = frame.add {type = "table", column_count= 1 ,direction = "vertical" }
+
+			--EVL is there a logo for this team? (there is a default logo for north and south)
+			if Tables.logo_teams[_team_name] then 
+				local _sprite="file/png/"..Tables.logo_teams[_team_name]
+				local _tt=_table.add {type = "sprite", sprite = _sprite}
+				_tt.style.horizontal_align="center"
+			elseif Tables.logo_teams[global.bb_game_won_by_team] then 
+				local _sprite="file/png/"..Tables.logo_teams[global.bb_game_won_by_team]
+				local _tt=_table.add {type = "sprite", sprite = _sprite}
+				_tt.style.horizontal_align="center"
+			else --team_name has no logo, show default logo
+				local _sprite="file/png/"..Tables.logo_teams[global.bb_game_won_by_team]
+				local _tt=_table.add {type = "sprite", sprite = _sprite}
+				_tt.style.horizontal_align="center"
+			end
+			-- EVL Text
+			local _tt = _table.add {type = "label" , caption ="[font=default-large-bold][color=".._color.."] ".._team_name.." WINS ![/color][/font]"} 
+			_tt.style.horizontal_align="center"
+		end
+		--EVL spec_god players have to be back on ground/spec force before reinit/reroll/force-map-reset
+		if table_size(global.god_players) > 0 then
+			for _name,_bool in pairs(global.god_players) do
+				if _bool == true then
+					local player = game.players[_name]
+					if player.connected then --EVL Double check (useless, see on_pre_player_left_game in gui.lua)
+						player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
+						player.create_character()
+						player.force = game.forces["spectator"]
+						player.show_on_map=true
+						player.zoom=0.30
+					end
+					global.god_players[_name] = false
+					if global.bb_debug then game.print("DEBUG: game has ended -> player:" .._name.. " switches back to real mode") end
+				end
 			end
 		end
 		game.print(">>>>> GG ! Don't forget to re-allocate permissions as they were (use [color=#DDDDDD]/promote[/color] or [color=#DDDDDD]/demote[/color]).",{r = 197, g = 197, b = 17}) 
 		global.spy_fish_timeout["north"] = game.tick + 999999
 		global.spy_fish_timeout["south"] = game.tick + 999999
 		global.server_restart_timer = 999999 --EVL see main.lua
+
+		--TODO-- Check force map reset
 
 		local c = gui_values[global.bb_game_won_by_team].c1
 		if global.tm_custom_name[global.bb_game_won_by_team] then

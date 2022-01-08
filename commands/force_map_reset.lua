@@ -1,5 +1,6 @@
 local Server = require 'utils.server'
-
+local Functions = require "maps.biter_battles_v2.functions"
+local show_inventory = require 'modules.show_inventory_bbc'
 --EVL some changes for BBC, only used for exceptionnal reasons
 local function force_map_reset(reason)
     local player = game.player
@@ -42,6 +43,8 @@ local function force_map_reset(reason)
 			global.server_restart_timer=nil --EVL see main.lua (will be set to 20)
 			--EVL WE ADD TO EXPORT DATAS THAT A FORCE-MAP-RESET HAS BEEN CALLED (before or during match ... this match should be cancelled?)
 			table.insert(global.force_map_reset_export_reason, msg_gui .. " (at tick="..game.tick..")")
+			--EVL Clear/Destroy all inventories (on_pre_player_left & on force-map-reset & on starting sequence // but not needed on reroll)
+			show_inventory.destroy_all_inventories()
         end
     end
 end
@@ -65,12 +68,18 @@ local function starting_sequence()
 			msg =">>>>> Admin/Referee " .. player.name .. " initiated [color=#FFAAAA]starting sequence[/color] map reset."
 			msg_gui= player.name .. " initiated starting sequence map reset" --EVL remember (manual validation on website ?)
 			game.print(msg, {r = 175, g = 100, b = 100})
+			for _, player in pairs(game.players) do
+				Functions.show_rules(player)
+			end
+			
 			Server.to_discord_embed(msg)
 			global.force_map_reset_exceptional=true
 			global.confirm_starting_sequence=false
 			global.server_restart_timer=nil --EVL see main.lua (will be set to 20)
 			--EVL WE ADD TO EXPORT DATAS THAT A FORCE-MAP-RESET HAS BEEN CALLED (before or during match ... this match should be cancelled?)
 			table.insert(global.force_map_reset_export_reason, msg_gui .. " (at tick="..game.tick..")")
+			--EVL Clear/Destroy all inventories (on_pre_player_left & on force-map-reset & on starting sequence // but not needed on reroll)
+			show_inventory.destroy_all_inventories()			
         end
     end
 end

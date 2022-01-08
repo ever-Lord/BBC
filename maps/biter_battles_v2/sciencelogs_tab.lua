@@ -129,7 +129,7 @@ local function add_science_logs(player, element)
 	local dropdown_evofilter = t_filter.add { name = "dropdown-evofilter", type = "drop-down", items = evofilter_list, selected_index = global.dropdown_users_choice_evo_filter[player.name] }
 	--EVL Add export button for simulation mode (ie pattern-training)
 	t_filter.add({ type = "label", caption = "     "})
-	if player.name=="everLord" then
+	if player.name=="everLord" then --reserved button to export sendings patterns
 		local button = t_filter.add({
 				type = "button",
 				name = "science_logs_export_sendings",
@@ -341,7 +341,7 @@ function Public.science_logs_export_sendings(event)
 				output_south_gameid=global.game_id+1
 				output_file_name="sendings_"..global.game_id
 				--output_file_append=false
-				output_file_append=true --CODING--
+				output_file_append=true
 			else 
 				game.print(">>>>> UNABLE TO EXPORT PATTERNS.", {r = 0.99, g = 0.33, b = 0.33})
 				return
@@ -367,13 +367,13 @@ function Public.science_logs_export_sendings(event)
 		end
 		
 		output_north=output_north..'       [999]={"logistic",0,"military",0,"chemical",0}\n'
-		output_north=output_north..'    }'
+		output_north=output_north..'    }\n}'
 		--game.print(output_north)
 	
 		--game.print("   ")
 		
 		output_south=output_south..'       [999]={"logistic",0,"military",0,"chemical",0}\n'
-		output_south=output_south..'    }'
+		output_south=output_south..'    }\n}'
 		--game.print(output_south)
 
 		game.write_file(output_file_name, output_north..'\n\n'..output_south..'\n\n__________________________________________\n\n', output_file_append)

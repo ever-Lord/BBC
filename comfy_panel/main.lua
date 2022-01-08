@@ -25,16 +25,26 @@ function Public.comfy_panel_clear_left_gui(player)
     end
 end
 
+--EVL Patch so inventories are not impacted by comfy_panel
 function Public.comfy_panel_restore_left_gui(player)
     for _, child in pairs(player.gui.left.children) do
-        child.visible = true
+ 		if child.name=="inventory_gui" or child.name=="north_inv_gui" or child.name=="south_inv_gui" then
+			--do nothing please
+		else
+			child.visible = true
+		end
     end
 end
 
+--EVL Patch so inventories are not destroyed by comfy_panel
 function Public.comfy_panel_clear_screen_gui(player)
-    for _, child in pairs(player.gui.screen.children) do
-        child.destroy()
-    end
+	for _, child in pairs(player.gui.screen.children) do
+		if child.name=="inventory_gui" or child.name=="north_inv_gui" or child.name=="south_inv_gui" then
+			--do nothing please
+		else
+			child.destroy()
+		end
+	end
 end
 
 function Public.comfy_panel_restore_screen_gui(player)
@@ -44,13 +54,13 @@ function Public.comfy_panel_restore_screen_gui(player)
 end
 
 function Public.comfy_panel_get_active_frame(player)
-    if not player.gui.left.comfy_panel then
+	if not player.gui.left.comfy_panel then
         return false
     end
     if not player.gui.left.comfy_panel.tabbed_pane.selected_tab_index then
         return player.gui.left.comfy_panel.tabbed_pane.tabs[1].content
     end
-    return player.gui.left.comfy_panel.tabbed_pane.tabs[player.gui.left.comfy_panel.tabbed_pane.selected_tab_index].content
+    return player.gui.left.comfy_panel.tabbed_pane.tabs[player.gui.left.comfy_panel.tabbed_pane.selected_tab_index].content	
 end
 
 function Public.comfy_panel_refresh_active_tab(player)
@@ -79,28 +89,40 @@ local function main_frame(player)
     frame.style.margin = 6
 
     local tabbed_pane = frame.add({type = 'tabbed-pane', name = 'tabbed_pane'})
-
-    for name, func in pairs(tabs) do
-        if func.admin == true then
-            if player.admin then
-                local tab = tabbed_pane.add({type = 'tab', caption = name})
-                local frame = tabbed_pane.add({type = 'frame', name = name, direction = 'vertical'})
-                frame.style.minimal_height = 480
-                frame.style.maximal_height = 480
-                frame.style.minimal_width = 800
-                frame.style.maximal_width = 800
-                tabbed_pane.add_tab(tab, frame)
-            end
-        else
-            local tab = tabbed_pane.add({type = 'tab', caption = name})
-            local frame = tabbed_pane.add({type = 'frame', name = name, direction = 'vertical'})
-            frame.style.minimal_height = 480
-            frame.style.maximal_height = 480
-            frame.style.minimal_width = 800
-            frame.style.maximal_width = 800
-            tabbed_pane.add_tab(tab, frame)
-        end
-    end
+	
+	--EVL Force mutagen log to first pane
+	local tab = tabbed_pane.add({type = 'tab', caption = "MutagenLog"})
+	local frame = tabbed_pane.add({type = 'frame', name = "MutagenLog", direction = 'vertical'})
+	frame.style.minimal_height = 480
+	frame.style.maximal_height = 480
+	frame.style.minimal_width = 800
+	frame.style.maximal_width = 800
+	tabbed_pane.add_tab(tab, frame)
+	
+	--EVL so remove Mutagen log from iteration
+	for name, func in pairs(tabs) do
+		if name ~= "MutagenLog" then
+			if func.admin == true then
+				if player.admin then
+					local tab = tabbed_pane.add({type = 'tab', caption = name})
+					local frame = tabbed_pane.add({type = 'frame', name = name, direction = 'vertical'})
+					frame.style.minimal_height = 480
+					frame.style.maximal_height = 480
+					frame.style.minimal_width = 800
+					frame.style.maximal_width = 800
+					tabbed_pane.add_tab(tab, frame)
+				end
+			else
+				local tab = tabbed_pane.add({type = 'tab', caption = name})
+				local frame = tabbed_pane.add({type = 'frame', name = name, direction = 'vertical'})
+				frame.style.minimal_height = 480
+				frame.style.maximal_height = 480
+				frame.style.minimal_width = 800
+				frame.style.maximal_width = 800
+				tabbed_pane.add_tab(tab, frame)
+			end
+		end
+	end
 
     local tab = tabbed_pane.add({type = 'tab', name = 'comfy_panel_close', caption = 'X'})
     tab.style.maximal_width = 32

@@ -19,8 +19,8 @@ local difficulties = {
 
 -- EVL BBC LEAGUES
 local difficulties = {
-	[1] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.4, g=0.4, b=1.0}, bplib = "[color=#55FF55]opened[/color]"}, --EVL Add blue print library opened/closed
-	[2] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.1, g=0.8, b=0.1}, bplib = "[color=#FF5555]closed[/color]"}
+	[1] = {name = "Biter league", str = "100%", value = 1, color = {r=0.00, g=0.00, b=0.25}, print_color = {r=0.4, g=0.4, b=1.0}, short_color="#6666FF", bplib = "[color=#55FF55]opened[/color]"}, --EVL Add blue print library opened/closed
+	[2] = {name = "Behemoth league", str = "150%", value = 1.5, color = {r=0.00, g=0.25, b=0.00}, print_color = {r=0.1, g=0.8, b=0.1}, short_color="#20CC20", bplib = "[color=#FF5555]closed[/color]"}
 }
 
 
@@ -53,11 +53,13 @@ local function poll_difficulty(player)
 	if global.bb_settings.only_admins_vote or global.tournament_mode then
 		if not player.admin then 
 			player.print("Only admins can change difficulty (tournament mode)." ,{r = 0.78, g = 0.22, b = 0.22})
+			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			return 
 		end
 	end
 	if global.match_running then --EVL Do not change difficulty after match has started
 		player.print("Difficulty cannot be changed after match has started." ,{r = 0.78, g = 0.22, b = 0.22})
+		player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		return
 	end
 	
@@ -70,6 +72,7 @@ local function poll_difficulty(player)
 			if t > 1 then str = str .. "s" end
 			str = str .. " ago."
 			player.print(str)
+			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		end
 		return 
 	end
@@ -106,17 +109,20 @@ local function set_difficulty()
 	if global.difficulty_vote_index ~= new_index then
 		local message_blueprint=""
 		if new_index==1 then
-           message_blueprint="[color=#FF9740](Blue print library opened)[/color]" 
+           message_blueprint="[color=#FF9740](Blue print library opened)[/color]"
+			game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.open_blueprint_library_gui,true)
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.import_blueprint_string, true)
 		
 		elseif new_index==2 then
-           message_blueprint="[color=#FF9740](Blue print library closed)[/color]" 
+           message_blueprint="[color=#FF9740](Blue print library closed)[/color]"
+			game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.open_blueprint_library_gui, false)
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.import_blueprint_string, false)
 		else
-		   game.print(">>>>> BBC ALERT : Vote difficulty is not available, switching to Biter league by default...", {r=0.98, g=0.11, b=0.11})
-           message_blueprint="[color=#FF9740](Blue print library opened)[/color]" 
+			game.print(">>>>> BBC ALERT : Vote difficulty is not available, switching to Biter league by default...", {r=0.98, g=0.11, b=0.11})
+			game.play_sound{path = global.sound_error, volume_modifier = 0.8}
+			message_blueprint="[color=#FF9740](Blue print library opened)[/color]"
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.open_blueprint_library_gui,true)
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.import_blueprint_string, true)
 		end
@@ -130,7 +136,7 @@ local function set_difficulty()
 	 global.difficulty_vote_value = difficulties[new_index].value
 	 ai.reset_evo()
 end
-
+--[[ EVL Not used anymore  in BBChampions
 local function on_player_joined_game(event)
 	if not global.difficulty_vote_value then global.difficulty_vote_value = 1 end
 	if not global.difficulty_vote_index then global.difficulty_vote_index = 1 end --was 4 EVL (probably not useful)
@@ -149,15 +155,16 @@ local function on_player_joined_game(event)
 	
 	difficulty_gui()
 end
-
-local function on_player_left_game(event)
+]]--
+--[[ EVL Not used anymore  in BBChampions
+function on_player_left_game(event)
 	if game.ticks_played > global.difficulty_votes_timeout then return end
 	local player = game.players[event.player_index]
 	if not global.difficulty_player_votes[player.name] then return end
 	global.difficulty_player_votes[player.name] = nil
 	set_difficulty()
 end
-
+]]--
 local function on_gui_click(event)
 	if not event then return end
 	if not event.element then return end
@@ -173,7 +180,8 @@ local function on_gui_click(event)
 	if game.ticks_played > global.difficulty_votes_timeout then event.element.parent.destroy() return end
 	local i = tonumber(event.element.name)
 	if global.match_running then --EVL Do not change difficulty after match has started
-		game.print("Difficulty cannot be changed after match has started ! ("..player.name .. " asked for " .. difficulties[i].name .. ")" ,{r = 0.78, g = 0.22, b = 0.22})
+		player.print("Difficulty cannot be changed after match has started ! ("..player.name .. " asked for " .. difficulties[i].name .. ")" ,{r = 0.78, g = 0.22, b = 0.22})
+		player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		return
 	end
 	if global.bb_settings.only_admins_vote or global.tournament_mode then
@@ -188,21 +196,24 @@ local function on_gui_click(event)
 	end
 
     if player.spectator then
-        player.print("spectators can't vote for difficulty")
+		player.print("spectators can't vote for difficulty")
+		player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		event.element.parent.destroy()
-        return
+		return
     end
 
 	if game.tick - global.spectator_rejoin_delay[player.name] < 3600 then
-        player.print(
-            "Not ready to vote. Please wait " .. 60-(math.floor((game.tick - global.spectator_rejoin_delay[player.name])/60)) .. " seconds.",
-            {r = 0.98, g = 0.66, b = 0.22}
-        )
+		player.print(
+			"Not ready to vote. Please wait " .. 60-(math.floor((game.tick - global.spectator_rejoin_delay[player.name])/60)) .. " seconds.",
+			{r = 0.98, g = 0.66, b = 0.22}
+		)
+		player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		event.element.parent.destroy()
-        return
+		return
     end
 	
 	game.print(player.name .. " has voted for " .. difficulties[i].name .. " difficulty!", difficulties[i].print_color)
+	game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 	global.difficulty_player_votes[player.name] = i
 	set_difficulty()
 	difficulty_gui()	
@@ -210,8 +221,8 @@ local function on_gui_click(event)
 end
 	
 event.add(defines.events.on_gui_click, on_gui_click)
-event.add(defines.events.on_player_left_game, on_player_left_game)
-event.add(defines.events.on_player_joined_game, on_player_joined_game)
+--event.add(defines.events.on_player_left_game, on_player_left_game) --EVL Not  used in BBChampions
+--event.add(defines.events.on_player_joined_game, on_player_joined_game) --EVL Not  used in BBChampions
 
 local Public = {}
 Public.difficulties = difficulties

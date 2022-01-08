@@ -14,8 +14,10 @@ local math_sqrt = math.sqrt
 
 local GetNoise = require "utils.get_noise"
 local simplex_noise = require 'utils.simplex_noise'.d2
-local spawn_circle_size = 39 --EVL SIZE OF THE ISLAND
-local spawn_wall_radius = 116 --EVL SIZE OF THE SPAWN
+local spawn_circle_size = bb_config.spawn_circle_size  -- 39 --EVL SIZE OF LAKE (within the islanc)
+local spawn_island_size = bb_config.spawn_island_size  -- 10 --EVL SIZE OF THE ISLAND
+local spawn_manager_pos = bb_config.spawn_manager_pos  -- 18 --EVL Spots for managers, must be between (spawn_island_size plus something) and (border_river_width/2)
+local spawn_wall_radius = bb_config.spawn_wall_radius  -- 116 --EVL SIZE OF THE SPAWN
 local ores = {"iron-ore", "copper-ore", "stone", "coal"}
 -- mixed_ore_multiplier order is based on the ores variable
 local mixed_ore_multiplier = {1, 1, 1, 1}
@@ -99,7 +101,7 @@ local _chunk_almost_empty={} -- empty chunks with one or more neighbor not empty
 
 
 
--- Tracking ores in chunk (in order to know which chunk can be filled later)
+-- EVL Tracking ores in chunk (in order to know which chunk can be filled later)
 local function update_chunk_info(_chunk_x,_chunk_y,amount)
 	--CHUNK IS NOT EMPTY
 	if _chunk_info[_chunk_x][_chunk_y] then --CENTER (weight=4)
@@ -181,7 +183,7 @@ local function create_mirrored_tile_chain(surface, tile, count, straightness)
 		{x = -1, y = 1},{x = 1, y = -1},{x = 1, y = 1},{x = -1, y = -1}
 	}	
 	modifiers = shuffle(modifiers)
-	
+	--DEBUG-- Check why bricks are not same force
 	for _ = 1, count, 1 do
 		local tile_placed = false
 		
@@ -527,6 +529,7 @@ local function mixed_ore(surface, left_top_x, left_top_y)
 	end
 end
 
+-- Generate structures (called for north only) see main.lua
 function Public.generate(event)
 	local surface = event.surface
 	local left_top = event.area.left_top
@@ -539,33 +542,87 @@ function Public.generate(event)
 	generate_extra_worm_turrets(surface, left_top)
 end
 
+--EVL draw the island, the lake and the managers spot
 function Public.draw_spawn_circle(surface) --THE ISLAND
+	local spawn_circle_size_square = spawn_circle_size^2
+	local spawn_island_size_square = spawn_island_size^2
+	local inner_size=math.random(2,5)/2
+	local spawn_inner_size_square = (spawn_island_size-inner_size)^2
+	local island_tile_tab={
+		[1]={
+			["inner"]={"sand-1","sand-2","sand-3"},
+			["outer"]="stone-path"
+		},
+		[2]={
+			["inner"]={"grass-1","grass-2","grass-3"},
+			["outer"]="concrete"
+		},
+		[3]={
+			["inner"]={"dirt-4","dirt-5","dirt-6","dirt-7"},
+			["outer"]="refined-concrete"
+		},
+		[4]={
+			["inner"]={"dirt-1","dirt-2","dirt-3"},
+			["outer"]="concrete"
+		}
+	}
+	local this_tile_ref=math.random(1,table_size(island_tile_tab))
+	local this_tile_inner_tab=island_tile_tab[this_tile_ref]["inner"]
+	local this_tile_outer_name=island_tile_tab[this_tile_ref]["outer"]
+	--jaune"sand-1","sand-2","sand-3",
+	--jaune//"dirt-1","dirt-2","dirt-3",//rouge"dirt-4","dirt-5","dirt-6","dirt-7",
+	--vert//"grass-1","grass-2","grass-3",//rouge"grass-4"
+	
 	local tiles = {}
-	for x = spawn_circle_size * -1, -1, 1 do
-		for y = spawn_circle_size * -1, -1, 1 do
-			local pos = {x = x, y = y}
-			local distance_to_center = math_sqrt(pos.x ^ 2 + pos.y ^ 2)
+	for x = spawn_circle_size * -1, 0, 1 do -- EVL was -spawn,-1,1
+		for y = spawn_circle_size * -1, -1, 1 do  -- EVL was -spawn,-1,1
+			local pos_left = {x = x, y = y}
+			local pos_right = {x = -x, y = y}			
+			--local distance_to_center = math_sqrt(pos.x ^ 2 + pos.y ^ 2)
+			local distance_to_center_square = x ^ 2 + y ^ 2
+			--EVL new logic, less space in table , a bit quicker
+			if distance_to_center_square < spawn_inner_size_square then -- The Island, tile=sand (7²=49)
+				local inner_tile=this_tile_inner_tab[math.random(1,#this_tile_inner_tab)]
+				table_insert(tiles, {name = inner_tile, position = pos_left})
+				inner_tile=this_tile_inner_tab[math.random(1,#this_tile_inner_tab)]
+				table_insert(tiles, {name = inner_tile, position = pos_right})
+			elseif distance_to_center_square < spawn_island_size_square then -- The island tile=concrete(9.5²=90.25)
+				table_insert(tiles, {name = this_tile_outer_name, position = pos_left})
+				table_insert(tiles, {name = this_tile_outer_name, position = pos_right})
+			elseif (x==-1) and (y==-spawn_manager_pos or y==-spawn_manager_pos-1) then --The spot for manager (spy/coach/etc.)
+				table_insert(tiles, {name = "hazard-concrete-left", position = pos_left})
+				table_insert(tiles, {name = "hazard-concrete-left", position = pos_right})
+			elseif (x==0) and (y==-spawn_manager_pos or y==-spawn_manager_pos-1) then --The spot for manager (spy/coach/etc.)
+				table_insert(tiles, {name = "hazard-concrete-right", position = pos_left})				
+			elseif (x==0) and (y==-spawn_manager_pos-2) then --The spot for the speaker (trolololl)
+				table_insert(tiles, {name = "hazard-concrete-right", position = pos_left})				
+			elseif distance_to_center_square <= spawn_circle_size_square then --The lake
+				table_insert(tiles, {name = "deepwater", position = pos_left})
+				table_insert(tiles, {name = "deepwater", position = pos_right})
+			--else
+			end
+			--[[ Old version bad logic
 			if distance_to_center <= spawn_circle_size then
 				table_insert(tiles, {name = "deepwater", position = pos})
-
 				if distance_to_center < 9.5 then 
 					table_insert(tiles, {name = "refined-concrete", position = pos})
 					if distance_to_center < 7 then 
 						table_insert(tiles, {name = "sand-1", position = pos})
 					end
-			--	else
-					--
 				end			
 			end
+			]]--
 		end
 	end
-	
+
+	--[[ Old, moved to main loop
 	for i = 1, #tiles, 1 do
 		table_insert(tiles, {name = tiles[i].name, position = {tiles[i].position.x * -1 - 1, tiles[i].position.y}})
 	end
+	]]--
 	
 	surface.set_tiles(tiles, true)
-	
+	--ADD fishes (1/48 chance)
 	for i = 1, #tiles, 1 do
 		if tiles[i].name == "deepwater" then
 			if math_random(1, 48) == 1 then --EVL we want want to change this value ?
@@ -574,6 +631,7 @@ function Public.draw_spawn_circle(surface) --THE ISLAND
 		end
 	end
 end
+
 
 function Public.draw_spawn_area(surface)
 	local chunk_r = 5 --EVL was 4
@@ -591,7 +649,7 @@ function Public.draw_spawn_area(surface)
 	surface.regenerate_decorative()
 end
 
---Rewrite function for a more suitable generation of mixed ore patch in Spawn
+--EVL Rewrite function for a more suitable generation of mixed ore patch in Spawn
 local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track_ore)
 	if not size then size=32 end
 	if not track_ore then track_ore=false end
@@ -616,9 +674,9 @@ local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track
 	local _radius_motion=math.random(0.8,0.9)*_radius
 	local _radius_sign=1
 	
-	local msg=""
+	--local msg=""
 	for _angle=-180,180,6 do
-		msg=msg.."|"..math.floor(_radius_motion)
+		--msg=msg.."|"..math.floor(_radius_motion)
 		_radius_by_angle[_angle]=_radius_motion
 		_radius_change=math.random(2,10)*_radius/100
 		_radius_motion=_radius_motion+_radius_change*_radius_sign
@@ -636,9 +694,6 @@ local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track
 		local msg=""
 		for x = 0, size, 1 do
 			local pos = {x = left_top_x + x, y = left_top_y + y}
-
-			
-			
 			--test is we are in the river bb_config["border_river_width"] = 44
 			if pos.y<-20 and surface.can_place_entity({name = "iron-ore", position = pos}) then
 
@@ -648,18 +703,16 @@ local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track
 				
 				if ore_radius<=_radius*0.7 then --We are sure to place this ore
 					add_this_ore=true
-				else --We check if we are inside the definition of the border of the match
+				else --We check if we are inside the definition of the border of the patch
 					local ore_angle=math.floor(math.atan2(y-(size/2),x-(size/2))*180/math.pi)
 					ore_angle=ore_angle-ore_angle%6
 					--if ore_angle<-180 then ore_angle=-180 end
-					if not _radius_by_angle[ore_angle] and global.bb_debug then game.print("DEBUG [color=#FF0000]this angle does not exist : [/color]"..ore_angle) end
+					if not _radius_by_angle[ore_angle] and global.bb_debug then game.print("BUG: [color=#FF0000]this angle does not exist : [/color]"..ore_angle) end
 					if _radius_by_angle[ore_angle] and ore_radius<=_radius_by_angle[ore_angle] then
 						add_this_ore=true
 						--msg=msg.."|"..ore_angle.."=".._radius_by_angle[ore_angle]
 					end
 				end
-
-
 				if add_this_ore then
 					--msg=msg.."|[color=#00FF00]"..math.floor(ore_radius).."[/color]"
 					local noise = GetNoise("bb_ore", pos, seed)
@@ -669,7 +722,7 @@ local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track
 					--local _amount = math.floor((math_random(800, 1000) + math_sqrt(pos.x ^ 2 + pos.y ^ 2) * 3) * mixed_ore_multiplier[i]) --EVL was 800,1000
 					local _amount = math.floor(math_random(750, 950) * mixed_ore_multiplier[i] - ore_radius*10) -- No need to add distance we're in spawn
 					if _amount<250 then _amount=250 end --EVL DEBUG
-					surface.create_entity({name = _name, position = pos, amount = _amount}) --EVL should we use surface.set_tiles{{name="grass", position={1,1}}} ???
+					surface.create_entity({name = _name, position = pos, amount = _amount}) --EVL should we use surface.set_tiles{{name="grass", position={1,1}}} ???--TODO--
 					if track_ore then
 						tot_amount=tot_amount+_amount --EVL debug
 						tot_size=tot_size+1 --EVL debug
@@ -703,6 +756,7 @@ local function draw_mixed_ore_patch(surface, left_top_x, left_top_y, size, track
 	return tot_amount
 end
 
+--EVL Original function
 local function draw_grid_ore_patch(count, grid, name, surface, size, density)
 	-- Takes a random left_top coordinate from grid, removes it and draws
 	-- ore patch on top of it. Grid is held by reference, so this function
@@ -718,8 +772,9 @@ local function draw_grid_ore_patch(count, grid, name, surface, size, density)
 	end
 end
 
---Display resources from "ores_large" and "ores_spawn"
+--Display resources from "ores_large" and "ores_spawn" (if global.bb_debug)
 local function display_ores(info)
+	if not(global.bb_debug) then return end
 	if not info then info=" - " end
 	local _tot_spawn=0
 	if global.bb_debug then game.print("INFO : Resources generation in Large=200x200 and Spawn=120x120 ("..info..")",{r = 125, g = 125, b = 0}) end
@@ -744,21 +799,24 @@ local function display_ores(info)
 	end
 	if global.bb_debug then game.print("       > Total in spawn = ".._tot_spawn,{r = 125, g = 125, b = 0}) end
 end
+
 --Display chunks from "_chunk_info"
 local function display_chunks(info)
+	if not(global.bb_debug) then return end
 	if not info then info=" - " end
 	local _tot_spawn=0
 	for _y=-1*_chunk_minmax+1,_chunk_y_max-1,1 do --from (top+1) to (bottom-1) ie close to river
 		local msg=" Line ".._y..": "
 		for _x=-1*_chunk_minmax+1,_chunk_minmax-1,1 do
-
-			--local _real_x=_x*_chunk_size
-			--local _real_y=_y*_chunk_size
-			--if surface.can_place_entity({name = "uranium-ore", position ={x=_real_x, y=_real_y}, amount = 9999}) then
-			--  	surface.create_entity({name = "uranium-ore", position = {x=_real_x, y=_real_y}, amount = 9999})
-			--else
-				--if global.bb_debug then game.print("cannot place chest at (".._real_x..",".._real_y..")",{r = 200, g = 200, b = 200}) end
-			--end
+			--[[ DEBUG
+			local _real_x=_x*_chunk_size
+			local _real_y=_y*_chunk_size
+			if surface.can_place_entity({name = "uranium-ore", position ={x=_real_x, y=_real_y}, amount = 9999}) then
+			  	surface.create_entity({name = "uranium-ore", position = {x=_real_x, y=_real_y}, amount = 9999})
+			else
+				if global.bb_debug then game.print("cannot place uranium at (".._real_x..",".._real_y..")",{r = 200, g = 200, b = 200}) end
+			end
+			]]--
 			--Print CHUNKS TABLE
 			_tot_spawn=_tot_spawn+_chunk_info[_x][_y]["ore"]/4
 			local _ore=math.floor(_chunk_info[_x][_y]["ore"]/4000).."k"
@@ -773,7 +831,7 @@ local function display_chunks(info)
 end
 
 -- Add a patch in spawn if needed (after mixed patch has been drawned)
-local function _add_patch_in_spawn_if_needed(surface,name,need_patch,target_qtity,richness,radius)
+local function add_patch_in_spawn_if_needed(surface,name,need_patch,target_qtity,richness,radius)
 	
 	local _need_patch=need_patch
 	local _name = name
@@ -814,11 +872,8 @@ local function _add_patch_in_spawn_if_needed(surface,name,need_patch,target_qtit
 	end
 end	
 
---Checking and adjusting resources in spawn
+--EVL Checking and adjusting resources in spawn
 function Public.check_ore_in_main(surface)
-	-- seed : 1856641362 bug ?
-	--game.print("CHECKING ORES IN SPAWN")
-	
 	--Reinit quantities (after force-map-reset or reroll)
 	ores_large = {
 		["iron-ore"]={["amount"]=0,["size"]=0},
@@ -928,14 +983,7 @@ function Public.check_ore_in_main(surface)
 		end
 	end
 	if global.bb_debug then game.print(_water_str,{r = 150, g = 150, b = 250}) end
-	--[[ Silo we dont wan't ores to be on the silo chunk(s) --TODO--
-	--local pos = {x = -32 + math_random(0, 64), y = -72}
-	--global.rocket_silo["north"].position
-	-- if entity == global.rocket_silo.south or entity == global.rocket_silo.north then
-	--	local p = silo.position
-	--for _, entity in pairs(surface.find_entities({{p.x - 4, p.y - 4}, {p.x + 4, p.y + 4}})) do	
-	]]--
-	--display_chunks(surface.map_gen_settings.seed)
+	--display_chunks(surface.map_gen_settings.seed)-- (if global.bb_debug)
 	
 
 	--[[ PRINT THE LISTS OF EMPTY CHUNKS (candidate to add ore if needed)
@@ -950,13 +998,6 @@ function Public.check_ore_in_main(surface)
 	end
 	if global.bb_debug then game.print(_msg,{r = 200, g = 200, b = 100}) end
 	]]--
-	-- Adding one patch
-	
-	
-	--	ores_large[_name].amount=ores_large[_name].amount+_amount
-	--	ores_large[_name].size=ores_large[_name].size+1
-	-- ores_spawn[_name].amount=ores_spawn[_name].amount+_amount
-	--  ores_spawn[_name].size=ores_spawn[_name].size+1
 	
 	-- First do we need to add regular ore patch (regardless need of mixed patch)
 	local need_iron_patch=false
@@ -975,7 +1016,9 @@ function Public.check_ore_in_main(surface)
 	if ores_spawn["copper-ore"].amount < math.random(250000,300000) then not_enough_ore=not_enough_ore+1  _msg=_msg.."Copper | "	end
 	if ores_spawn["coal"].amount < math.random(200000,250000) then not_enough_ore=not_enough_ore+1 _msg=_msg.."Coal | " end
 	if ores_spawn["stone"].amount < math.random(200000,250000) then not_enough_ore=not_enough_ore+1 	_msg=_msg.."Stone"	end
+
 	--if global.bb_debug then game.print(_msg,{r = 200, g = 200, b = 200}) end
+
 	local _msg_type=""
 	if not_enough_ore >=2 then --Yes we need a mixed patch (happens very very often)
 		
@@ -1041,23 +1084,23 @@ function Public.check_ore_in_main(surface)
 	if global.bb_debug then game.print(_msg,{r = 200, g = 200, b = 100}) end
 	]]--
 	
-	display_ores("before adding new patches")
+	display_ores("before adding new patches")-- (if global.bb_debug)
 	
 	-- Adding regular patches (iron, copper, coal, stone) if we had very few at the beginning or if mixed patch didnt put enough
 	
-	_add_patch_in_spawn_if_needed(surface, "iron-ore", need_iron_patch, 500, 350, 20) 
+	add_patch_in_spawn_if_needed(surface, "iron-ore", need_iron_patch, 500, 350, 20) 
 	--500 means we target 500000 to 600000 ore in total (but we'll have less), 
-	--350 is richness, depends on quantities existing, from richness to ricness*4
-	--16 means size/radius "range", depends on quantities existing, from 8+0+1 to 8+richness+5
+	--350 is richness, depends on quantities existing, from richness to richness*4
+	--20 means size/radius "range", depends on quantities existing, from 8+0+1 to 8+richness+5
 	
-	_add_patch_in_spawn_if_needed(surface, "copper-ore", need_copper_patch, 200, 200, 12) 
-	_add_patch_in_spawn_if_needed(surface, "coal", need_coal_patch, 150, 200, 10) 
-	_add_patch_in_spawn_if_needed(surface, "stone", need_stone_patch, 150, 200, 10) 
+	add_patch_in_spawn_if_needed(surface, "copper-ore", need_copper_patch, 200, 200, 12) 
+	add_patch_in_spawn_if_needed(surface, "coal", need_coal_patch, 150, 200, 10) 
+	add_patch_in_spawn_if_needed(surface, "stone", need_stone_patch, 150, 200, 10) 
 
-	-- Here add more patches if needed (above may put very few ores)
+	-- Here could add more patches if needed (above may put very few ores)
 	-- But it seems it is good enough like that (randomness of spawns is nice according to EVL)
 	
-	-- We give a few free wells of crude-oil if there was noned (or not enough) in the "large" research
+	-- We give a few free wells of crude-oil if there was none (or not enough) in the "large" research
 	-- They will be placed somehow "close" to the river
 	local _number=math.random(2,5) --2 to 5 wells in total
 	if ores_large["crude-oil"].size<_number then
@@ -1114,12 +1157,12 @@ function Public.check_ore_in_main(surface)
 	end
 	
 	
-	display_ores("after adding new patches")
+	display_ores("after adding new patches")-- (if global.bb_debug)
 	--display_chunks("after adding new patch")
 	
 end
 
-
+--EVL Clear ore in main, not used in BBChampions (used in freeBB)
 function Public.clear_ore_in_main(surface)
 	local search_area = {
 		left_top = { -150, -150 },
@@ -1134,6 +1177,59 @@ function Public.clear_ore_in_main(surface)
 	end
 end
 
+--EVL Remove ore on island and manager spots (seems to happen more often with this version)
+function Public.clear_ore_in_island(surface)
+	--spawn_island_size = bb_config.spawn_island_size  -- 10 
+	--spawn_manager_pos = bb_config.spawn_manager_pos  -- 18
+	
+	--Note: Ores can be generated AFTER init.lua/Public.draw_structures() -> need to inspect--TODO--
+	--So island is cleared later (when map is reveald=10s), need to clear north spot, island and south spot
+	
+	--1/3 Clear the island
+	local search_area = {
+		{-spawn_island_size-2, -spawn_island_size-2},
+		{ spawn_island_size+2,  spawn_island_size+2}
+	}
+	local resources = surface.find_entities_filtered {
+		area = search_area,
+		type = "resource"
+	}
+	if table_size(resources)>0 then
+		for _, res in pairs(resources) do
+			res.destroy()
+		end
+	end
+	--2/3 Clear the north manager spot
+	local search_area = {
+		{-4, -spawn_manager_pos-4},
+		{ 4, -spawn_manager_pos+4}
+	}
+	local resources = surface.find_entities_filtered {
+		area = search_area,
+		type = "resource"
+	}
+	if table_size(resources)>0 then
+		for _, res in pairs(resources) do
+			res.destroy()
+		end
+	end
+	--3/3 Clear the south manager spot
+	local search_area = {
+		{-4, spawn_manager_pos-4},
+		{ 4, spawn_manager_pos+4}
+	}
+	local resources = surface.find_entities_filtered {
+		area = search_area,
+		type = "resource"
+	}
+	if table_size(resources)>0 then
+		for _, res in pairs(resources) do
+			res.destroy()
+		end
+	end
+end
+
+--EVL Regenerate ore in spawn (after clear_ore_in_main), not used in BBChampions (used in freeBB)
 function Public.generate_spawn_ore(surface)
 	-- This array holds indicies of chunks onto which we desire to
 	-- generate ore patches. It is visually representing north spawn
@@ -1174,8 +1270,77 @@ function Public.generate_additional_rocks(surface)
 	end
 end
 
--- GENERATE SILO AND ITS TURRETS
+--EVL Add compilatron and some trees on the island Why NOT ? :)
+function Public.generate_trees_on_island(surface)
+	-- Hello compilatron !
+	local p = surface.find_non_colliding_position("compilatron", {0,0}, 2, 1)
+	if p then 
+		global.compi={}
+		global.compi["name"]=tables.compi["names"][math.random(1,#tables.compi["names"])]
+		global.compi["entity"]=surface.create_entity({name = "compilatron", position = p, force="spectator"}) 
+		global.compi["render"]=rendering.draw_text({
+			surface = surface,
+			target = global.compi["entity"],
+			text = global.compi["name"],
+			font = "count-font",
+			alignment = "center",
+			color = {20, 200, 20},
+			target_offset = {0, -1.8},
+			scale_with_zoom =  false
+			-- x_scale = size * 15,
+			-- y_scale = size,
+        })	
+		global.compi["welcome"]=tables.compi["welcome"][math.random(1,#tables.compi["welcome"])]
+		
+		game.print(global.compi["name"]..": "..global.compi["welcome"],{r = 20, g = 200, b = 20})
+	end
+	
+	local search_area = {
+		{-spawn_island_size-2, -spawn_island_size-2},
+		{ spawn_island_size+2,  spawn_island_size+2}
+	}
+	--Clear rocks
+	local rocks = surface.find_entities_filtered {
+		area = search_area,
+		type = "simple-entity"
+	}
+	if table_size(rocks)>1 then 
+		for _, res in pairs(rocks) do
+			res.destroy()
+		end	
+	end
+	
+	--Clear trees
+	local trees = surface.find_entities_filtered {
+		area = search_area,
+		type = "tree"
+	}
+	--if table_size(trees)>1 then return end	--already trees but awful because of symmetry
+	if table_size(trees)>0 then 
+		for _, res in pairs(trees) do
+			res.destroy()
+		end	
+	end
+	
+	-- Add some trees
+	for i=1,10,1 do
+		if math.random(1,10)>7 then
+			local _index=math.random(1,table_size(tables.trees))
+			local _name=tables.trees[_index]
+			local _angle=math.random(0,360)*math.pi/180
+			local _distance=math.random(2,spawn_island_size-2)
+			local x = math.floor(_distance * math.cos(_angle))
+			local y = math.floor(_distance * math.sin(_angle))
+			local p = surface.find_non_colliding_position("tree-01", {x,y}, 2, 1)
+			if p then
+				surface.create_entity({name = _name, position = p, amount=1}) --Tables.trees[_index]
+			end
+		end
+	end
+end
+-- GENERATE SILO AND ITS TURRETS, AND SPEAKERS(in manager spots)
 function Public.generate_silo(surface)
+	--game.print("Note : Check silos and speakers please. Had a bug once (but impossible to reproduce).",{r=99, g=99, b=99}) --REMOVE-- --DEBUG--
 	local pos = {x = -32 + math_random(0, 64), y = -72}
 	local mirror_position = {x = pos.x * -1, y = pos.y * -1}
 
@@ -1192,6 +1357,7 @@ function Public.generate_silo(surface)
 		force = "north"
 	})
 	silo.minable = false
+	silo.active = false
 	global.rocket_silo[silo.force.name] = silo
 	Functions.add_target_entity(global.rocket_silo[silo.force.name])
 
@@ -1199,16 +1365,23 @@ function Public.generate_silo(surface)
 		create_mirrored_tile_chain(surface, {name = "stone-path", position = silo.position}, 32, 10)
 	end
 	
+	--Clear entities under silo
 	local p = silo.position
 	for _, entity in pairs(surface.find_entities({{p.x - 4, p.y - 4}, {p.x + 4, p.y + 4}})) do
 		if entity.type == "simple-entity" or entity.type == "tree" or entity.type == "resource" then
 			entity.destroy()
 		end
 	end
-	--EVL we put 3 turrets next to silo with 12 bullets in each
-	local _count=12 -- 12 magazines in each 3 bonus turrets
-	--local _count=1
+
+	--EVL add speaker in manager spot, force is not friendly so speaker doesnt blink electric alert
+	_pos = {x = 0, y = -spawn_manager_pos-2}
+	local speaker = surface.create_entity({name = "programmable-speaker", position = _pos, force = "north"})
+	speaker.minable = false
+	speaker.active = false
+	global.manager_speaker[speaker.force.name] = speaker
 	
+	--EVL add 3 turrets next to silo with 12 yellow magazines in each
+	local _count=12 -- 12 magazines in each 3 bonus turrets	
 	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
 	turret1.insert({name = "firearm-magazine", count = _count})
 	local turret2 = surface.create_entity({name = "gun-turret", position = {x=pos.x, y=pos.y-5}, force = "north"})
@@ -1398,6 +1571,7 @@ function Public.restrict_landfill(surface, inventory, tiles)
 		if is_horizontal_border_river(check_position) or distance_to_center < spawn_circle_size then
 			surface.set_tiles({{name = t.old_tile.name, position = t.position}}, true)
 			inventory.insert({name = "landfill", count = 1})
+			--EVL enough sound
 		end
 	end
 end
@@ -1426,10 +1600,10 @@ function Public.deny_construction_bots(event)
 	event.created_entity.destroy()
 end
 
---EVL WE CREATE AND FILL CHESTS ACCORDING TO global.pack_choosen
+--EVL CREATE AND FILL CHESTS ACCORDING TO global.pack_choosen
 function Public.fill_starter_chests(surface)
-	if global.pack_choosen=="" then game.print("BUG, no pack found, cant fill the chests",{r = 255, g = 10, b = 10}) return end
-	if global.match_running then game.print("BUG, game has started, cant fill the chests",{r = 255, g = 10, b = 10}) return end
+	if global.pack_choosen=="" then game.print(">>>>> BUG, no pack found, cant fill the chests",{r = 255, g = 10, b = 10}) return end
+	if global.match_running then game.print(">>>>> BUG, game has started, cant fill the chests",{r = 255, g = 10, b = 10}) return end
 	local _pack_nb=string.sub(global.pack_choosen,6,8)
 	local _pack_name=tables.packs_list[global.pack_choosen]["caption"]
 	game.print(">>>>> Filling up chests for STARTER PACK#".._pack_nb.. " : " .._pack_name .." .",{r = 197, g = 197, b = 17})
@@ -1483,5 +1657,152 @@ function Public.fill_starter_chests(surface)
 	global.fill_starter_chests = false
 	global.starter_chests_are_filled = true
 end
+
+--EVL REATE AND FILL CHESTS WITH INVENTORY OF DISCONNECTED PLAYER (see team_manager)
+local disco_chests_positionx={0,-1,1,-2,2,-3,3,-4,4}
+function Public.fill_disconnected_chests(surface, force_name, inventory, info)
+	if table_size(inventory)==0 then
+		if global.bb_debug_gui then game.print("Debug: <<fill_disconnected_chests>> called witgh inventory empty. Skipping.",{r = 197, g = 197, b = 17}) end
+	end
+	if global.bb_debug_gui then game.print(">>>>> Filling up chests with "..info.." with "..table_size(inventory).." items.",{r = 197, g = 197, b = 17}) end
+	if not(force_name=="north" or force_name=="south") then
+		if global.bb_debug_gui then game.print("Debug: <<fill_disconnected_chests>> called with wrong force ("..force_name.."). Skip.",{r = 197, g = 11, b = 11}) end
+		return
+	end
+	--EVL CHESTS--
+	local _posY = -36
+	if force_name=="south" then _posY = 35 end
+	--global.disco_chests={["north"]={},["south"]={}} (in init.lua)
+	--Get back inventories of disco chest (if any)
+	local chests_inventory={}
+	for _index,chest in pairs(global.disco_chests[force_name]) do
+		local this_chest_inv=chest.get_inventory(defines.inventory.chest).get_contents()
+		if table_size(this_chest_inv)>0 then
+			for _item,_qty in pairs(this_chest_inv) do
+				if chests_inventory[_item] then 
+					chests_inventory[_item]=chests_inventory[_item]+_qty
+				else
+					chests_inventory[_item]=_qty
+				end
+			end
+		end
+		global.disco_chests[force_name][_index].destroy()
+		global.disco_chests[force_name][_index]=nil
+	end
+	if global.bb_debug_gui then 
+		game.print("Debug: Got "..table_size(chests_inventory).." different items from chests, "..force_name.." has "..table_size(global.disco_chests[force_name]).." chests left (should be 0)",{r = 197, g = 11, b = 11})
+	end
+	
+	--Nothing in chests and nothing in inventory -> return
+	if table_size(chests_inventory)==0 and table_size(inventory)==0 then
+		if global.bb_debug_gui then game.print("Debug: Nothing to move, skip procedure.",{r = 197, g = 197, b = 17}) end --REMOVE--
+		return
+	end
+
+	--Init : create indexes and first chest
+	local chest_index=1
+	local this_stack_chest=1--48 slots in each steel chest
+	surface.set_tiles({{name = "landfill", position = {x=disco_chests_positionx[chest_index], y=_posY}}}, true)
+	local fill_this_chest = surface.create_entity({name = "steel-chest", position = {x=disco_chests_positionx[chest_index], y=_posY}, force = force_name})
+	fill_this_chest.destructible=false
+	fill_this_chest.minable=false
+
+	global.disco_chests[force_name][chest_index]=fill_this_chest
+
+	--Refill disco_chests (before translocatind inventory)
+	if table_size(chests_inventory)>0 then	
+		for _item,_qty in pairs(chests_inventory) do
+			--game.print("item:".._item.."=".._qty) --REMOVE--
+			local _item_stack=game.item_prototypes[_item].stack_size
+			local this_qtity=_qty
+			--local this_str=_item.."(qtity=".._qty..") divided in stacks : " --REMOVE--
+			while this_qtity>0 do
+				if this_qtity>_item_stack then
+					--this_str=this_str.._item_stack..", " --REMOVE--
+					--add one stack
+					fill_this_chest.insert({name=_item, count=_item_stack})
+					this_stack_chest=this_stack_chest+1
+					this_qtity=this_qtity-_item_stack
+				else
+					--this_str=this_str.._item_stack.."." --REMOVE--
+					--add remain
+					fill_this_chest.insert({name=_item, count=this_qtity})
+					this_stack_chest=this_stack_chest+1
+					this_qtity=0
+				end
+				--game.print(this_stack_chest)--REMOVE--
+				if this_stack_chest==49 then --Chest is full!
+					--game.print("disco_chests: chest#"..chest_index.." is full, creating chest#"..(chest_index+1))
+					chest_index=chest_index+1
+					if chest_index>table_size(disco_chests_positionx) then
+						game.print(">>>>> Sorry "..force_name..", not enough room to relocate all item (from chests)...",{r = 197, g = 197, b = 17}) --EVL Should not happen (nonsense)
+						game.play_sound{path = global.sound_error, volume_modifier = 0.8}
+						return
+					end					
+					surface.set_tiles({{name = "landfill", position = {x=disco_chests_positionx[chest_index], y=_posY}}}, true)
+					fill_this_chest = surface.create_entity({name = "steel-chest", position = {x=disco_chests_positionx[chest_index], y=_posY}, force = force_name})
+					fill_this_chest.destructible=false
+					fill_this_chest.minable=false
+					global.disco_chests[force_name][chest_index]=fill_this_chest				
+					--game.print(this_str.."\n Chest is full,  next chest...") --REMOVE--
+					--this_str=_item.."(qtity left="..this_qtity..") divided in stacks : " --REMOVE--
+				end
+			end	 --while
+			--game.print(this_str) --REMOVE--
+		end	 --for
+	else
+		--game.print("Nothing in disco chests at the moment.") --REMOVE--
+	end
+	--End of refill
+	--game.print("Relocating inventory in disco chests.") --REMOVE--
+	--Translocating Inventory
+	if table_size(inventory)>0 then
+		--game.print("Got "..table_size(inventory).." different items to relocate,"..force_name.." has "..table_size(global.disco_chests[force_name]).." chests")
+		for _item,_qty in pairs(inventory) do
+			--game.print("item:".._item.."=".._qty) --REMOVE--
+			local _item_stack=game.item_prototypes[_item].stack_size
+			local this_qtity=_qty
+			--local this_str=_item.."(qtity=".._qty..") divided in stacks : " --REMOVE--
+			while this_qtity>0 do
+				--this_str=this_str.._item_stack.."." --REMOVE--
+				if this_qtity>_item_stack then
+					--add one stack
+					fill_this_chest.insert({name=_item, count=_item_stack})
+					this_stack_chest=this_stack_chest+1
+					this_qtity=this_qtity-_item_stack
+				else
+					--add remain
+					fill_this_chest.insert({name=_item, count=this_qtity})
+					this_stack_chest=this_stack_chest+1
+					this_qtity=0
+				end
+				--game.print(this_stack_chest)--REMOVE--
+				if this_stack_chest>48 then --Chest is full!
+					--game.print("inventory: chest#"..chest_index.." is full, creating chest#"..(chest_index+1))
+					chest_index=chest_index+1
+					if chest_index>table_size(disco_chests_positionx) then
+						game.print(">>>>> Sorry "..force_name..", not enough room to relocate all inventory...",{r = 197, g = 197, b = 17})
+						game.play_sound{path = global.sound_error, volume_modifier = 0.8}
+						return
+					end
+					surface.set_tiles({{name = "landfill", position = {x=disco_chests_positionx[chest_index], y=_posY}}}, true)
+					fill_this_chest = surface.create_entity({name = "steel-chest", position = {x=disco_chests_positionx[chest_index], y=_posY}, force = force_name})
+					fill_this_chest.destructible=false
+					fill_this_chest.minable=false
+					global.disco_chests[force_name][chest_index]=fill_this_chest	
+					this_stack_chest=1
+					--game.print(this_str.."\n Chest is full,  next chest...") --REMOVE--
+					--this_str=_item.."(qtity left="..this_qtity..") divided in stacks : " --REMOVE--
+				end
+			end	 --while
+			--game.print(this_str) --REMOVE--
+		end --for
+	else
+		if global.bb_debug_gui then game.print("Debug: <<fill_disconnected_chests>> Inventory is empty, nothing to relocate.",{r = 197, g = 197, b = 17}) end--REMOVE--
+	end	
+	game.print(">>>>> Inventory has been relocated into chests.",{r = 197, g = 197, b = 17}) --REMOVE--
+	game.play_sound{path = global.sound_success, volume_modifier = 0.8}
+end
+
 
 return Public

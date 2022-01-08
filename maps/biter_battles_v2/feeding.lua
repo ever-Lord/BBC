@@ -64,7 +64,7 @@ local function print_feeding_msg(player, food, flask_amount)
 	local formatted_food = table.concat({"[color=", food_values[food].color, "]", food_values[food].name, " juice[/color]", "[img=item/", food, "]"})
 	local formatted_amount = table.concat({"[font=heading-1][color=255,255,255]" .. flask_amount .. "[/color][/font]"})
 	
-	if flask_amount >= 20 then
+	if flask_amount > 20 then --EVL was >=
 		local enemy = get_enemy_team_of(player.force.name)
 		game.print(table.concat({colored_player_name, " fed ", formatted_amount, " flasks of ", formatted_food, " to team ", team_strings[enemy], " biters!"}), {r = 0.9, g = 0.9, b = 0.9})
 		Server.to_discord_bold(table.concat({player.name, " fed ", flask_amount, " flasks of ", food_values[food].name, " to team ", enemy, " biters!"}))
@@ -248,8 +248,10 @@ local function feed_biters(player, food, qtity, mode)
 		biter_force_name = enemy_force_name .. "_biters"
 		local i = player.get_main_inventory() -- not working if stack of science is in hand ;) and we don't care
 		flask_amount = i.get_item_count(food)
+		
 		if flask_amount == 0 then
 			player.print("You have no [color="..food_values[food].color.."]" .. food_values[food].name .. "[/color] flask [img=item/".. food.. "] in your inventory.", {r = 0.98, g = 0.66, b = 0.22})
+			player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 			return
 		end
 		i.remove({name = food, count = flask_amount})
@@ -263,7 +265,6 @@ local function feed_biters(player, food, qtity, mode)
 		enemy_force_name = "south"
 		biter_force_name = enemy_force_name .. "_biters"
 		flask_amount = qtity 
-
 	elseif mode=="north" then 			--Pattern-training (ie Simulation mode) (evo&threat applied to other team)
 		enemy_force_name = "south"
 		biter_force_name = enemy_force_name .. "_biters"
@@ -283,6 +284,13 @@ local function feed_biters(player, food, qtity, mode)
 	local threat_before_feed = global.bb_threat[biter_force_name]	
 	set_evo_and_threat(flask_amount, food, biter_force_name)
 	add_stats(player, food, flask_amount ,biter_force_name, evolution_before_feed, threat_before_feed)
+	--EVL Noisy boy :)
+	game.forces[player.force.name].play_sound{path = "utility/list_box_click", volume_modifier = 1}
+	game.forces.spectator.play_sound{path = "utility/list_box_click", volume_modifier = 1}
+	if game.forces["spec_god"] then game.forces.spectator.play_sound{path = "utility/list_box_click", volume_modifier = 1} end
+	if flask_amount>20 then 
+		game.forces[enemy_force_name].play_sound{path = "utility/undo", volume_modifier = 0.8} 
+	end
 end
 
 commands.add_command( --/training qty-science-delay

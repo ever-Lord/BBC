@@ -61,13 +61,14 @@ local function spy_tech_handler(event)
 	if not event.element.valid then
 		return
 	end
+	local player = game.players[event.player_index]
+	--game.print(event.element.name)
 	local elementToForce = {
 		["spy-north-tech"] = "north",
 		["spy-south-tech"] = "south"
 	}
 	local force = elementToForce[event.element.name]
 	if force then
-		local player = game.players[event.player_index]
 		spy_tech_tree(player, force)
 	end
 end
@@ -97,7 +98,7 @@ local function close_tech_handler(event)
 end
 
 local Event = require 'utils.event'
-Event.add(defines.events.on_gui_click, spy_prod_handler)
+--Event.add(defines.events.on_gui_click, spy_prod_handler) --EVL not used for now
 Event.add(defines.events.on_gui_click, spy_tech_handler)
-Event.add(defines.events.on_gui_closed, close_prod_handler)
+--Event.add(defines.events.on_gui_closed, close_prod_handler) --EVL not used for now
 Event.add(defines.events.on_gui_closed, close_tech_handler)

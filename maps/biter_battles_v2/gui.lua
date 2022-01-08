@@ -9,7 +9,7 @@ local feed_the_biters = require "maps.biter_battles_v2.feeding"
 local Tables = require "maps.biter_battles_v2.tables"
 local show_inventory = require 'modules.show_inventory_bbc'
 local Where = require 'commands.where'
-
+local Team_manager = require "maps.biter_battles_v2.team_manager" --EVL needed to redraw team managers when spec<->god
 local wait_messages = Tables.wait_messages
 local food_names = Tables.gui_foods
 
@@ -114,6 +114,7 @@ local function add_tech_button(elem, gui_value)
 	tech_button.style.left_margin = 3
 end
 
+--[[ EVL Not used for now
 local function add_prod_button(elem, gui_value)
 	local prod_button = elem.add {
 		type = "sprite-button",
@@ -123,6 +124,7 @@ local function add_prod_button(elem, gui_value)
 	prod_button.style.height = 25
 	prod_button.style.width = 25
 end
+]]--
 
 function Public.create_main_gui(player)
 	local is_spec = (player.force.name == "spectator") or (player.force.name == "spec_god") --EVL we have 2 kinds of specs (see spectator_zoom.lua)
@@ -133,7 +135,7 @@ function Public.create_main_gui(player)
 	if player.gui.left["bb_main_gui"] then player.gui.left["bb_main_gui"].destroy() end
 
 	if global.bb_game_won_by_team then return end
-	if not global.chosen_team[player.name] then --  to  be removed   ?
+	if not global.chosen_team[player.name] then --  to  be removed --TODO--  ?
 		if not global.tournament_mode then
 			create_first_join_gui(player)
 			return
@@ -211,7 +213,8 @@ function Public.create_main_gui(player)
 				maxim_team="[color=#AAAAAA]"..Tables.maxim_teams[c].."[/color]"
 			end
 		end
-		local l = t.add  { type = "label", caption = c, tooltip=maxim_team}
+		local _tooltip=maxim_team.."\n[font=default-small][color=#77CC77]   Click to view info & craftings.[/color]\n[color=#CC7777]   Also toggles show/hide inventories.[/color][/font]"
+		local l = t.add  { type = "label", name = "show_inv_"..gui_value.force, caption = c, tooltip=_tooltip}
 		l.style.font = "default-bold"
 		l.style.font_color = gui_value.color1
 		l.style.single_line = false
@@ -233,8 +236,7 @@ function Public.create_main_gui(player)
 			-- add_prod_button(t, gui_value)
 		end
 
-		-- Player list EVL Removed button, we always show the player list
-		--if global.bb_view_players[player.name] == true then --EVL always true see global.bb_view_players below
+		-- Player list EVL Removed <<player list>> button, we always show the player list in BBchampions
 		if true then
 			local t = frame.add  { type = "table", column_count = 8 }
 			for _, p in pairs(game.forces[gui_value.force].connected_players) do
@@ -243,14 +245,13 @@ function Public.create_main_gui(player)
 				if Tables.maxim_players[p.name] and Tables.maxim_players[p.name]~="" and Tables.maxim_players[p.name]~="tbd" then
 					maxim_player="[color=#AAAAAA]"..Tables.maxim_players[p.name].."[/color]"
 				end
-		
+				local _tooltip=maxim_player.."\n[font=default-small][color=#77CC77]Click to view inventory and crafts.[/color][/font]"
 				local l_player = t.add  { type = "label", name="plist_"..p.index ,caption = p.name, tooltip=maxim_player} --EVL Add .index for inventory purpose
 				l_player.style.font_color = {r = p.color.r * 0.6 + 0.4, g = p.color.g * 0.6 + 0.4, b = p.color.b * 0.6 + 0.4, a = 1}
 				--local l_camera  = t.add  { type = "sprite", name="pcam_"..p.index ,sprite = "quantity-time", tooltip="click to view player's camera"} --slot-armor-white | select-icon-white | reassign | not-played-yet | expand
 				local l_camera = t.add  { type = "label", name="pcam_"..p.index ,caption = "© ", tooltip="click to view player's camera"} --EVL Add .index for inventory purpose
 				--l_camera.style.font = "heading-2"
 				l_camera.style.font_color = {r = 150, g = 150, b = 150}
-				--local tttime = ttime.add {	type = "sprite", name = "tttime-editor", sprite = "quantity-time"}
 			end
 		end
 
@@ -259,14 +260,11 @@ function Public.create_main_gui(player)
 
 		-- Evolution
 		local l = t.add  { type = "label", caption = "Evo:"}
-		--l.style.minimal_width = 25
 		local biter_force = game.forces[gui_value.biter_force]
-		local tooltip = gui_value.t1 .. "\nDamage: " .. (biter_force.get_ammo_damage_modifier("melee") + 1) * 100 .. "%\nRevive: " .. global.reanim_chance[biter_force.index] .. "%"
-		
-		l.tooltip = tooltip		
-		
 		local evo = math.floor(1000 * global.bb_evolution[gui_value.biter_force]) * 0.1
-		local l = t.add  {type = "label", caption = evo .. "%"}
+		local evo_tooltip = gui_value.t1 .. "\nDamage: " .. (biter_force.get_ammo_damage_modifier("melee") + 1) * 100 .. "%\nRevive: " .. global.reanim_chance[biter_force.index] .. "%"
+		local l = t.add  { type = "label", caption = evo.."%", tooltip = evo_tooltip}
+		--l.style.minimal_width = 25
 		l.style.minimal_width = 40
 		l.style.font_color = gui_value.color2
 		l.style.font = "default-bold"
@@ -275,8 +273,7 @@ function Public.create_main_gui(player)
 		-- Threat
 		local l = t.add  {type = "label", caption = "Threat: "}
 		l.style.minimal_width = 25
-		l.tooltip = gui_value.t2
-		local l = t.add  {type = "label", name = "threat_" .. gui_value.force, caption = math.floor(global.bb_threat[gui_value.biter_force])}
+		local l = t.add  {type = "label", name = "threat_" .. gui_value.force, caption = math.floor(global.bb_threat[gui_value.biter_force]), tooltip=gui_value.t2}
 		l.style.font_color = gui_value.color2
 		l.style.font = "default-bold"
 		l.style.width = 50
@@ -285,11 +282,9 @@ function Public.create_main_gui(player)
 	--EVL ADD BUTTONS FOR SPEC_GOD MODE (Larger wiew of the map without revealing other forces)
 	--ONLY if admin AND spectator (real & god modes)
 	--ONLY if gama has started (so streamers dont reveal ie stream hack)
-	if is_spec and player.admin and global.match_running then
+	if is_spec and player.admin and global.match_running and player.name~=global.manager_table["north"] and player.name~=global.manager_table["south"] then
 		frame.add { type = "line", caption = "this line", direction = "horizontal" }
 		local _spec_gui = frame.add { type = "table", column_count = 5 }
-		-- _spec_gui.style.horizontal_align = "center" -- WTF
-		-- frame.style.horizontal_align = "center" -- WTF
 		--EVL Button SPEC (zoom=0.18)
 		local b_spec = _spec_gui.add({type = "sprite-button", name = "spec_z_spec", caption = "Spec", tooltip = "[color=#999999]Only admins as spectators can fly over the map,[/color]\n Click to switch between REAL and GOD modes."})
 		b_spec.style.font = "heading-2"
@@ -314,46 +309,9 @@ function Public.create_main_gui(player)
 		b_zoom2.style.maximal_height = 30
 		b_zoom2.style.padding = -2
 	end
-
-
-
 	-- Difficulty mutagen effectivness update
-	bb_diff.difficulty_gui()
+	bb_diff.difficulty_gui() --TODO-- Is that correct ? (thats why top gui is not static ?)
 
-	-- Action frame
-	-- EVL Finally Removed check global.bb_view_players above
-	--[[
-	local t = frame.add  { type = "table", column_count = 1 } --EVL was = 2 (spectate)
-
-	-- Spectate / Rejoin team
-	-- EVL Removed (we are always in tournament mode)
-	if is_spec then
-		local b = t.add  { type = "sprite-button", name = "bb_leave_spectate", caption = "Join Team" }
-	else
-		local b = t.add  { type = "sprite-button", name = "bb_spectate", caption = "Spectate" }
-	end
-	
-	-- Playerlist button
-	if global.bb_view_players[player.name] == true then
-		local b = t.add  { type = "sprite-button", name = "bb_hide_players", caption = "Show Playerlist", tooltip = "Click on player name to view his crafting list and inventory" }
-	else
-		local b = t.add  { type = "sprite-button", name = "bb_view_players", caption = "Hide Playerlist", tooltip = "Click on player name to view his crafting list and inventory" }
-	end
-
-
-	--local b_width = is_spec and 97 or 86
-	-- 111 when prod_spy button will be there
-	for _, b in pairs(t.children) do
-		b.style.font = "default-bold"
-		b.style.font_color = { r=0.98, g=0.66, b=0.22}
-		b.style.top_padding = 1
-		b.style.left_padding = 1
-		b.style.right_padding = 1
-		b.style.bottom_padding = 1
-		b.style.maximal_height = 30
-		b.style.width = 111 --EVL was = b_width
-	end
-	]]--
 end
 
 function Public.refresh()
@@ -362,7 +320,7 @@ function Public.refresh()
 			Public.create_main_gui(player)
 		end
 	end
-	global.gui_refresh_delay = game.tick + 5
+	global.gui_refresh_delay = game.tick + 20 --EVL was 5 (saving UPS)
 end
 
 function Public.refresh_threat()
@@ -375,13 +333,17 @@ function Public.refresh_threat()
 			end
 		end
 	end
-	global.gui_refresh_delay = game.tick + 5
+	global.gui_refresh_delay = game.tick + 20 --EVL was 5 (saving UPS)
 end
 
 function join_team(player, force_name, forced_join)
 	if not player.character then return end
 	if not forced_join then
-		if global.tournament_mode then player.print("The game is set to tournament mode. Teams can only be changed via team manager.", {r = 0.98, g = 0.66, b = 0.22}) return end
+		if global.tournament_mode then
+			player.print("The game is set to tournament mode. Teams can only be changed via team manager.", {r = 0.98, g = 0.66, b = 0.22}) 
+			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
+		return
+		end
 	end
 	if not force_name then return end
 	local surface = player.surface
@@ -389,7 +351,7 @@ function join_team(player, force_name, forced_join)
 	local enemy_team = "south"
 	if force_name == "south" then enemy_team = "north" end
 
-	if not global.training_mode and global.bb_settings.team_balancing then
+	if not global.training_mode and global.bb_settings.team_balancing then --EVL not used
 		if not forced_join then
 			if #game.forces[force_name].connected_players > #game.forces[enemy_team].connected_players then
 				if not global.chosen_team[player.name] then
@@ -400,7 +362,7 @@ function join_team(player, force_name, forced_join)
 		end
 	end
 
-	if global.chosen_team[player.name] then
+	if global.chosen_team[player.name] then --EVL not used
 		if not forced_join then
 			if game.tick - global.spectator_rejoin_delay[player.name] < 3600 then
 				player.print(
@@ -417,13 +379,14 @@ function join_team(player, force_name, forced_join)
 		end
 		player.teleport(p, surface)
 		player.force = game.forces[force_name]
+		--game.print("debug:1111 "..player.name.."changed to force"..player.force.name)--REMOVE--
 		player.character.destructible = true
 		Public.refresh()
 		game.permissions.get_group("Default").add_player(player)
 		local msg = table.concat({"Team ", player.force.name, " player ", player.name, " is no longer spectating."})
 		game.print(msg, {r = 0.98, g = 0.66, b = 0.22})
 		Server.to_discord_bold(msg)
-       global.spectator_rejoin_delay[player.name] = game.tick
+		global.spectator_rejoin_delay[player.name] = game.tick
 		player.spectator = false
 		return
 	end
@@ -431,6 +394,8 @@ function join_team(player, force_name, forced_join)
 	if not pos then pos = game.forces[force_name].get_spawn_position(surface) end
 	player.teleport(pos)
 	player.force = game.forces[force_name]
+	--game.print("debug:2222 "..player.name.."changed to force"..player.force.name)--REMOVE--
+	
 	player.character.destructible = true
 	game.permissions.get_group("Default").add_player(player)
 	if not forced_join then
@@ -452,19 +417,54 @@ function join_team(player, force_name, forced_join)
 	player.insert {name = 'wood', count = 2}
 	]]--
 	global.chosen_team[player.name] = force_name
-    global.spectator_rejoin_delay[player.name] = game.tick
+	global.spectator_rejoin_delay[player.name] = game.tick
 	player.spectator = false
 	Public.refresh()
 end
 
-function spectate(player, forced_join)
-	if not player.character then return end
+function spectate(player, old_force, forced_join)
+	--if not force_joined then force_joined=false end
+	--game.print("____________________________DEBUG : entering spectate("..player.name..",oldforce="..old_force..", forcejoin="..tostring(forced_join)..").", {r = 0.98, g = 0.66, b = 0.22}) --REMOVE--
+	if not player.character then 
+		if global.bb_debug_gui then game.print("Debug : "..player.name.." is not a character (in gui/spectate.lua). That is  probably normal.", {r = 0.98, g = 0.22, b = 0.22}) end
+	end
+	if not(old_force=="north" or old_force=="south") then 
+		if global.tournament_mode then game.print("Debug: in spectate() "..player.name.." is not in a team, can't move to spectators (in gui.lua/spectate).", {r = 0.98, g = 0.66, b = 0.22}) end--REMOVE--
+		return 
+	end
 	if not forced_join then
 		if global.tournament_mode then player.print("The game is set to tournament mode. Teams can only be changed via team manager.", {r = 0.98, g = 0.66, b = 0.22}) return end
 	end
+
+
 	player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-	player.force = game.forces.spectator
-	player.character.destructible = false
+	--EVL remove corpse if empty (probably wrong player move)
+	local corpses = player.surface.find_entities_filtered{type="character-corpse"}
+	for _,corpse in pairs(corpses) do
+		local this_player = game.get_player(corpse.character_corpse_player_index)
+		if this_player.name==player.name then
+			local this_inventory=corpse.get_inventory(defines.inventory.character_corpse).get_contents()
+			if table_size(this_inventory)==0 then
+				if global.bb_debug_gui then game.print("Debug: in spectate() destroy empty corpse for dead "..player.name..". Saving force ("..old_force..").", {r = 0.98, g = 0.66, b = 0.22}) end--REMOVE--
+				global.corpses_force[player.name]=old_force --DEBUG-- Are we sure ?
+				corpse.destroy()
+			else
+				--game.print("aabbaa")
+				--EVL In case of ... 
+				--(should not happen unless a referee moves a player with inventory not empty)
+				--well... could be for a substitution "from" player connected (but he should have emptied his inventory before)
+				if global.bb_debug_gui then game.print("Debug: in spectate() Saving force:"..old_force.." for dead "..player.name.." (corpse not empty).", {r = 0.98, g = 0.66, b = 0.22}) end--REMOVE--
+				global.corpses_force[player.name]=old_force
+			end
+		end
+	end
+	player.force = game.forces.spectator --already done a priori
+	--game.print("debug:3333 "..player.name.."changed to force"..player.force.name)--REMOVE--
+	if player.character then
+		player.character.destructible = false --DEBUG-- when disco player is moved to island, then back to team it will put his corpse on island
+	else
+		if global.bb_debug_gui then game.print("Debug : "..player.name.." is not a character (in gui/spectate.lua). Is that OK ???", {r = 0.98, g = 0.66, b = 0.22}) end
+	end
 	if not forced_join then
 		local msg = player.name .. " is spectating."
 		game.print(msg, {r = 0.98, g = 0.66, b = 0.22})
@@ -474,6 +474,7 @@ function spectate(player, forced_join)
 	global.spectator_rejoin_delay[player.name] = game.tick
 	Public.create_main_gui(player)
 	player.spectator = true
+
 end
 
 local function join_gui_click(name, player)
@@ -484,7 +485,7 @@ local function join_gui_click(name, player)
 
 	if not team[name] then return end
 
-	if global.game_lobby_active then
+	if global.game_lobby_active then --EVL not used
 		if player.admin then
 			join_team(player, team[name])
 			game.print("Lobby disabled, admin override.", { r=0.98, g=0.66, b=0.22})
@@ -517,12 +518,35 @@ local function on_gui_click(event)
 	if not event.element.valid then return end
 	local player = game.players[event.player_index]
 	local name = event.element.name
+	--game.print(" gui.lua "..name)--REMOVE--
 	
-	-- Close inventory Gui
+	-- Close/Refresh inventory Gui of player
 	if name == "inventory_close" then
-		show_inventory.close_inventory(player)
+		show_inventory.close_inventory(player,"target")
 		return
 	end
+	if name == "inventory_refresh" then
+		show_inventory.refresh_inventory(player,"target")
+		return
+	end
+	-- Close/Refresh inventory Gui of player
+	if name == "team_inventory_close_north" then
+		show_inventory.close_inventory(player,"north")
+		return
+	end
+	if name == "team_inventory_close_south" then
+		show_inventory.close_inventory(player,"south")
+		return
+	end
+	if name == "team_inventory_refresh_north" then
+		show_inventory.refresh_inventory(player,"north")
+		return
+	end
+	if name == "team_inventory_refresh_south" then
+		show_inventory.refresh_inventory(player,"south")
+		return
+	end
+
 	
 	if name == "bb_toggle_button" then
 		if player.gui.left["bb_main_gui"] then
@@ -542,39 +566,76 @@ local function on_gui_click(event)
 	
 	--EVL SHOW INVENTORY & CRAFTING LIST
 	--EVL Click on player from LeftGUI.playerlist
-	--EVL only available for admins that are spectating
+	--EVL only available for admins that are spectating	and managers of same side
 	local _name=string.sub(name,0,6)
 	if _name=="plist_" then
-		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
-			local _target_name = event.element.caption
-			if not game.players[_target_name] then
-				if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist) cant show inventory") end
-				return
-			end
-			show_inventory.open_inventory(player, game.players[_target_name]) --EVL player=source, _target=target
-			return
-		else
-			player.print(">>>>> Only admins as spectators can view inventory and crafting-queue.", {r = 175, g = 0, b = 0})
+		local _target_name = event.element.caption
+		if not game.players[_target_name] then
+			if global.bb_debug then game.print("Debug: Player (".._target_name..") does not exist (in gui.lua/playerlist). Can't show inventory") end
 			return
 		end
+		
+		
+		--Check if conditions are fulfilled
+		if (player.admin and (player.force.name == "spectator" or player.force.name == "spec_god")) --admin and (spec or god)
+			or (global.manager_table["north"] and player.name==global.manager_table["north"] and game.players[_target_name].force.name=="north") --manager north and target north
+			or (global.manager_table["south"] and player.name==global.manager_table["south"] and game.players[_target_name].force.name=="south")  then --manager south and target south
+		--if player.admin then   --CODING--
+			show_inventory.open_inventory(player, game.players[_target_name]) --EVL player=source, _target=target
+		else
+			player.print(">>>>> Only admins as spectators (and managers) can view inventory and crafting-queue.", {r = 175, g = 0, b = 0})
+			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
+		end
+		return
+	end
+	--EVL SHOW INVENTORY & CRAFTING LIST of TEAMS
+	--EVL Click on team name from LeftGUI
+	--EVL only available for admins that are spectating	and managers of same side
+	if name=="show_inv_north" then
+		--Check if conditions are fulfilled
+		if (player.admin and (player.force.name == "spectator" or player.force.name == "spec_god")) --admin and (spec or god)
+			or (global.manager_table["north"] and player.name==global.manager_table["north"]) then --manager north and target team north
+		--if player.admin then   --CODING--
+			show_inventory.open_inventory(player, "north") --EVL player=source, _target=team north
+		else
+			player.print(">>>>> Only admins as spectators (and north manager) can view inventory and crafting-queue of north team.", {r = 175, g = 0, b = 0})
+			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
+		end
+		return
+	elseif name=="show_inv_south" then
+		--Check if conditions are fulfilled
+		if (player.admin and (player.force.name == "spectator" or player.force.name == "spec_god")) --admin and (spec or god)
+			or (global.manager_table["south"] and player.name==global.manager_table["south"]) then --manager south and target team south
+		--if player.admin then   --CODING--		
+			show_inventory.open_inventory(player, "south") --EVL player=source, _target=team north
+		else
+			player.print(">>>>> Only admins as spectators (and south manager) can view inventory and crafting-queue of south team.", {r = 175, g = 0, b = 0})
+			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
+		end
+		return
 	end
 	--EVL SHOW MINI CAMERA OF PLAYER
 	--EVL Click on © from LeftGUI.playerlist
-	--EVL only available for admins that are spectating	
+	--EVL only available for admins that are spectating	and managers of same side
 	_name=string.sub(name,0,5)
 	if _name=="pcam_" then
-		if player.admin and (player.force.name == "spectator" or player.force.name == "spec_god") then 
-			local _target_index = tonumber(string.sub(name,6))
-			if not(_target_index) or (_target_index<1) or not (game.players[_target_index]) then
-				if global.bb_debug then game.print("Debug: Player (#".._target_index..") does not exist (in gui.lua/playerlist) cant show minicam") end
+		local _target_index = tonumber(string.sub(name,6))
+		if not(_target_index) or (_target_index<1) or not (game.players[_target_index]) then
+			if global.bb_debug then game.print("Debug: Player (#".._target_index..") does not exist (in gui.lua/playerlist) cant show minicam") end
+			return
+		end
+		local _target=game.players[_target_index]
+		--Check if conditions are fulfilled
+		if (player.admin and (player.force.name == "spectator" or player.force.name == "spec_god")) --admin and (spec or god)
+			or (global.manager_table["north"] and player.name==global.manager_table["north"] and _target.force.name=="north") --manager north and target north
+			or (global.manager_table["south"] and player.name==global.manager_table["south"] and _target.force.name=="south")  then --manager south and target south
+				Where.create_mini_camera_gui(player, _target.name, _target.position, _target.surface.index)
+				game.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 				return
-			end
-			local _target=game.players[_target_index]
-			Where.create_mini_camera_gui(player, _target.name, _target.position, _target.surface.index)
-			return
 		else
-			player.print(">>>>> Only admins as spectators can view mini-camera of player.", {r = 175, g = 0, b = 0})
-			return
+				player.print(">>>>> Only admins as spectators (and managers) can view mini-camera of player.", {r = 175, g = 0, b = 0})
+				player.play_sound{path = global.sound_error, volume_modifier = 0.8}
+				return
 		end
 	end	
 	--
@@ -604,10 +665,12 @@ local function on_gui_click(event)
 				player.zoom=0.18
 				player.show_on_map=false -- EVL remove red dots on map view for players and spectators (new in 1.1.47)
 				global.god_players[player.name] = true
+				Team_manager.redraw_all_team_manager_guis()
 				game.print(">>>>> Admin: " ..  player.name .. " has gone into Spec/God mode view.", {r = 75, g = 75, b = 75})
+				player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 				if global.bb_debug then game.print("Debug: player: " ..  player.name .." ("..player.force.name..") switches to God mode") end
+			
 			elseif player.force.name == "spec_god" then -- GO TO SPEC REAL MODE
-				
 				player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
 				player.create_character()
 				player.force = game.forces["spectator"]
@@ -615,13 +678,18 @@ local function on_gui_click(event)
 				player.show_on_map=true  -- EVL restore dots on map view for players and spectators (new in 1.1.47)
 				player.character.destructible = false --EVL give back the property to the spec
 				global.god_players[player.name] = false
-				if global.bb_debug then game.print("Debug: player: " ..  player.name .." ("..player.force.name..") switches back to Real mode") end
+				Team_manager.redraw_all_team_manager_guis()
+				game.print(">>>>> Admin: " ..  player.name .." ("..player.force.name..") switches back to Real mode.", {r = 75, g = 75, b = 75})
+				player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
+				
 			else
-				game.print(">>>>> Only spectators are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
+				player.print(">>>>> Only spectators are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
+				player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			end
 			return
 		else
 			player.print(">>>>> Only admins are allowed to use ~SPEC~ view.", {r = 175, g = 0, b = 0})
+			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			return
 		end
 	end
@@ -629,14 +697,16 @@ local function on_gui_click(event)
 	if name == "spec_z_1" then --EVL Asking for large view {112, 112, 255}
 		if global.bb_debug then game.print("Debug: player:" ..  player.name .." ("..player.force.name..") asks for Large view") end
 		if player.admin then
-		
 			if player.force.name == "spec_god" then --EVL admin must be in spec_god mode too
 				player.zoom=0.12 -- EVL WRITE ONLY :-(
+				player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 			else
 				player.print(">>>>> You must click on [color=#7070FF]~SPEC~[/color] button first.", {r = 175, g = 0, b = 0})
+				player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			end
 		else 
 			player.print(">>>>> You are not allowed to do that.", {r = 175, g = 0, b = 0})
+			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		end
 		return
 	end
@@ -645,11 +715,14 @@ local function on_gui_click(event)
 		if game.players[event.player_index].admin then
 			if player.force.name == "spec_god" then --EVL admin must be in spec_god mode too
 				player.zoom=0.06 -- EVL WRITE ONLY :-(
+				player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 			else
 				player.print(">>>>> You must click on [color=#7070FF]~SPEC~[/color] button first.", {r = 175, g = 0, b = 0})
+				player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			end
 		else
 			player.print(">>>>> You are not allowed to do that.", {r = 175, g = 0, b = 0})
+			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		end
 		return
 	end	
@@ -659,16 +732,20 @@ end
 local function on_player_joined_game(event)
 	local player = game.players[event.player_index]
 
-	if not global.bb_view_players then global.bb_view_players = {} end
 	if not global.chosen_team then global.chosen_team = {} end
-
-	global.bb_view_players[player.name] = false --EVL not used anymore
 
 	if #game.connected_players > 1 then
 		global.game_lobby_timeout = math.ceil(36000 / #game.connected_players)
 	else
 		global.game_lobby_timeout = 599940
 	end
+
+	--EVL Restore that disconnected player has rejoined (team manager)
+	if global.disconnected[player.name] then 
+		--game.print("remove "..player.name.." from disconnected list") --REMOVE--
+		global.disconnected[player.name]=nil 
+	end
+
 
 	--if not global.chosen_team[player.name] then
 	--	if global.tournament_mode then
@@ -682,22 +759,11 @@ local function on_player_joined_game(event)
 	Public.create_main_gui(player)
 end
 
---EVL switch back spec/god to spec/real before leaving
-local function on_pre_player_left_game(event)
-    local player = game.players[event.player_index]
-	local _name=player.name
-    if global.god_players[_name] and global.god_players[_name] == true then
-		player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-		player.create_character()
-		player.force = game.forces["spectator"]
-		player.zoom=0.30
-		player.show_on_map=true  -- EVL restore dots on map view for players and spectators (new in 1.1.47)
-		global.god_players[_name] = false
-		if global.bb_debug then game.print("DEBUG: " .._name.."/".. player.name .." is leabing, switches back to real mode (if needed).") end
-	end
-end
+--Moved to show_inventory_bbc.lua
+--local function on_pre_player_left_game(event)
+--end
 
 event.add(defines.events.on_gui_click, on_gui_click)
 event.add(defines.events.on_player_joined_game, on_player_joined_game)
-event.add(defines.events.on_pre_player_left_game, on_pre_player_left_game)  --EVL switch back spec/god to spec/real before leaving
+event.add(defines.events.on_pre_player_left_game, on_pre_player_left_game)  --Moved to show_inventory_bbc.lua
 return Public

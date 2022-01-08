@@ -430,10 +430,11 @@ local function send_group(unit_group, force_name, side_target, group_numero)
 		--end 
 		--Everything went fine, we store the _position (and not the position) > we want to always test surface.find_non_colliding_position
 		if _position_is_new then 
-			if table_size(global.way_points_table[force_name]) < global.way_points_max then --EVL we dont remember infinity of waypoints (we prefer to use old ones than new ones, for equity/balance)
+			if table_size(global.way_points_table[force_name]) <= global.way_points_max then --EVL we dont remember infinity of waypoints (we prefer to use old ones than new ones, for equity/balance)
 				table.insert(global.way_points_table[force_name],_position)
 				if global.bb_biters_debug2 then game.print("          Inserting new waypoint at "..force_name.." (".._position[1]..",".._position[2]..")", {r = 100, g = 150, b = 100}) end
 			else
+				global.way_points_max_reached=true  --To be announced in stats.json
 				if global.bb_biters_debug2 then game.print("          Forgetting new waypoint for "..force_name.." (".._position[1]..",".._position[2]..")", {r = 100, g = 150, b = 100}) end
 			end
 		end
@@ -603,14 +604,16 @@ Public.pre_main_attack = function()
 	--EVL virtually send groups to team which is simulated (via patterns of sendings)
 
 	local opponent_force_name="north"
-	local real_threat_ratio=0
 	if force_name=="north" then opponent_force_name="south" end
+	
+	local real_threat_ratio=0
 	if not global.training_mode or (global.training_mode and #game.forces[force_name].connected_players > 0) or (global.training_mode and global.pattern_training[opponent_force_name]["active"]) then --if tournament mode OR regular training mode with players OR simulation training mode
 		real_threat_ratio=get_threat_ratio(force_name .. "_biters") * 7
 		global.main_attack_wave_amount = math.ceil(real_threat_ratio)
+		if global.main_attack_wave_amount < 2 then global.main_attack_wave_amount=2 end --EVL even if one team is far ahead, we want at least 2 waves : so waves are 0 (if threat<0) or in 2..7 range
 		
-		--In training mode with only one team (which is supposed to be the case), global.main_attack_wave_amount will always be=7 (due to threat ratio) --to  update with simulation conditions
-		--Well, if 2 teams are training we still override threat_ratio (it doesnt have any sense anyway)--to  update with simulation conditions
+		--In training mode with only one team (which is supposed to be the case), global.main_attack_wave_amount will always be=7 (due to threat ratio) --comment to update with simulation conditions
+		--Well, if 2 teams are training we still override threat_ratio (it doesnt have any sense anyway)-- comment toupdate with simulation conditions
 		if global.training_mode then 
 			if global.wave_training[force_name]["active"] then --/wavetrain command is active, override simulation mode
 				global.main_attack_wave_amount=global.wave_training[force_name]["number"]
@@ -625,11 +628,11 @@ Public.pre_main_attack = function()
 				global.main_attack_wave_amount=math.random(3,6) -- EVL little patch for regular training mode (so its not 7 groups each time)
 			end
 		end
-		if global.main_attack_wave_amount < 2 then global.main_attack_wave_amount=2 end --EVL even if one team is far ahead, we want at least 2 waves : so waves are 0 (if threat<0) or in 2..7 range
+		
 
 	else -- regular training mode without players 
 		global.main_attack_wave_amount = 0
-		if global.bb_debug then game.print(">>>>> Training Mode, no player found at "..force_name,{r = 77, g = 192, b = 192}) end
+		if global.bb_debug then game.print(">>>>> Training Mode, no player found at "..force_name.." (no group created).",{r = 77, g = 192, b = 192}) end
 	end
 	-- VERBOSE
 	if global.bb_debug then game.print(">>>>> Up to "..global.main_attack_wave_amount.." [font=default-small](real value:"..(math.floor(real_threat_ratio*100)/100)..")[/font] groups"
@@ -698,15 +701,19 @@ end
 
 --By Maksiu1000 skip the last two tech
 Public.unlock_satellite = function(event)
-    -- Skip unrelated events
-    if event.research.name ~= 'speed-module-3' then
-        return
-    end
-    local force = event.research.force
-    if not force.technologies['rocket-silo'].researched then
-        force.technologies['rocket-silo'].researched=true
-        force.technologies['space-science-pack'].researched=true
-    end
+	--game.print("research done : "..event.research.name)
+	-- Skip unrelated events
+	if event.research.name ~= 'speed-module-3' then	return	end
+	
+	local force = event.research.force
+	--EVL Patch to reactivate silo when research is done
+	global.rocket_silo[force.name].active=true
+	if not force.technologies['rocket-silo'].researched then
+		force.technologies['rocket-silo'].researched=true
+		force.technologies['space-science-pack'].researched=true
+	end
+	game.print(">>>>> Activating "..force.name.." silo (rocket silo & space-science has been granted).", {r = 197, g = 197, b = 17})
+	--sound in other function on_researched_finished(main.lua)
 end
 
 Public.raise_evo = function()
@@ -715,7 +722,7 @@ Public.raise_evo = function()
 		return 
 	end
 
-	--EVL Tournament mode, no natural evo until game has started
+	--EVL Tournament mode, no natural evo until both team have players (and game has started ie global.match_running)
 	if not global.training_mode and (#game.forces.north.connected_players == 0 or #game.forces.south.connected_players == 0) then return end
 
 
@@ -852,6 +859,7 @@ local function reanimate_unit(id)
 		force = force,
 		direction = direction,
 	}
+	--TODO-- do we want a sound when unit reanimate ?
 end
 
 local function _reanimate_units(id, cycles)
