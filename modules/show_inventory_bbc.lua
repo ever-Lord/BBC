@@ -462,7 +462,7 @@ local function draw_team_inventory(force_inv_gui, force, inventory_mode)
 		return
 	end
 	--[[
-	if #target_list==1 then	--CODING--
+	if #target_list==1 then
 		table.insert(target_list,target_list[1])
 	end
 	if #target_list==2 then
@@ -1052,12 +1052,65 @@ function Public.refresh_inventory(source,target)
 	end
 end
 
+
+--EVL Close all guis in player.gui.screen (until bug due to deco/reco is fixed)
+function Public.close_all_screens()
+	local _str_close=""
+	for _, source in pairs(game.players) do
+		local source_name=source.name
+		for _, child in pairs(source.gui.screen.children) do
+			local child_name=child.name
+			if child_name=="inventory_gui" then
+				if validate_viewing_inv(source_name,"target","name") then
+					_str_close=_str_close..source_name.."(T):"..child_name.." killed    "
+					set_viewing_inv(source_name,"target","name",nil)
+					child.destroy()
+				else
+					_str_close=_str_close..source_name.."(T):"..child_name.." killed(not registered)    "
+					child.destroy()
+				end
+			elseif child_name=="north_inv_gui" then
+				if validate_viewing_inv(source_name,"north","active") then
+					_str_close=_str_close..source_name.."(N):"..child_name.." killed    "
+					set_viewing_inv(source_name,"north","active",nil)
+					child.destroy()
+				else
+					_str_close=_str_close..source_name.."(N):"..child_name.." killed(not registered)    "
+					child.destroy()
+				end
+			elseif child_name=="south_inv_gui" then
+				if validate_viewing_inv(source_name,"south","active") then
+					_str_close=_str_close..source_name.."(S):"..child_name.." killed    "
+					set_viewing_inv(source_name,"south","active",nil)
+					child.destroy()
+				else
+					_str_close=_str_close..source_name.."(S):"..child_name.." killed(not registered)    "
+					child.destroy()
+				end
+			else
+				_str_close=_str_close..source_name.."(?):"..child_name.."(?)killed    "
+				child.destroy()
+			end
+		end
+	end
+	return _str_close
+end
+
+commands.add_command(
+    'clear-guis',
+    'Clears all screen.guiS (no parameter).',
+	function(cmd) 
+		_msg=Public.close_all_screens()
+		game.print("Cleared all screen.guiS, result : \n".._msg, {r = 250, g = 250, b = 50})
+	end
+)
+
 commands.add_command(
     'inventory',
     'Opens a players inventory (deprecated).',
 	function(cmd)
 		local player = game.player
-		player.print(">>>>> Sorry, this command has been deprecated, click on a player name to open his crafts & inventory.", Color.warning) 
+		player.print(">>>>> Sorry, this command has been deprecated, click on a player or team name to open crafts & inventory.", Color.warning) 
 		return
     end
 )

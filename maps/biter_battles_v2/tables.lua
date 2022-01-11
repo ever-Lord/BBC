@@ -578,9 +578,9 @@ Public.packs_item_value = {
 --EVL FIN
 
 Public.compi={
-	["names"]={"Charlie the compi","Larry the compi","Leon the compilatron","Gaston the compilatron"},
+	["names"]={"Charlie the compi","Larry the compi","Larry the compi","Leon the compilatron","Gaston the compilatron"},
 	["welcome"]={"Welcome guys!","Hey you ! Welcome on my island !","Welcome visitors !","I bet one silo will vanish !","Trees are my friend, I can't let you harm them !",
-				"Clever people don't go around in circles !", "Smart people don't go around in circles !", "Streamers that are not playing BBC are feeble !", "Streamers that are not playing BBC are feeble !", "Streamers that are not playing BBC are feeble !"},
+				"Clever people don't go around in circles !", "Smart people don't go around in circles !", "Streamers that are not playing BBChampions are feeble !", "Streamers that are not playing BBC are feeble !"},
 	["revenges"]={"Stop bullying me!","Stop bugging me!","Stop bothering me!","You pissed me off","Bunch of idiots"}
 }
 

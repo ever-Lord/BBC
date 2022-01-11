@@ -957,6 +957,48 @@ Public.detail_game_id[4183] = { ["Team"]="Green Science", ["Info"]="Red into gre
     }
 }
 
+Public.detail_game_id[4428] = { ["Team"]="C4", ["Info"]="Automated green", ["Pack"]="pack_04", ["Versus"]="Steelaxe Mafia", ["Date"]="09 jan 22",
+    ["Pattern"]={
+       [21]={"logistic",199},
+       [24]={"logistic",81},
+       [26]={"logistic",113},
+       [29]={"logistic",229},
+       [38]={"logistic",336},
+       [41]={"logistic",218},
+       [50]={"logistic",958},
+       [999]={"logistic",200}
+    }
+}
+Public.detail_game_id[4429] = { ["Team"]="Steelaxe Mafia", ["Info"]="Burner green rush", ["Pack"]="pack_04", ["Versus"]="C4", ["Date"]="09 jan 22",
+    ["Pattern"]={
+       [12]={"logistic",21},
+       [13]={"logistic",131},
+       [16]={"logistic",304},
+       [17]={"logistic",63},
+       [18]={"logistic",49},
+       [19]={"logistic",67},
+       [20]={"logistic",30},
+       [21]={"automation",8,"logistic",286},
+       [22]={"logistic",151},
+       [25]={"logistic",536},
+       [26]={"logistic",166},
+       [31]={"logistic",670},
+       [33]={"logistic",227},
+       [34]={"logistic",89},
+       [35]={"logistic",224},
+       [36]={"logistic",37},
+       [39]={"logistic",468},
+       [40]={"logistic",54},
+       [43]={"logistic",616},
+       [45]={"logistic",121},
+       [46]={"logistic",153},
+       [50]={"logistic",477},
+       [51]={"logistic",60},
+       [53]={"logistic",90},
+       [999]={"logistic",200}
+    }
+}
+
 Public.detail_game_id[4551] = { ["Team"]="Green Science", ["Info"]="Burner Green Rush x40(/48)", ["Pack"]="pack_03", ["Versus"]="SteelAxe", ["Date"]="15 dec 21",
     ["Pattern"]={
        [10]={"automation",11},

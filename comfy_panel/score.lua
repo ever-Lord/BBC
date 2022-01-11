@@ -694,15 +694,18 @@ local function on_player_built_tile(event)
 end
 
 local function on_entity_damaged(event)
-	local _dmg=event.final_damage_amount
-	if event.cause.name=="character" then --Track own walls damaged by player, sum of damage dealt
-		_player=event.cause.player
+	
+	if event.cause and event.cause.name=="character" then --Track own walls damaged by player, sum of damage dealt
+		local _player=event.cause.player
 		--Public.init_player_table(player) --EVL done in team manager
 		local score = this.score_table[_player.force.name].players[_player.name]
 		score.damaged_own_walls = event.final_damage_amount + score.damaged_own_walls		
-		--game.print("player:".._player.name.."(".._player.force.name..") --> entity:"..event.entity.name.."  dmg="..event.final_damage_amount.."  cause="..event.cause.name.."/force="..event.force.name)
 		return
-	--else --EVL dont track damage dealt by biters or anything else
+	else --EVL dont track damage dealt by biters or anything else
+		if global.bb_debug then
+			game.print("DEBUG on_entity_damaged: ".._player.name.."(".._player.force.name..") --> entity:"..event.entity.name
+			.."  dmg="..event.final_damage_amount.."  cause="..event.cause.name.."("..event.force.name..")", {r = 250, g = 100, b = 100})
+		end
 	end
 	--game.print("entity:"..event.entity.name.."  dmg="..event.final_damage_amount.." by cause="..event.cause.name.."   force="..event.force.name)
 	
@@ -720,8 +723,5 @@ Event.add(defines.events.on_gui_click, on_gui_click)
 Event.add(defines.events.on_player_joined_game, on_player_joined_game)
 Event.add(defines.events.on_rocket_launched, on_rocket_launched)
 Event.add(defines.events.on_entity_damaged, on_entity_damaged)
-Event.add_event_filter(defines.events.on_entity_damaged, {
-	filter = "name",
-	name = "stone-wall",
-})
+Event.add_event_filter(defines.events.on_entity_damaged,{filter = "name", name = "stone-wall"})
 return Public

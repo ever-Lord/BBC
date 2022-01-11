@@ -129,7 +129,7 @@ local function add_science_logs(player, element)
 	local dropdown_evofilter = t_filter.add { name = "dropdown-evofilter", type = "drop-down", items = evofilter_list, selected_index = global.dropdown_users_choice_evo_filter[player.name] }
 	--EVL Add export button for simulation mode (ie pattern-training)
 	t_filter.add({ type = "label", caption = "     "})
-	if player.name=="everLord" then --reserved button to export sendings patterns
+	if player.name=="everLord" pr player.name=="Firerazer" then --reserved button to export sendings patterns
 		local button = t_filter.add({
 				type = "button",
 				name = "science_logs_export_sendings",
@@ -352,12 +352,14 @@ function Public.science_logs_export_sendings(event)
 		--EXPORT NORTH/SOUTH SENDINGS
 		local output_north_team="North"
 		if global.tm_custom_name["north"] then output_north_team=global.tm_custom_name["north"] end
-		local output_north='Public.detail_game_id['..output_north_gameid..'] = { ["Team"]="'..output_north_team..'", ["Info"]="Pattern info", ["Pack"]="'.._pack_chosen..'", ["Versus"]="'..'South'..'", ["Date"]="dd mon yy",\n'
-		output_north=output_north..'    ["Pattern"]={\n'
-
 		local output_south_team="South"
 		if global.tm_custom_name["south"] then output_south_team=global.tm_custom_name["south"] end
-		local output_south='Public.detail_game_id['..output_south_gameid..'] = { ["Team"]="'..output_south_team..'", ["Info"]="Pattern info", ["Pack"]="'.._pack_chosen..'", ["Versus"]="'..'North'..'", ["Date"]="dd mon yy",\n'
+		
+		local output_north='Public.detail_game_id['..output_north_gameid..'] = { ["Team"]="'..output_north_team..'", ["Info"]="Pattern info", ["Pack"]="'.._pack_chosen..'", ["Versus"]="'..output_south_team..'", ["Date"]="dd mon yy",\n'
+		output_north=output_north..'    ["Pattern"]={\n'
+
+
+		local output_south='Public.detail_game_id['..output_south_gameid..'] = { ["Team"]="'..output_south_team..'", ["Info"]="Pattern info", ["Pack"]="'.._pack_chosen..'", ["Versus"]="'..output_north_team..'", ["Date"]="dd mon yy",\n'
 		output_south=output_south..'    ["Pattern"]={\n'
 
 		-- sorting manually (don't know how to table.sort indexes)

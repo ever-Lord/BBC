@@ -5,7 +5,7 @@ local fifo = require "maps.biter_battles_v2.fifo"
 local team_manager = require "maps.biter_battles_v2.team_manager"
 
 local Public = {}
-global.dbg="" -- dbg=debug variable to use in initsequence (since game.print is not available) use : global.dbg=global.dbg..""
+
 
 function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.enemy_evolution.time_factor = 0
@@ -14,7 +14,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.pollution.enabled = false
 	game.map_settings.enemy_expansion.enabled = false
 
-	global.version="v0.96" --CODING--
+	global.version="v0.961" --CODING--
 	global.bb_debug = false --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
 	global.bb_biters_debug = false --EVL ADD MUCH VERBOSE TO BITERS AI
 	global.bb_biters_debug2 = false --EVL ADD EVEN MUCH VERBOSE TO BITERS AI
@@ -120,7 +120,6 @@ end
 function Public.playground_surface()
 	local map_gen_settings = {}
 	local int_max = 2 ^ 31
-	
 	if global.seed_forcing and global.seed_forcing>0 and global.seed_forcing<int_max then
 		game.print(">>>>> Forcing seed #"..global.seed_forcing,{r = 00, g = 175, b = 00})
 		map_gen_settings.seed = global.seed_forcing
@@ -132,13 +131,8 @@ function Public.playground_surface()
 			global.history_seed={}
 			table.insert(global.history_seed, map_gen_settings.seed.."  (initialisation)")
 		end
-
-		
 		--map_gen_settings.seed = your_value -- 2044398054--1607717091 --996357343 --CODING--
 	end
-	
-	
-	
 	map_gen_settings.water = math.random(15, 60) * 0.01 --EVL was 15,65
 	map_gen_settings.starting_area = 2.5
 	map_gen_settings.terrain_segmentation = math.random(30, 40) * 0.1
@@ -158,22 +152,24 @@ function Public.playground_surface()
 		["enemy-base"] = {frequency = 0, size = 0, richness = 0}
 	}
 	local surface = game.create_surface(global.bb_surface_name, map_gen_settings)
-	surface.min_brightness  = 0.15
-	surface.brightness_visual_weights = { -0.5 , -0.4 , -0.2 }
 	surface.request_to_generate_chunks({x = 0, y = -256}, 7)
 	surface.force_generate_chunk_requests()
+	surface.min_brightness  = 0.15
+	surface.brightness_visual_weights = { -0.5, -0.4, -0.2 }
 end
 
 function Public.draw_structures()
 	local surface = game.surfaces[global.bb_surface_name]
 	Terrain.draw_spawn_area(surface)
-	--Terrain.clear_ore_in_main(surface)--EVL FreeBB removes initial ore 
+	--Terrain.clear_ore_in_main(surface)--EVL FreeBB removes initial ore need to be delayed (see main.lua)
 	--Terrain.generate_spawn_ore(surface)--EVL and adds huge quantities, BBChampions does not like that ;) 
 
 
 	Terrain.generate_additional_rocks(surface)
-	--Terrain.generate_trees_on_island(surface) --not here, will be symmetrize, move to clear_ore_in_island (see below)
+	
 	Terrain.draw_spawn_circle(surface)
+	Terrain.clear_ore_in_island(surface)
+	--Terrain.generate_trees_on_island(surface) --not here, will be symmetrize, move to clear_ore_in_island (see below)
 	Terrain.check_ore_in_main(surface) --EVL analyse ores in spawn and adjust quantities with randomness
 
 	Terrain.generate_silo(surface)
@@ -295,8 +291,8 @@ function Public.tables()
 	--------------------------------------------------
 	global.main_attack_wave_amount = 0
 	global.next_attack = "north" --EVL Coinflip moved to main.lua (and game_over.lua after reroll/reset) 
-	--EVL Need a patch so first attack goes to team OUTSIDE (give an advantage top team ATHOME) not sure its an advantage though
-	--EVL well, not even working since waves (with no group in them) are built during lobby time 
+	--EVL Need a patch so first attack goes to team OUTSIDE (give an advantage to team ATHOME) not sure if its an advantage though
+	--EVL well, not even working since waves (with no group in them) are built during lobby time ??? sure ?
 	--We need to set global.next_attack when match starts
 
 	--Ai.lua BASE OF WAY POINTS
@@ -403,7 +399,8 @@ function Public.tables()
 		["south"]=0
 	}
 	global.count_in_init=0 --EVL (debug) global variable to use in init sequence then use command /c game.print("init counter =  "..global.count_in_init)
-	global.vartmp=""--nil --EVL (debug)
+	global.dbg="" -- dbg=debug variable to use in initsequence (since game.print is not available) use : global.dbg=global.dbg..""
+	global.vartmp="gen "--nil --EVL (debug)
 	
 	global.sound_intro	="utility/crafting_finished"-- ie: game.play_sound{path = global.sound_intro, volume_modifier = 0.8}
 	global.sound_error	="utility/cannot_build"-- ie: game.play_sound{path = global.sound_error, volume_modifier = 0.8}
@@ -411,6 +408,14 @@ function Public.tables()
 	global.sound_low_bip="utility/paste_activated"-- ie: game.play_sound{path = global.sound_low_bip, volume_modifier = 0.8}
 	global.sound_died	="utility/deconstruction_selection_ended"-- ie: game.play_sound{path = global.sound_died, volume_modifier = 0.8}
 	
+	--[[
+	global.taming = false --EVL Trigger the taming/breeding feature (for season 2)
+	global.taming_debug = true --CODING--
+	global.breeding={
+		["north"]={["topleft"]={0,0},["botright"]={0,0},["last_try="]=false},
+		["south"]={["topleft"]={0,0},["botright"]={0,0},["last_try="]=false}
+	}
+	]]
 	--------------------------------------------------
 	--EVL All those above are added for BBChampions --
 	--------------------------------------------------	

@@ -1699,10 +1699,10 @@ local function on_tick()
 				end		
 			end --force
 		elseif not global.is_island_cleared then
-			if tick>10 then 
+			if tick>5 then 
 				--EVL clear_ore_in_island may not mork if placed in init.lua/Public.draw_structures()
 				local surface = game.surfaces[global.bb_surface_name]
-				Terrain.clear_ore_in_island(surface)
+				--Terrain.clear_ore_in_island(surface)
 				--EVL Why not ?
 				Terrain.generate_trees_on_island(surface) --and compilatron
 				global.is_island_cleared=true
@@ -1773,13 +1773,10 @@ end
 
 local function on_chunk_generated(event)
 	local surface = event.surface
-
 	-- Check if we're out of init.
 	if not surface or not surface.valid then return end
-
 	-- Necessary check to ignore nauvis surface.
 	if surface.name ~= global.bb_surface_name then return end
-
 	-- Generate structures for north only.
 	local pos = event.area.left_top
 	if pos.y < 0 then
@@ -1844,16 +1841,12 @@ local function on_init()
 	Init.tables()
 	Init.initial_setup()
 	Init.playground_surface()
-	-- EVL patch : ???
 	Init.forces()
 	Init.draw_structures()
 	Init.load_spawn()
 	Init.init_waypoints()
-	--EVL Looking why always south gets attacked first <- not true
 	local whoisattackedfirst=math.random(1,2)
-	--if global.bb_debug then game.print("DEBUG: wiaf="..whoisattackedfirst.."  before "..global.next_attack) end 
-	if whoisattackedfirst == 1 then global.next_attack = "south" end
-	--if global.bb_debug then game.print("DEBUG: wiaf="..whoisattackedfirst.."  after "..global.next_attack) end 
+	if whoisattackedfirst == 2 then global.next_attack = "south" end
 end
 
 --EVL Can close text gui inputs with <enter> key
@@ -1885,9 +1878,9 @@ Event.add(defines.events.on_gui_click, on_gui_click)
 Event.add(defines.events.on_marked_for_deconstruction, on_marked_for_deconstruction)
 Event.add(defines.events.on_player_built_tile, on_player_built_tile)
 Event.add(defines.events.on_player_joined_game, on_player_joined_game)
-Event.add(defines.events.on_player_left_game, on_player_left_game) --EVL Close/destroy all inventories
-Event.add(defines.events.on_player_demoted, redraw_all_team_manager_gui) --EVL Close/destroy all inventories
-Event.add(defines.events.on_player_promoted, redraw_all_team_manager_gui) --EVL Close/destroy all inventories
+Event.add(defines.events.on_player_left_game, on_player_left_game) --EVL Update all team_manager GUIs opened
+Event.add(defines.events.on_player_demoted, redraw_all_team_manager_gui) --EVL Update all team_manager GUIs opened
+Event.add(defines.events.on_player_promoted, redraw_all_team_manager_gui) --EVL Update all team_manager GUIs opened
 Event.add(defines.events.on_player_mined_entity, on_player_mined_entity)
 Event.add(defines.events.on_research_finished, on_research_finished)
 Event.add(defines.events.on_research_started, on_research_started)
@@ -1954,7 +1947,7 @@ commands.add_command('vision', 'Activate or deactivate night vision (for streame
     end
 )
 --Command "/compilatron_revenge on/off"
-commands.add_command('compilatron_revenge', 'Compilatron can be angry. Parameter : on/off',
+commands.add_command('compilatron-revenge', 'Compilatron can be angry. Parameter : on/off',
 	function(cmd)
 		local _toggle= tostring(cmd.parameter)
 		local _player_index = cmd.player_index
@@ -2005,7 +1998,7 @@ commands.add_command('compilatron_revenge', 'Compilatron can be angry. Parameter
 )
 
 --Command "/seed_history" shows all seeds since server has started 
-commands.add_command('seed_history', 'Show historic of seeds. No parameter',
+commands.add_command('seed-history', 'Show historic of seeds. No parameter',
 	function(cmd)
 		local player = game.players[cmd.player_index]
 		if not player.admin then

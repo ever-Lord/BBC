@@ -44,7 +44,7 @@ local function force_map_reset(reason)
 			--EVL WE ADD TO EXPORT DATAS THAT A FORCE-MAP-RESET HAS BEEN CALLED (before or during match ... this match should be cancelled?)
 			table.insert(global.force_map_reset_export_reason, msg_gui .. " (at tick="..game.tick..")")
 			--EVL Clear/Destroy all inventories (on_pre_player_left & on force-map-reset & on starting sequence // but not needed on reroll)
-			show_inventory.destroy_all_inventories()
+			show_inventory.close_all_screens()
         end
     end
 end
@@ -79,9 +79,9 @@ local function starting_sequence()
 			--EVL WE ADD TO EXPORT DATAS THAT A FORCE-MAP-RESET HAS BEEN CALLED (before or during match ... this match should be cancelled?)
 			table.insert(global.force_map_reset_export_reason, msg_gui .. " (at tick="..game.tick..")")
 			--EVL Clear/Destroy all inventories (on_pre_player_left & on force-map-reset & on starting sequence // but not needed on reroll)
-			show_inventory.destroy_all_inventories()			
+			show_inventory.close_all_screens()			
         end
     end
 end
-commands.add_command('force-map-reset','/force-map-reset <reason> (should never be used)',function(cmd) force_map_reset(cmd.parameter); end)
+commands.add_command('force-map-reset','/force-map-reset <<reason>> (should never be used)',function(cmd) force_map_reset(cmd.parameter) end)--; end)--DEBUG--
 commands.add_command('starting-sequence','/starting-sequence (initiate official match)',function(cmd) starting_sequence(); end)

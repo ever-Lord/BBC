@@ -844,12 +844,12 @@ local function add_patch_in_spawn_if_needed(surface,name,need_patch,target_qtity
 			local _index=math.random(1,#_chunk_very_empty)
 			_chosen_chunk=_chunk_very_empty[_index]
 			table.remove(_chunk_very_empty,_index)
-			_msg=_msg.."[color=#FF0000]{very}[/color]"
+			_msg=_msg.."[color=#FFFF00]{very}[/color]"
 		elseif #_chunk_almost_empty>=1 then   -- we have a not-so-good candidate
 			local _index=math.random(1,#_chunk_almost_empty)
 			_chosen_chunk=_chunk_almost_empty[_index]
 			table.remove(_chunk_almost_empty,_index)
-			_msg=_msg.."[color=#FF0000]{almost}[/color]"
+			_msg=_msg.."[color=#FF8800]{almost}[/color]"
 		else 
 			_chosen_chunk={math.random(1,9)-5,math.random(1,5)-6}	--TODO-- look closer to this, we may have a candidate (if we ever come here)		
 			_msg=_msg.."[color=#FF0000]{forced}[/color]"
@@ -1159,7 +1159,45 @@ function Public.check_ore_in_main(surface)
 	
 	display_ores("after adding new patches")-- (if global.bb_debug)
 	--display_chunks("after adding new patch")
-	
+	--[[
+	if global.taming then
+		local _msg="Taming chunk = "
+		local _chosen_chunk={}
+		if #_chunk_very_empty>=1 then --We have a good candidate
+			local _index=math.random(1,#_chunk_very_empty)
+			_chosen_chunk=_chunk_very_empty[_index]
+			table.remove(_chunk_very_empty,_index)
+			_msg=_msg.."[color=#FFFF00]{very}[/color]"
+		elseif #_chunk_almost_empty>=1 then   -- we have a not-so-good candidate
+			local _index=math.random(1,#_chunk_almost_empty)
+			_chosen_chunk=_chunk_almost_empty[_index]
+			table.remove(_chunk_almost_empty,_index)
+			_msg=_msg.."[color=#FF8800]{almost}[/color]"
+		else 
+			_chosen_chunk={math.random(1,9)-5,math.random(1,5)-6}	--TODO-- look closer to this, we may have a candidate (if we ever come here)		
+			_msg=_msg.."[color=#FF0000]{forced}[/color]"
+		end	
+		--find_units{area, force, condition}→ array[LuaEntity]
+		--find_entity(entity, position)→ LuaEntityFind a specific entity at a specific position.
+		--find_enemy_units(center, radius, force)→ array[LuaEntity] Find enemy units (entities with type "unit") of a given force within an area.
+		--find_entities(area)→ array[LuaEntity]	Find entities in a given area.
+		--find_entities_filtered{area, position, radius, name, type, ghost_name, ghost_type, direction, collision_mask, force, to_be_deconstructed, to_be_upgraded, limit, invert} → array[LuaEntity]
+
+		local _size = math.random(math.floor(_chunk_size/2),_chunk_size-2)
+		local _gate = math.floor(_size/2)
+		_msg=_msg.." at (".._chosen_chunk[1]..",".._chosen_chunk[2]..") size=".._size
+		for i=1,_size,1 do
+			local _name="stone-wall"
+			if i==_gate-1 or i==_gate or i==_gate+1 then _name="gate" end
+			
+			surface.create_entity({name = _name, position = {x=_chosen_chunk[1]+i, y=_chosen_chunk[2]}, force = "north"})		
+			surface.create_entity({name = _name, position = {x=_chosen_chunk[1], y=_chosen_chunk[2]+i}, force = "north"})		
+			surface.create_entity({name = _name, position = {x=_chosen_chunk[1]+i, y=_chosen_chunk[2]+size}, force = "north"})		
+			surface.create_entity({name = _name, position = {x=_chosen_chunk[1]+size, y=_chosen_chunk[2]+i}, force = "north"})		
+		end
+		if global.taming_debug then game.print(_msg,{r = 250, g = 150, b = 150}) end
+	end
+	]]--
 end
 
 --EVL Clear ore in main, not used in BBChampions (used in freeBB)
