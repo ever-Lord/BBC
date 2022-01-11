@@ -129,7 +129,7 @@ local function add_science_logs(player, element)
 	local dropdown_evofilter = t_filter.add { name = "dropdown-evofilter", type = "drop-down", items = evofilter_list, selected_index = global.dropdown_users_choice_evo_filter[player.name] }
 	--EVL Add export button for simulation mode (ie pattern-training)
 	t_filter.add({ type = "label", caption = "     "})
-	if player.name=="everLord" pr player.name=="Firerazer" then --reserved button to export sendings patterns
+	if player.name=="everLord" or player.name=="Firerazer" then --reserved button to export sendings patterns
 		local button = t_filter.add({
 				type = "button",
 				name = "science_logs_export_sendings",
