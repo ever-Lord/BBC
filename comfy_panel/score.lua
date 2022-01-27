@@ -28,18 +28,31 @@ function Public.get_table()
     return this
 end
 
+--EVL Init score_table for player in force
 function Public.init_player_table(player)
 	if not player then	return	end
+	local _force=player.force.name
 	--EVL we dont need score for spectators or god mode, only north and south
-	if player.force.name~="north" and player.force.name~="south" then return end
+	if _force~="north" and _force~="south" then return end
 	if not this.score_table[player.force.name] then
 		this.score_table[player.force.name] = {}
 	end
 	if not this.score_table[player.force.name].players then
 		this.score_table[player.force.name].players = {}
 	end
+	--EVL Remove score/stats if player has been init with other force (already done in undo_init_player_table)
+	if not global.match_running then
+		if _force=="north" and this.score_table["south"] and this.score_table["south"].players[player.name] then
+			this.score_table["south"].players[player.name]=nil
+			if global.bb_debug_gui then game.print("DEBUGUI: remove score_table for "..player.name.." (south) in init_player_table.") end
+		elseif _force=="south" and this.score_table["north"] and this.score_table["north"].players[player.name] then
+			this.score_table["north"].players[player.name]=nil
+			if global.bb_debug_gui then game.print("DEBUGUI: remove score_table for "..player.name.." (north) in init_player_table.") end
+		end
+	end
+	--EVL good to go !
 	if not this.score_table[player.force.name].players[player.name] then
-		if global.bb_debug_gui then game.print("Debug: init score_table for "..player.name) end --EVL
+		if global.bb_debug_gui then game.print("DEBUGUI: init score_table for "..player.name) end
 		this.score_table[player.force.name].players[player.name] = {
 			built_entities = 0,
 			built_walls = 0, --EVL more stats !
@@ -69,6 +82,19 @@ function Public.init_player_table(player)
 			killed_own_entities= 0 --EVL track the # of own entities killed (dont let biters inside)
 		}
 		return
+	end
+end
+--EVL remove score table if game has not started (when player moved from side to spec)
+function Public.undo_init_player_table(player)
+	if not global.match_running then
+		if this.score_table["north"] and this.score_table["north"].players[player.name] then
+			this.score_table["north"].players[player.name]=nil
+			if global.bb_debug_gui then game.print("DEBUGUI: remove score_table for "..player.name.." (north) in undo_init_player_table.") end
+		end
+		if this.score_table["south"] and this.score_table["south"].players[player.name] then
+			this.score_table["south"].players[player.name]=nil
+			if global.bb_debug_gui then game.print("DEBUGUI: remove score_table for "..player.name.." (south) in undo_init_player_table.") end
+		end
 	end
 end
 
@@ -294,7 +320,7 @@ local show_score = (function(player, frame)
 		end -- foreach column	
 
 		--SECOND PART: SCORE ENTRIES BY PLAYER
-		for _, entry in pairs(score_list) do
+		for _, entry in pairs(score_list) do --Managers dont show here unless they have played
 			local p = game.players[entry.name]
 			local special_color = {
 				r = p.color.r * 0.6 + 0.4,

@@ -120,8 +120,9 @@ local function set_difficulty()
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.open_blueprint_library_gui, false)
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.import_blueprint_string, false)
 		else
-			game.print(">>>>> BBC ALERT : Vote difficulty is not available, switching to Biter league by default...", {r=0.98, g=0.11, b=0.11})
+			game.print(">>>>> BBC ALERT : Vote difficulty value is not registered, switching to Biter league by default...", {r=0.98, g=0.11, b=0.11})
 			game.play_sound{path = global.sound_error, volume_modifier = 0.8}
+			new_index=1
 			message_blueprint="[color=#FF9740](Blue print library opened)[/color]"
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.open_blueprint_library_gui,true)
 			game.permissions.get_group('Default').set_allows_action(defines.input_action.import_blueprint_string, true)

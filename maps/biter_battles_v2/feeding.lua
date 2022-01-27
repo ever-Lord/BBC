@@ -12,7 +12,8 @@ local maximum_modifier = 250
 local player_amount_for_maximum_threat_gain = 20
 
 function get_instant_threat_player_count_modifier()
-	local current_player_count = #game.forces.north.connected_players + #game.forces.south.connected_players
+	local current_player_count = Functions.get_nb_players("north") + Functions.get_nb_players("south")
+	if global.bb_debug_gui then game.print("Debug: counting real nb of players : north= "..Functions.get_nb_players("north").."    south="..Functions.get_nb_players("south").." in get_instant_threat_player_count_modifier().",{r = 100, g = 150, b = 100}) end
 	local gain_per_player = (maximum_modifier - minimum_modifier) / player_amount_for_maximum_threat_gain
 	local m = minimum_modifier + gain_per_player * current_player_count
 	if m > maximum_modifier then m = maximum_modifier end
@@ -49,8 +50,9 @@ local function get_enemy_team_of(team)
 end
 
 local function print_feeding_msg(player, food, flask_amount)
-	if not get_enemy_team_of(player.force.name) then return end
 	
+	if not get_enemy_team_of(player.force.name) then return end
+	local _force=player.force.name
 	local n = bb_config.north_side_team_name
 	local s = bb_config.south_side_team_name
 	if global.tm_custom_name["north"] then n = global.tm_custom_name["north"] end
@@ -73,10 +75,18 @@ local function print_feeding_msg(player, food, flask_amount)
 		if global.training_mode then
 			target_team_text = "your own"
 		end
-		if flask_amount == 1 then
-			player.print("You fed one flask of " .. formatted_food .. " to " .. target_team_text .. " team's biters.", {r = 0.98, g = 0.66, b = 0.22})
+		if flask_amount == 1 then --EVL Print to force instead of player (so manager can see it)
+			if global.managers_in_team then
+				game.forces[_force].print("You fed one flask of " .. formatted_food .. " to " .. target_team_text .. " team's biters.", {r = 0.98, g = 0.66, b = 0.22})
+			else
+				player.print("You fed one flask of " .. formatted_food .. " to " .. target_team_text .. " team's biters.", {r = 0.98, g = 0.66, b = 0.22})
+			end
 		else
-			player.print("You fed " .. formatted_amount .. " flasks of " .. formatted_food .. " to " .. target_team_text .. " team's biters.", {r = 0.98, g = 0.66, b = 0.22})
+			if global.managers_in_team then
+				game.forces[_force].print("You fed " .. formatted_amount .. " flasks of " .. formatted_food .. " to " .. target_team_text .. " team's biters.", {r = 0.98, g = 0.66, b = 0.22})
+			else
+				player.print("You fed " .. formatted_amount .. " flasks of " .. formatted_food .. " to " .. target_team_text .. " team's biters.", {r = 0.98, g = 0.66, b = 0.22})
+			end
 		end				
 	end	
 end
@@ -203,11 +213,8 @@ end
 function set_evo_and_threat(flask_amount, food, biter_force_name)
 	local decimals = 9
 	local math_round = math.round
-	
 	local instant_threat_player_count_modifier = get_instant_threat_player_count_modifier()
-	
 	local food_value = food_values[food].value * global.difficulty_vote_value
-
 	for _ = 1, flask_amount, 1 do
 		---SET EVOLUTION
 		local e2 = (game.forces[biter_force_name].evolution_factor * 100) + 1
@@ -220,16 +227,13 @@ function set_evo_and_threat(flask_amount, food, biter_force_name)
 		else
 			game.forces[biter_force_name].evolution_factor = 1
 		end
-		
 		--ADD INSTANT THREAT
 		local diminishing_modifier = 1 / (0.2 + (e2 * 0.016))
 		global.bb_threat[biter_force_name] = global.bb_threat[biter_force_name] + (food_value * instant_threat_player_count_modifier * diminishing_modifier)
 		global.bb_threat[biter_force_name] = math_round(global.bb_threat[biter_force_name], decimals)		
 	end
-	
 	--SET THREAT INCOME
 	global.bb_threat_income[biter_force_name] = global.bb_evolution[biter_force_name] * 25
-	
 	set_biter_endgame_modifiers(game.forces[biter_force_name])
 end
 
@@ -287,7 +291,7 @@ local function feed_biters(player, food, qtity, mode)
 	--EVL Noisy boy :)
 	game.forces[player.force.name].play_sound{path = "utility/list_box_click", volume_modifier = 1}
 	game.forces.spectator.play_sound{path = "utility/list_box_click", volume_modifier = 1}
-	if game.forces["spec_god"] then game.forces.spectator.play_sound{path = "utility/list_box_click", volume_modifier = 1} end
+	if game.forces["spec_god"] then game.forces.spec_god.play_sound{path = "utility/list_box_click", volume_modifier = 1} end
 	if flask_amount>20 then 
 		game.forces[enemy_force_name].play_sound{path = "utility/undo", volume_modifier = 0.8} 
 	end

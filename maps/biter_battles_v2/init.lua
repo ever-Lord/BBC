@@ -14,12 +14,11 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.pollution.enabled = false
 	game.map_settings.enemy_expansion.enabled = false
 
-	global.version="v0.961" --CODING--
+	global.version="v0.97" --CODING--
 	global.bb_debug = false --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
 	global.bb_biters_debug = false --EVL ADD MUCH VERBOSE TO BITERS AI
 	global.bb_biters_debug2 = false --EVL ADD EVEN MUCH VERBOSE TO BITERS AI
 	global.bb_debug_gui=false --EVL working on GUI inventory
-	
 	-- EVL change for map restart (/force-map-reset)
 	local _first_init=true --EVL for disabling nauvis (below)
 	if not game.forces["north"] then 
@@ -36,13 +35,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	if not game.forces["north_biters"] then game.create_force("north_biters") end
 	if not game.forces["south_biters"] then game.create_force("south_biters") end
 	if not game.forces["spectator"] then game.create_force("spectator") end
-
-
 	game.forces.spectator.research_all_technologies()
-	--EVL since biter league is set by default, we authorize blueprint library and import
-	game.permissions.get_group("Default").set_allows_action(defines.input_action.open_blueprint_library_gui, true)
-	game.permissions.get_group("Default").set_allows_action(defines.input_action.import_blueprint_string, true)
-
 	local p = game.permissions.create_group("spectator")
 	for action_name, _ in pairs(defines.input_action) do
 		p.set_allows_action(defines.input_action[action_name], false)
@@ -75,17 +68,12 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 		defines.input_action.write_to_console,
 	}
 	for _, d in pairs(defs) do p.set_allows_action(d, true) end
-
 	global.gui_refresh_delay = 0
 	global.game_lobby_active = true
-	
-	global.bb_settings = {
-		--TEAM SETTINGS--
+	global.bb_settings = {--TEAM SETTINGS--
 		["team_balancing"] = true,	--EVL dont care	--Should players only be able to join a team that has less or equal members than the opposing team?
 		["only_admins_vote"] = true, --EVL YES			--Are only admins able to vote on the global difficulty? --EVL YES
 	}
-
-	
 	--Disable Nauvis during first init only
 	if _first_init then
 		local surface = game.surfaces[1]
@@ -99,7 +87,6 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	end
 	global.tournament_mode = true -- EVL (none)
 	global.training_mode  = false -- EVL (none)
-	
 	if global.freeze_players then --We are already frozen
 		global.freezed_time=0 --EVL (none)
 		--EVL we save tick when players started to be frozen (none)
@@ -113,9 +100,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 		team_manager.freeze_players() -- EVL (none) do we care about biters ?
 		if global.bb_debug then game.print("Debug : Initial setup, players are set to frozen",{r = 00, g = 175, b = 00}) end
 	end	
-	
 end
-
 --Terrain Playground Surface
 function Public.playground_surface()
 	local map_gen_settings = {}
@@ -152,10 +137,15 @@ function Public.playground_surface()
 		["enemy-base"] = {frequency = 0, size = 0, richness = 0}
 	}
 	local surface = game.create_surface(global.bb_surface_name, map_gen_settings)
+	global.dbg=global.dbg.."\nsurfcreated | "
 	surface.request_to_generate_chunks({x = 0, y = -256}, 7)
+	global.dbg=global.dbg.."surfrequested | "
 	surface.force_generate_chunk_requests()
+	global.dbg=global.dbg.."surfgenerated | "
 	surface.min_brightness  = 0.15
+	global.dbg=global.dbg.."surfbrightness | "
 	surface.brightness_visual_weights = { -0.5, -0.4, -0.2 }
+	global.dbg=global.dbg.."surfvisual | \n"
 end
 
 function Public.draw_structures()
@@ -200,7 +190,7 @@ function Public.tables()
 	global.bb_threat = {}
 	global.bb_threat_income = {}
 	global.chosen_team = {} --Stores team of players (not used in BBChampions, see freeBB)
-	global.disconnected = { --EVL Players disconnected (to be use in team_manager)
+	global.disconnected = { --EVL Store players in team that are disconnected (to be use in team_manager, to get back their inventory)
 		--["player"]="force"
 	}
 	global.disco_chests={["north"]={},["south"]={}} --EVL Chests used to get back inv of disco players and corpses expired
@@ -211,12 +201,25 @@ function Public.tables()
 	global.force_area = {}
 	global.map_pregen_message_counter = {} --EVL never used ?
 	global.rocket_silo = {} --EVL silo entity + logo_team Id
+	
+	--EVL New mode : managers will be put in teams (so they dont get infos about queuing researches from other side)
+	global.managers_in_team=true --CODING--
+	global.spy_sequence=1 --EVL we spy in 6 steps (force then spawn,players,radars)
+	global.spy_param={ --EVL Table of steps
+		[1]={"north","spawn"},
+		[2]={"south","spawn"},
+		[3]={"north","players"},
+		[4]={"south","players"},
+		[5]={"north","radars"},
+		[6]={"south","radars"}
+	}
+	
 	--EVL Team_manager.lua MANAGERS (spy/coach/controller/inspector etc.)
 	global.manager_table = {  --Store name of managers
 		["north"]=nil,
 		["south"]=nil
 	}
-	--global.manager_speaker = {} --EVL Speakers on manager spots
+	--EVL global.manager_speaker = {} --EVL Speakers on manager spots
 	global.manager_speaker = { -- EVL lolilol (see main.lua)
 		["north_text"]=0,
 		["north_orientation"]=0,
@@ -310,7 +313,7 @@ function Public.tables()
 		["north"]={},
 		["south"]={}
 	}
-	global.way_points_max=15 -- limit to the number of way_points stored
+	global.way_points_max=20 -- limit to the number of way_points stored
 	global.way_points_max_reached=false  --if true, will be announced in stats.json
 	
 	--AI.lua GROUPS OF UNITS : TYPE IS STORED THEN REPLICATED
@@ -350,10 +353,16 @@ function Public.tables()
 	--global.match_countdown = 1 --CODING--
 	
 	global.match_running = false  --EVL determine if this is first unfreeze (start match) or nexts (pause/unpause)
-
+	global.cant_unpause=true --EVL Avoid double pause click (second one would engage unpause)
+	
 	global.min_players=2 --(2) EVL Game will not start if less than this player on one side (unless training mode)
 	global.max_players=3 --(3) EVL Send alerts if too many players
 	global.viewing_inventories = {} --EVL Store who's viewing who and where (show_inventory_bbc.lua)
+	global.viewing_technology_gui = { -- Number of spectators spying technology_gui (to remove from total players in get_instant_threat_player_count_modifier (feeding.lua)
+		["north"]=0,
+		["south"]=0
+	}
+	global.viewing_technology_gui_players = {}
 	global.afk_players = {} --EVL track afk players ie global.afk_players[player.name]=true/nil
 	global.corpses_force = {} --Store force.name from died players (multiple corpses wont matter unless a player dies at least one time in both sides --> unlikely to happen)
 
@@ -400,6 +409,7 @@ function Public.tables()
 	}
 	global.count_in_init=0 --EVL (debug) global variable to use in init sequence then use command /c game.print("init counter =  "..global.count_in_init)
 	global.dbg="" -- dbg=debug variable to use in initsequence (since game.print is not available) use : global.dbg=global.dbg..""
+	global.terrain="" -- dbg=debug variable to use in initsequence (since game.print is not available) use : global.dbg=global.dbg..""
 	global.vartmp="gen "--nil --EVL (debug)
 	
 	global.sound_intro	="utility/crafting_finished"-- ie: game.play_sound{path = global.sound_intro, volume_modifier = 0.8}
@@ -542,7 +552,9 @@ function Public.forces()
 	f.set_friend("north", true)
 	f.set_friend("south", true)
 	f.set_cease_fire("player", true)
-	f.share_chart = true
+	--f.share_chart = true
+	f.share_chart = false --Forces n/s dont need to see spectator view (very marginal)
+	
 
 	local f = game.forces["player"]
 	f.set_spawn_position({0,0},surface)

@@ -27,7 +27,7 @@ require "modules.spawners_contain_biters" -- is this used ?
 
 --require 'spectator_zoom' -- EVL Zoom for spectators -> Moved to GUI.LEFT
 
---EVL A BEAUTIFUL COUNTDOWN (WAS IN ASCII ART) (limited to 9 -> 1)
+--EVL A BEAUTIFUL COUNTDOWN (WAS IN ASCII ART) (game.print 10+ then images from 9 -> 1)
 local function show_countdown(_second)
 	if not _second or _second<0 then return end
 	if _second==0 then
@@ -52,7 +52,7 @@ local function show_countdown(_second)
 		local _sprite="file/png/".._second..".png" 
 		player.gui.center.add{name = "bbc_cdf", type = "sprite", sprite = _sprite} -- EVL cdf for countdown_frame
 	end	
-	game.play_sound{path = "utility/list_box_click", volume_modifier = math.min(1,2/_second)}  --crafting_finished ? inventory_move? smart_pipette? blueprint_selection_ended?
+	game.play_sound{path = "utility/list_box_click", volume_modifier = math.min(1,2/_second)}  --other sounds crafting_finished ? inventory_move? smart_pipette? blueprint_selection_ended?
 end
 --EVL SOME IMAGES TO INTRODUCE WHEN PLAYER JOINS
 local function show_anim_player(player,countdown)
@@ -189,21 +189,19 @@ local function set_stats_team()				--fill up string "_guitl & _guitm & _guitr" a
 			force_name = "south"
 			total_science_of_force  = global.science_logs_total_south
 		end
-		_guit=_guit.."[font=default-bold][color=#FF9740]>>"..string.upper(team_name).." STATS>>[/color][/font]  "
-		_guit=_guit.."[font=default-small][color=#999999] ("..force_name..":"..#game.forces[force_name].connected_players.." players)[/color][/font] \n"
-		--TODO add specs that have played / or that are in the team (need info from website or lobby)
-
 		local team_evo = math.floor(1000 * global.bb_evolution[biter_name]) / 10 --BUG in exports 2,3 -> 2,2999999999999999 (1+16 digits)
 		local team_threat = math.floor(global.bb_threat[biter_name])
-		_guit=_guit.."     EVO="..team_evo.." | THREAT="..team_threat..""
-		_guit=_guit.." | ROCKETS="..game.forces[force_name].rockets_launched.."\n"
 		_json_team = { --THE JSON FORCE/TEAM STATS (topleft) side/force is not know yet
 			["FORCE"]=force_name,
 			["NAME"]=team_name,
-			["CONNECTED"]=#game.forces[force_name].connected_players,
+			["CONNECTED"]=Functions.get_nb_players(force_name),
+			["MANAGER"]="-none-", --NEW (ANB)--
 			["EVO"]=team_evo,
 			["THREAT"]=team_threat,
 			["ROCKETS"]=game.forces[force_name].rockets_launched,
+			["BITER_WALLS"]=global.biters_kills[biter_name]["walls"], --NEW (ANB)--
+			["BITER_FURNACES"]=global.biters_kills[biter_name]["furnaces"], --NEW (ANB)--
+			["BITER_ENTITIES"]=global.biters_kills[biter_name]["entities"], --NEW (ANB)--
 			["BITERS"]={["small-biter"]=0,["medium-biter"]=0,["big-biter"]=0,["behemoth-biter"]=0},
 			["WORMS"]={["small-worm-turret"]=0,["medium-worm-turret"]=0,["big-worm-turret"]=0}, --remove behemoth ,'behemoth-worm-turret'},
 			["SCRAPS"]=0,
@@ -215,8 +213,33 @@ local function set_stats_team()				--fill up string "_guitl & _guitm & _guitr" a
 			["BUILT"]=0,
 			["WALLS"]=0,
 			["MINED"]=0
-			
 		}
+		if global.manager_table[force_name] and game.players[global.manager_table[force_name]] then  --EVL in this mode manager are set to team
+			_json_team["MANAGER"]=global.manager_table[force_name]
+		end
+		local get_score = Score.get_table().score_table
+		if not get_score then 
+			if global.bb_debug then game.print(">>>>> Unable to get score table.", {r = 0.88, g = 0.22, b = 0.22}) end
+			return
+		end
+		if not get_score[force_name] then 
+			if global.bb_debug then game.print(">>>>> Unable to get score table for "..force_name..".", {r = 0.88, g = 0.22, b = 0.22}) end
+		--else
+		--	local _score = get_score[force_name]
+		--	if _score and _score.players and _score.players[_json_team["MANAGER"]] then --has he played ?
+		--		--game.print("Yes, Keep value for ".._json_team["MANAGER"])
+		--		--Yes, Keep value
+		--	else
+		--		--game.print("No, Remove him for ".._json_team["MANAGER"])
+		--		--No, Remove him
+		--		_json_team["CONNECTED"]=_json_team["CONNECTED"]-1
+		--	end
+		end
+		_guit=_guit.."[font=default-bold][color=#FF9740]>>"..string.upper(_json_team["NAME"]).." STATS[/color][/font]\n"
+		_guit=_guit.."     ".._json_team["CONNECTED"].." players with ".._json_team["MANAGER"].." as manager.\n"
+		_guit=_guit.."     EVO=".._json_team["EVO"].." | THREAT=".._json_team["THREAT"].." | ROCKETS=".._json_team["ROCKETS"].."\n"
+
+		
 		--BITERS WITH DETAILS --EVL DOING SOME FIORITURES
 		local _b = 0 
 		local _b_details = {["small-biter"]=0,["medium-biter"]=0,["big-biter"]=0,["behemoth-biter"]=0}
@@ -233,9 +256,9 @@ local function set_stats_team()				--fill up string "_guitl & _guitm & _guitr" a
 		end
 		_guit=_guit.."     [color=#FF9999]BITERS: ".._b
 		--walls/furnaces/entities killed by biters
-		_guit=_guit.."  | [item=stone-wall] "..global.biters_kills[biter_name]["walls"]
-		_guit=_guit.."  | [item=stone-furnace] "..global.biters_kills[biter_name]["furnaces"]
-		_guit=_guit.."  | [item=deconstruction-planner] "..global.biters_kills[biter_name]["entities"]
+		_guit=_guit.."  | [item=stone-wall] ".._json_team["BITER_WALLS"] --NEW (ANB)
+		_guit=_guit.."  | [item=stone-furnace] ".._json_team["BITER_FURNACES"] --NEW (ANB)--
+		_guit=_guit.."  | [item=deconstruction-planner] ".._json_team["BITER_ENTITIES"] --NEW (ANB)--
 
 		--formatting and adding details if exist
 		if _b > 0 then 
@@ -388,13 +411,39 @@ local function set_stats_players() 			--fill up tables "json_players_north & jso
 		local _spawners = 0
 		local _worms = 0
 		
+		
 
 		-- IF PLAYER WAS IN A TEAM AND BUILT BEFORE MOVED TO SPEC
 		if (_force=="spectator" or _force=="spec_god") then
-			if _score["north"] and _score["north"].players and _score["north"].players[_name] then _force="north" end
-			if _score["south"] and _score["south"].players and _score["south"].players[_name] then _force="south" end
+			if _score["north"] and _score["north"].players and _score["north"].players[_name] then 
+				_force="north"
+				if global.bb_debug then game.print(">>>>> Player ".._name.." is in spec and HAS played in north -> Keep.", {r = 0.88, g = 0.22, b = 0.22}) end
+			end
+			if _score["south"] and _score["south"].players and _score["south"].players[_name] then 
+				_force="south" 
+				if global.bb_debug then game.print(">>>>> Player ".._name.." is in spec and HAS played in south -> Keep.", {r = 0.88, g = 0.22, b = 0.22}) end
+			end
 		end
-
+		--EVL in this mode manager are set to team, DONT ADD HIM TO STATS (UNLESS HE PLAYED)
+		if global.managers_in_team then
+			if _force=="north" and global.manager_table["north"] and game.players[global.manager_table["north"]] and _name==game.players[global.manager_table["north"]].name then --We have a manager, has he played ?
+				local north_manager_name=global.manager_table["north"]
+				if _score["north"] and _score["north"].players and _score["north"].players[north_manager_name] then 
+					--_force="north" 
+				else
+					_force="nil" --Dont add him to stats
+				end
+			elseif _force=="south" and global.manager_table["south"] and game.players[global.manager_table["south"]] and _name==game.players[global.manager_table["south"]].name then --We have a manager, has he played ?
+				local south_manager_name=global.manager_table["south"]
+				if _score["south"] and _score["south"].players and _score["south"].players[south_manager_name] then 
+					--_force="south"
+				else
+					_force="nil" --Dont add him to stats
+				end
+			--else
+				--Not a manager
+			end
+		end
 		-- GRAB DATAS IF WE HAVE SOME
 		if (_force=="north" or _force=="south") then
 			if _score[_force].players and _score[_force].players[_name] then 
@@ -428,7 +477,7 @@ local function set_stats_players() 			--fill up tables "json_players_north & jso
 				_worms = score_player.kills_worm
 			end
 		end
-		--
+
 		local _json_player={
 			["NAME"] =_name,
 			["ADMIN"] = player.admin,
@@ -441,8 +490,8 @@ local function set_stats_players() 			--fill up tables "json_players_north & jso
 			
 			["TURRETS"] = _turrets,			
 			["WALLS"] = _walls,
-			["KILLED_WALLS"] = _killed_walls,
-			["DAMAGED_WALLS"] = _damaged_walls,
+			["KILLED_WALLS"] = _killed_walls, --NEW (ANB)--
+			["DAMAGED_WALLS"] = _damaged_walls, --NEW (ANB)--
 			["PATHS"] = _paths,
 			
 			--["CHESTS"] = _chests,
@@ -465,24 +514,25 @@ local function set_stats_players() 			--fill up tables "json_players_north & jso
 			["SCIENCE"]={["automation"]=0,["logistic"]=0,["military"]=0,["chemical"]=0,["production"]=0,["utility"]=0,["space"]=0}
 		}
 		--SCIENCE
-		
-		if global.science_per_player[player.name] then
-			for _science_nb = 1, 7 do 
-				local _this_science=0
-				if global.science_per_player[player.name][_science_nb] then _this_science = global.science_per_player[player.name][_science_nb] end
-				if _this_science > 0 then 
-					_json_player["SCIENCE"][Tables.food_long_and_short[_science_nb].short_name]=_this_science
+		if (_force=="north" or _force=="south") then
+			if global.science_per_player and global.science_per_player[_name] then
+				for _science_nb = 1, 7 do 
+					local _this_science=0
+					if global.science_per_player[player.name][_science_nb] then _this_science = global.science_per_player[player.name][_science_nb] end
+					if _this_science > 0 then 
+						_json_player["SCIENCE"][Tables.food_long_and_short[_science_nb].short_name]=_this_science
+					end
 				end
+			--else
+				--No science
 			end
 		end
-		
 		--FILL to the correct side
 		if _force=="north" then 
 			table.insert(_json_players_north,_json_player)
 		elseif _force=="south" then 
 			table.insert(_json_players_south,_json_player)
 		end --if force = spec or god, we forget (they did nothing, if they had they would be switched to north (in prio) or south, see above
-		--still we could add the fourth player of the team, nothing done yet (waiting for infos from the lobby or the website)
 	end		
 	--OTHER DATAS
 end
@@ -541,7 +591,6 @@ end
 
 --DRAWING EXPORT FRAME (Global / North / South)
 local function draw_results(player)
-
 	if player.gui.center["bb_export_frame"] then player.gui.center["bb_export_frame"].destroy() end
 	if player.gui.center["team_has_won"] then player.gui.center["team_has_won"].destroy() end
 	local frame = player.gui.center.add {type = "frame", name = "bb_export_frame", direction = "vertical"}
@@ -605,7 +654,6 @@ local function draw_results(player)
 	_tp.vertical_centering=false
 	
 	-- TITLE LINE
-	
 	local _col_name="\n[font=default-bold][color=#5555FF]NORTH[/color][/font]\n"
 	local _col_death="[font=default-small][color=#FF9999]Death[/color][/font]\n\n"
 	local _col_score="[font=default-small][color=#99FF99]  Score[/color][/font]\n\n"
@@ -633,11 +681,8 @@ local function draw_results(player)
 	local _col_science="[font=default-bold][color=#FF9740]Science[/color][/font]\n\n"
 	
 	--NORTH
-
-	
 	if table_size(_json_players_north)>0 then 
 		for _index,_player in pairs(_json_players_north) do
-			--game.print("index=".._index)
 			--SPECIAL CASE FOR NAME (we want to see if admin)
 			local _p = game.players[_player["NAME"]]
 			local r = math.floor((_p.color.r * 0.6 + 0.4)*255)
@@ -676,7 +721,6 @@ local function draw_results(player)
 			_col_behemoth=_col_behemoth.."[color=#CCCCCC]".._player["BEHEMOTHS"].."[/color]\n"	--NO KILOS
 			_col_spawner=_col_spawner.._player["SPAWNERS"].."\n"	--NO KILOS
 			_col_worm=_col_worm.."[color=#CCCCCC]".._player["WORMS"].."[/color]\n"	--NO KILOS
-
 			--SPECIAL CASE FOR SCIENCE
 			local _science=""
 			local _has_science=false
@@ -696,7 +740,6 @@ local function draw_results(player)
 			
 		end
 	end
-			
 	--SOUTH
 	_col_name=_col_name.."[font=default-bold][color=#CC2222]SOUTH[/color][/font]\n"
 	_col_death=_col_death.."\n"
@@ -723,10 +766,8 @@ local function draw_results(player)
 	_col_spawner=_col_spawner.."\n"
 	_col_worm=_col_worm.."\n"
 	_col_science=_col_science.."\n"			
-
 	if table_size(_json_players_south)>0 then 
 		for _index,_player in pairs(_json_players_south) do
-			--game.print("index=".._index)
 			--SPECIAL CASE FOR NAME (we want to see if admin)
 			local _p = game.players[_player["NAME"]]
 			local r = math.floor((_p.color.r * 0.6 + 0.4)*255)
@@ -749,7 +790,7 @@ local function draw_results(player)
 			_col_turret=_col_turret.._player["TURRETS"].."\n" --NO KILOS
 			_col_wall=_col_wall.."[color=#CCCCCC]"..(Functions.inkilos(_player["WALLS"])).."[/color]\n"			
 			_col_killed_wall=_col_killed_wall.."[color=#FF5555]-"..(Functions.inkilos(_player["KILLED_WALLS"])).."[/color]\n"
-			_col_damaged_wall=_col_damaged_wall.."[color=#FF5555]("..(Functions.inkilos(_player["DAMAGED_WALLS"]))..")[/color]\n"
+			_col_damaged_wall=_col_damaged_wall.."[color=#AA1111]("..(Functions.inkilos(_player["DAMAGED_WALLS"]))..")[/color]\n"
 			_col_path=_col_path..(Functions.inkilos(_player["PATHS"])).."\n"
 
 			--THINGS
@@ -799,7 +840,6 @@ local function draw_results(player)
 	local _tp_score	= _tp.add {type = "label", caption = _col_score, name = "tp_score", tooltip="Kill score"}
 	_tp_score.style.single_line = false
 	_tp_score.style.horizontal_align="right"
-
 	local _tp_built	= _tp.add {type = "label", caption = _col_built, name = "tp_built", tooltip="Built entities minus walls"}
 	_tp_built.style.single_line = false
 	_tp_built.style.horizontal_align="right"
@@ -829,7 +869,7 @@ local function draw_results(player)
 	_tp_science.style.single_line = false
 
 	local _separation = _tp.add {type = "label", caption = "   "}
-	
+
 	local _tp_small	= _tp.add {type = "label", caption = _col_small, name = "tp_small", tooltip="Smalls"}
 	_tp_small.style.single_line = false
 	_tp_small.style.horizontal_align="right"	
@@ -850,7 +890,7 @@ local function draw_results(player)
 	_tp_worm.style.horizontal_align="right"	
 	
 	local _separation = _tp.add {type = "label", caption = "   "}
-	
+
 	local _tp_belt		= _tp.add {type = "label", caption = _col_belt, name = "tp_belt", tooltip="Belts\nUndergrounds\nSplitters"}
 	_tp_belt.style.single_line = false
 	_tp_belt.style.horizontal_align="right"	
@@ -875,7 +915,6 @@ local function draw_results(player)
 	local _tp_lab		= _tp.add {type = "label", caption = _col_lab, name = "tp_lab"}
 	_tp_lab.style.single_line = false
 	_tp_lab.style.horizontal_align="right"	
-
 	--BOTTOM
 	local lb = frame.add {type = "label", caption = _guib, name = "bb_export_bottom"}
 	lb.style.single_line = false
@@ -894,27 +933,21 @@ local function export_results(export_to_json)
 		global.export_stats_are_set=true --EVL MEH (TODO)
 		return
 	end
-
 	if not global.export_stats_are_set then
-
 		--Global
 		_guit = ""			--_GUI_TITLE FULL WIDTH
 		_guitl = ""		--_GUI_TOP_LEFT	(Global)
 		_json_global = {}	-- JSON GLOBAL STATS (+ force-map-reset)
-
 		--Teams
 		_guitm = ""		--_GUI_TOP_MID (North recap)
 		_json_north = {}	-- JSON NORTH RECAP (North recap)
 		_guitr = ""		--_GUI_TOP_RIGHT (South recap)
 		_json_south = {}	-- JSON SOUTH RECAP (South recap)
-
 		--Players
 		_json_players_north = {} --JSON WITH ALL NORTH PLAYERS (including spec that have played in north)
 		_json_players_south = {} --JSON WITH ALL SOUTH PLAYERS (including spec that have played in south)
-
 		--Bottom
 		_guib = ""			--_GUI_BOTTOM
-
 		if global.bb_debug then game.print(">>>>> Setting results and stats.", {r = 0.22, g = 0.22, b = 0.22}) end
 		set_stats_title()			--fill up string "_guit" and table "_json_global"
 		set_stats_team()			--fill up string "_guitl & _guitm & _guitr" and tables "_json_global & _json_north & _json_south"
@@ -925,9 +958,6 @@ local function export_results(export_to_json)
 	else 
 		if global.bb_debug then game.print(">>>>> Results and stats are already set.", {r = 0.22, g = 0.22, b = 0.22}) end
 	end
-	-- get_input_count(string) get_output_count(string) (prototype)
-	--game.print(serpent.block(game.forces["north"].kill_count_statistics.input_counts))
-	--game.print(serpent.block(game.forces["north"].kill_count_statistics.output_counts))
 
 	--EXPORTING INTO FRAME
 	for _, player in pairs(game.players) do
@@ -1045,6 +1075,7 @@ local function clear_corpses(cmd) -- EVL After command /clear-corpses radius
 	
 	else --probably spectator or spec-god -> no clear corpses
 		player.print('[ERROR] You are  are not in a team !', Color.fail)
+		player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		return
 	end
 	
@@ -1061,6 +1092,7 @@ local function clear_corpses(cmd) -- EVL After command /clear-corpses radius
 		end
 	end
 	player.print('Cleared 90% corpses.', Color.success)
+	player.play_sound{path = global.sound_success, volume_modifier = 0.8}
 end
 --EVL AUTO CLEAR CORPSES
 local function clear_corpses_auto(radius) -- EVL - Automatic clear corpses called every 15 min (see function on_tick)
@@ -1099,7 +1131,7 @@ local function on_player_joined_game(event)
 	Functions.create_map_intro_button(player)
 	Functions.create_bbc_packs_button(player)
 	Team_manager.draw_top_toggle_button(player)
-	Team_manager.draw_pause_toggle_button(player)
+	--Team_manager.draw_pause_toggle_button(player)-- moved to team_manager/starting game
 	
 	--EVL SET the countdown for intro animation
 	global.player_anim[player.name]=global.player_init_timer
@@ -1107,9 +1139,10 @@ local function on_player_joined_game(event)
 	local msg_freeze = "unfrozen" --EVL not so useful (think about player disconnected then join again)
 	if global.freeze_players then msg_freeze="frozen" end
 	player.print(">>>>> WELCOME TO BBChampions ! Tournament mode is [color=#88FF88]active[/color], Players are [color=#88FF88]"..msg_freeze.."[/color], Referee has to open [color=#FF9740]TEAM MANAGER[/color].",{r = 00, g = 225, b = 00}) --CODING--
+	player.print(">>>>> (01-27-22) v0.97 New management of vision and messages. Inventories ordered for specs. Colored island.",{r = 150, g = 150, b = 250})
 	player.print(">>>>> (12-19-21) v0.96 Managers, bots can fish, patterns updated, player/team inventories, sounds, team logo, many cosmetics.",{r = 150, g = 150, b = 250})
 	player.print(">>>>> (11-07-21) v0.95 New training gui (with single/auto sendings and new simulator of patterns) | No more red dots with spec-god mode.",{r = 150, g = 150, b = 250})
-	player.print(">>>>> (11-07-21) v0.94 New pause button (with chat & countdown) | Clear-corpses (biters, furnaces, walls) clears 90% instead of 100%.",{r = 150, g = 150, b = 250})
+	--player.print(">>>>> (11-07-21) v0.94 New pause button (with chat & countdown) | Clear-corpses (biters, furnaces, walls) clears 90% instead of 100%.",{r = 150, g = 150, b = 250})
 	--player.print(">>>>> (10-28-21) v0.93 Use <</c game.tick_paused=true>> to pause (while chat still active).",{r = 150, g = 150, b = 250})
 	--player.print(">>>>> (10-15-21) v0.92 Command : <</wavetrain>> to set number of waves attacking every 2 min (in training mode).",{r = 150, g = 150, b = 250})
 	--player.print(">>>>> (10-12-21) v0.91 Command : <</training>> to auto-send yourself science (in training mode).",{r = 150, g = 150, b = 250})
@@ -1125,7 +1158,6 @@ end
 
 local function on_player_died(event)
 	local player = game.players[event.player_index]
-	
 	--Little patch so we know which force was the player (to get back items from corpse when expires)
 	global.corpses_force[player.name]=player.force.name
 	
@@ -1134,6 +1166,21 @@ local function on_player_died(event)
 	if player.tag then
 		if player.tag ~= "" then tag = " " .. player.tag end
 	end
+	--EVL Remove corpse if player died on island
+	if event.cause and event.cause.name=="compilatron" then
+		player.print(global.compi["name"]..": "..Tables.compi["taunts"][math.random(1,#Tables.compi["taunts"])],{r = 20, g = 200, b = 20})
+		global.corpses_force[player.name]=nil
+		local corpses = player.surface.find_entities_filtered{type="character-corpse"}
+		if #corpses~=1 then
+			if global.bb_debug then game.print("Debug: in main/on_player_died() #corpses "..#corpses.." should be equal to 1, removing all corpses.", {r = 0.98, g = 0.66, b = 0.22}) end
+			for _,corpse in pairs(corpses) do corpse.destroy() end
+		else
+			local corpse=corpses[1]
+			corpse.destroy()
+		end
+		return
+	end
+	-- EVL send death message to spec_gods
 	if event.cause and game.forces["spec_god"] then
 		local cause = event.cause	
 		if not cause.name then
@@ -1154,11 +1201,10 @@ local function on_player_died(event)
 		if cause.type == "car" then
 			local driver = cause.get_driver()
 			if driver.player then				
-				game.forces.spec_god.print(player.name .. tag .. " was killed by " .. driver.player.name .. " " .. player.tag .. ".",player.color)
+				game.forces.spec_god.print(player.name .. tag .. " was killed by pilot " .. driver.player.name .. " " .. player.tag .. ".",player.color)
 				return								
 			end
 		end
-				
 		game.forces.spec_god.print(player.name .. tag .. " was killed by " .. cause.name .. ".",player.color)
 		return
 	end
@@ -1181,7 +1227,7 @@ local function on_character_corpse_expired(event)
 	local inventory=corpse.get_inventory(defines.inventory.character_corpse).get_contents()
 	if table_size(inventory)>0 then
 		if global.bb_debug_gui then
-			game.print("Debug: <<on_character_corpse_expired>> Translocating items from "..player.name.."'s corpse to "..force.." spawn.", player.color) --REMOVE--
+			game.print("Debug: <<on_character_corpse_expired>> Translocating items from "..player.name.."'s corpse to "..force.." spawn.", player.color)
 		end
 		corpse.destroy()
 		--global.corpses_force[player.name]=nil --NOPE (in case of multiple corpses of same player)
@@ -1189,7 +1235,7 @@ local function on_character_corpse_expired(event)
 		Terrain.fill_disconnected_chests(player.surface, force, inventory, "corpse's contents of "..player.name.." ("..force..")")
 	else
 		if global.bb_debug_gui then
-			game.print("Debug: <<on_character_corpse_expired>> of "..player.name.."("..force..") was raised but no inventory found in corpse. Skipping...", player.color) --REMOVE--
+			game.print("Debug: <<on_character_corpse_expired>> of "..player.name.."("..force..") was raised but no inventory found in corpse. Skipping...", player.color)
 		end
 	end
 end
@@ -1231,24 +1277,32 @@ end
 local function on_research_finished(event)
 	--Datas
 	local _research=event.research.name
-	if _research=="worker-robots-speed-1" or _research=="worker-robots-speed-2" then return end --EVL Exception
+	if global.pack_choosen=="pack_03" and (_research=="worker-robots-speed-1" or _research=="worker-robots-speed-2") then return end --EVL Exception
 	local _force=event.research.force.name
 	if _force=="spectator" or _force=="spec_god" then return end
 	--Team name
 	local _team="Team "..string.upper(_force)
-	if global.tm_custom_name[_force] then _team = global.tm_custom_name[_force] end
+	if global.tm_custom_name[_force] then _team = string.upper(global.tm_custom_name[_force]) end
 	--Color team
-	local _color="#8888FF"
-	if _force=="south" then _color="#FF5555" end
+	local _color="#9999FF"
+	if _force=="south" then _color="#FF7777" end
 	--Msg to send
 	local _msg=">>> [color=".._color.."]".._team.."[/color] has completed ".._research.."."
-
+	--Playsound and send msg for force (north or south)
+	game.forces[_force].play_sound{path = "utility/research_completed", volume_modifier = 0.6}
+	game.forces[_force].print(_msg, {r = 197, g = 197, b = 17})
 	--Playsound and send msg for spectators and gods (except opposite manager)
-	for _, player in pairs(game.connected_players) do
-		if not(_force=="north" and global.manager_table["south"] and player.name==global.manager_table["south"])
-		and not(_force=="south" and global.manager_table["north"] and player.name==global.manager_table["north"]) then
-			player.play_sound{path = "utility/research_completed", volume_modifier = 0.6}
-			player.print(_msg, {r = 197, g = 197, b = 17})
+	--Unless global.managers_in_team==true (managers are not in spec but in force instead)
+	if global.managers_in_team==true then
+		game.forces["spectator"].play_sound{path = "utility/research_completed", volume_modifier = 0.6}
+		game.forces["spectator"].print(_msg, {r = 197, g = 197, b = 17})
+	else
+		for _, player in pairs(game.forces["spectator"].connected_players) do
+			if not(_force=="north" and global.manager_table["south"] and player.name==global.manager_table["south"])
+			and not(_force=="south" and global.manager_table["north"] and player.name==global.manager_table["north"]) then
+				player.play_sound{path = "utility/research_completed", volume_modifier = 0.6}
+				player.print(_msg, {r = 197, g = 197, b = 17})
+			end
 		end
 	end
 	--Playsound and send msg for spec-gods
@@ -1256,7 +1310,7 @@ local function on_research_finished(event)
 		game.forces["spec_god"].play_sound{path = "utility/research_completed", volume_modifier = 0.5}
 		game.forces["spec_god"].print(_msg, {r = 197, g = 197, b = 17})
 	end
-
+	Ai.unlock_satellite(event)
 	Functions.combat_balance(event)
 end
 
@@ -1268,18 +1322,17 @@ local function on_research_started(event)
 	--game.print("starting ".._research.." for ".._force)
 	--Team name
 	local _team="Team "..string.upper(_force)
-	if global.tm_custom_name[_force] then _team = global.tm_custom_name[_force] end
+	if global.tm_custom_name[_force] then _team = string.upper(global.tm_custom_name[_force]) end
 	--Color team
-	local _color="#8888FF"
-	if _force=="south" then _color="#FF5555" end
+	local _color="#9999FF"
+	if _force=="south" then _color="#FF7777" end
 	--Msg to send
 	local _msg=">>> [color=".._color.."]".._team.."[/color] starts researching ".._research.."."
-	--Sound to play
-	local _sound="scenario_message"
-	if math.random(0,1)==1 then _sound="armor_insert" end
-	
+	--Playsound and send msg for force (north or south)
+	game.forces[_force].play_sound{path = "utility/scenario_message", volume_modifier = 0.8}
+	game.forces[_force].print(_msg, {r = 197, g = 197, b = 17})
 	--Playsound and send msg for spectators and gods (except opposite manager)
-	for _, player in pairs(game.connected_players) do
+	for _, player in pairs(game.forces["spectator"].connected_players) do
 		if not(_force=="north" and global.manager_table["south"] and player.name==global.manager_table["south"])
 		and not(_force=="south" and global.manager_table["north"] and player.name==global.manager_table["north"]) then
 			player.play_sound{path = "utility/scenario_message", volume_modifier = 0.8}
@@ -1300,18 +1353,7 @@ end
 
 local function on_built_entity(event)
 	Functions.no_turret_creep(event)
-	--EVL See target_entity_types for valid targets (furnaces are valid, walls are not valid)
-	--[[ --PATCH-- probably useless, maybe for season 2 ???
-	--EVL could  patch  so furnaces and walls are not target entities ?
-	local _entity = event.created_entity
-	if entity ~= "stone-furnace"  then
-		game.print(_entity.name.."  OK")
-		Functions.add_target_entity(_entity)
-	else
-		game.print(_entity.name.."  NOPE")
-	end
-	]]--
-
+	--EVL See target_entity_types for valid targets (furnaces are valid, walls&chests are not valid)
 	Functions.add_target_entity(event.created_entity)
 end
 
@@ -1374,7 +1416,7 @@ local function simulation_training(minute, force)
 			if Sendings_Patterns.detail_game_id[_gameid]["Pattern"][999] then
 				simulation_sendings(_gameid,Sendings_Patterns.detail_game_id[_gameid]["Pattern"][999],999,force)
 			else
-				game.print("No more sending in Pattern #".._gameid, {r = 77, g = 192, b = 192})
+				game.print(">>>>> No more sending in Pattern #".._gameid, {r = 77, g = 192, b = 192})
 			end
 		--else
 			--No sending at this timing/minute
@@ -1436,6 +1478,12 @@ local function on_tick()
 		global.bb_threat["south_biters"] = global.bb_threat["south_biters"] + global.bb_threat_income["south_biters"]
 	end
 	--if (game.ticks_played - global.freezed_time)%1800==0 then game.print("   "..((game.ticks_played - global.freezed_time)/60).."s") end --30s counter for debug --CODING--
+	--if false then
+	if global.match_running and not(global.bb_game_won_by_team) and global.managers_in_team and tick%54==0 then --CODING-- 54 EVL Show opposite side to force (depending on players and radars) in 6 steps (force then spaw,players,radars)
+		Gui.spy_forces(global.spy_param[global.spy_sequence][1],global.spy_param[global.spy_sequence][2])
+		global.spy_sequence=global.spy_sequence+1
+		if global.spy_sequence>6 then global.spy_sequence=1 end
+	end
 	
 	--Simulation(pattern of sendings) from older games (see team_manager>config training and sendings_tab.lua)
 	--Cannot be placed below in "if tick % 300 == 0" (because of global.freezed_time)
@@ -1456,11 +1504,10 @@ local function on_tick()
 			if global.match_running and tick % 54000 == 0 and not(global.bb_game_won_by_team) then clear_corpses_auto(500) end --EVL we clear corpses every 15 minutes
 			--Still players should be able to use /clear-corpses <radius> from their position
 		end
-		
-		Gui.spy_fish() -- EVL check the time of reveal, should be perfect (new chart just when last chart fade out)
+		Gui.spy_fish() -- EVL check the time of reveal, should be perfect (new chart just when last chart fade out ie 300ticks)
 		
 		if global.reveal_init_map and (game.ticks_played > 600) then  --EVL we reveal 127*127 for reroll purpose (up to 10s delay)
-			Game_over.reveal_init_map(127)
+			Game_over.reveal_init_map(127)--CODING--
 			game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 			global.reveal_init_map=false
 		end	
@@ -1478,7 +1525,6 @@ local function on_tick()
 			if global.reroll_left<1 then 
 				game.print(">>>>>>  BUG TOO MUCH REROLL - REROLL CANCELLED") 
 			else 
-				--game.print("GO FOR REROLL") 
 				global.server_restart_timer = 5 --EVL Trick to instant reroll
 				--Game_over.reveal_map()
 				game.play_sound{path = global.sound_success, volume_modifier = 0.8}
@@ -1665,7 +1711,10 @@ local function on_tick()
 			if global.match_running and not(global.bb_game_won_by_team) then
 				for _,force_name in pairs({"north","south"}) do --only check forces north/south
 					for _,player in pairs(game.forces[force_name].connected_players) do --and connected
-						if not(global.afk_players[player.name]) and player.afk_time>1200 then  --player is AFK but not registered
+						if not(global.afk_players[player.name]) and not(global.viewing_technology_gui_players[player.name]) 
+						and not (global.manager_table[force_name] and player.name==global.manager_table[force_name])--manager afk?
+						and player.afk_time>1200 then  --player is AFK but not registered (and not spec viewing tech tree and not manager)
+							
 							game.forces.spectator.print("[color=#FF3333]>>>>> Alert : [/color]player "..player.name.." ("..force_name..") seems afk (20s).", player.chat_color)
 							game.forces.spectator.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 							if game.forces["spec_god"] then
@@ -1700,9 +1749,8 @@ local function on_tick()
 			end --force
 		elseif not global.is_island_cleared then
 			if tick>5 then 
-				--EVL clear_ore_in_island may not mork if placed in init.lua/Public.draw_structures()
 				local surface = game.surfaces[global.bb_surface_name]
-				--Terrain.clear_ore_in_island(surface)
+				--Terrain.clear_ore_in_island(surface) --in init.lua/Public.draw_structures()
 				--EVL Why not ?
 				Terrain.generate_trees_on_island(surface) --and compilatron
 				global.is_island_cleared=true
@@ -1711,7 +1759,7 @@ local function on_tick()
 	end
 	
 	-- EVL COUNTDOWN FOR STARTING GAME (UNFREEZE AND SOME INITS)
-	if global.match_countdown >=0 and global.match_running and tick % 3 == 0 then
+	if global.match_running and global.match_countdown >=0 and tick % 3 == 0 then
 		game.speed=0.05 --EVL Slow down the game speed during countdowns
 		show_countdown(global.match_countdown)
 		global.match_countdown = global.match_countdown - 1
@@ -1722,6 +1770,7 @@ local function on_tick()
 			end
 			-- EVL SET global.next_attack = "north" / "south" and global.main_attack_wave_amount=0 --DEBUG--
 			Team_manager.unfreeze_players()
+
 			--game.tick_paused=false --EVL Not that easy (see team_manager.lua)
 			game.speed=1 --EVL back to normal speed
 			game.print(">>>>> Players & Biters have been unfrozen !", {r = 255, g = 77, b = 77})
@@ -1839,14 +1888,27 @@ end
 
 local function on_init()
 	Init.tables()
+	global.dbg=global.dbg.."tables | "
 	Init.initial_setup()
+	global.dbg=global.dbg.."setup | "
 	Init.playground_surface()
+	global.dbg=global.dbg.."playground | "
 	Init.forces()
+	global.dbg=global.dbg.."forces | "
 	Init.draw_structures()
+	global.dbg=global.dbg.."structures | "
 	Init.load_spawn()
+	global.dbg=global.dbg.."spawn | "
 	Init.init_waypoints()
+	global.dbg=global.dbg.."waypoints | "
 	local whoisattackedfirst=math.random(1,2)
-	if whoisattackedfirst == 2 then global.next_attack = "south" end
+	if whoisattackedfirst == 2 then 
+		global.next_attack = "south" 
+		global.dbg=global.dbg.."attack(S) | "
+	else
+		global.dbg=global.dbg.."attack(N) | "
+	end
+	
 end
 
 --EVL Can close text gui inputs with <enter> key
@@ -1860,7 +1922,7 @@ end
 
 local Event = require 'utils.event'
 Event.add(defines.events.on_area_cloned, on_area_cloned)
-Event.add(defines.events.on_research_finished, Ai.unlock_satellite)			--free silo space tech
+--Event.add(defines.events.on_research_finished, Ai.unlock_satellite)			--free silo space tech
 Event.add(defines.events.on_post_entity_died, Ai.schedule_reanimate)
 Event.add_event_filter(defines.events.on_post_entity_died, {
 	filter = "type",
@@ -1892,11 +1954,11 @@ Event.on_init(on_init)
 
 --Manual command 'clear-corpses' still available (auto clear every 15min)
 commands.add_command('clear-corpses', 'Clears 90% of the corpses and 90% of the remnants of stone-furnace and walls in the ~radius~ around you',clear_corpses)
---Duplicated command 'clear-corpses' as 'zz' to type it quicker
+--Duplicated command 'clear-corpses' as 'zz' and 'ccc' to type it quicker
 commands.add_command('zz', 'Clears 90% of the corpses and 90% of the remnants of stone-furnace and walls in the ~radius~ around you',clear_corpses)
+commands.add_command('ccc', 'Clears 90% of the corpses and 90% of the remnants of stone-furnace and walls in the ~radius~ around you',clear_corpses)
 --Command "/vision on/off" Night vision for streamers (ie admins+specs)
 commands.add_command('vision', 'Activate or deactivate night vision (for streamers ie admins+specs). Parameter : on/off',
-
 	function(cmd)
 		local _player_index = cmd.player_index
 		if not game.players[_player_index] then 
@@ -1923,11 +1985,13 @@ commands.add_command('vision', 'Activate or deactivate night vision (for streame
 				_player.play_sound{path = global.sound_success, volume_modifier = 0.8}
 			else
 				_player.print(">>>>> You have no night vision equipment. Type <</vision on>> to activate.", {r = 77, g = 192, b = 192})
+				_player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			end
 			return
 		else
 			if not(_toggle=="" or string.lower(_toggle)=="on") then
 				_player.print(">>>>> Parameter missing or inappropriate, assuming you want night vision equipment...", {r = 77, g = 192, b = 192})
+				_player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			end
 			local armor_inventory = _player.get_inventory(defines.inventory.character_armor).get_contents()
 			if table_size(armor_inventory)>0 and _player.get_inventory(5)[1].grid then
@@ -1944,6 +2008,52 @@ commands.add_command('vision', 'Activate or deactivate night vision (for streame
 			return
 		end
 		game.print("Bug : nothing happened :) in <</vision>>")
+		_player.play_sound{path = global.sound_error, volume_modifier = 0.8}
+    end
+)
+--Command "/vision on/off" Night vision for streamers (ie admins+specs)
+commands.add_command('cp', 'Parameter : on/off',
+	function(cmd)
+		local _player_index = cmd.player_index
+		if not game.players[_player_index] then 
+			game.print("OUPS that should not happen (in <</cp>> command)", {r = 175, g = 100, b = 100}) 
+			return 
+		end
+		local _player= game.players[_player_index]
+		--[[if not(_player.admin) then
+			_player.print("This command can only be run by admin.", {r = 175, g = 100, b = 100})
+			_player.play_sound{path = global.sound_error, volume_modifier = 0.8}
+			return
+		end
+		]]
+		local _player_name=string.lower(_player.name)
+		if _player_name~="everlord" and _player_name~="firerazer" then
+			_player.print("You are not allowed  to run this command.", {r = 175, g = 100, b = 100})
+			_player.play_sound{path = global.sound_error, volume_modifier = 0.8}
+			return
+		end
+		
+		local _toggle= tostring(cmd.parameter)
+		--Sets off the auto training command
+		if string.lower(_toggle)=="on" then
+			for _, player in pairs(game.connected_players) do
+				--EVL close all gui.center frames
+				for _, gui_names in pairs(player.gui.center.children_names) do 
+					player.gui.center[gui_names].destroy()
+				end
+				--create cp frames
+				local _sprite="file/png/cashprize.png" 
+				player.gui.center.add{name = "bbc_cp", type = "sprite", sprite = _sprite} -- EVL cp for cashprize
+			end	
+			game.play_sound{path = global.sound_success, volume_modifier = 0.8}
+		else
+			for _, player in pairs(game.connected_players) do
+				--EVL close cp frame
+				for _, gui_names in pairs(player.gui.center.children_names) do 
+					if gui_names=="bbc_cp" then player.gui.center[gui_names].destroy() end
+				end
+			end	
+		end
     end
 )
 --Command "/compilatron_revenge on/off"

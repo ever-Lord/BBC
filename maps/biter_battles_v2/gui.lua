@@ -27,25 +27,7 @@ local gui_values = {
 		t2 = "Threat causes biters to attack. Reduces when biters are slain.", color1 = {r = 0.99, g = 0.33, b = 0.33}, color2 = {r = 0.99, g = 0.44, b = 0.44},
 		tech_spy = "spy-south-tech", prod_spy = "spy-south-prod"}
 	}
---EVL ticks into "h m s" (didnt find the way to put that in functions.lua)
-local function get_human_time(ttick)
-	local secondes = math.floor(ttick / 60)
-	secondes=secondes%60
-	local minutes = ttick % 216000
-	local hours = ttick - minutes
-	minutes = math.floor(minutes / 3600)
-	hours = math.floor(hours / 216000)
-	local humantime = ""
-	if hours > 0 then
-		humantime = hours .. "h"
-	end
-	if secondes < 10 then secondes=" "..secondes end
-	if minutes < 10 then minutes=" "..minutes end
 	
-	humantime = humantime .. minutes .."m" .. secondes .. "s"
-	return humantime
-end
-
 local function create_sprite_button(player)
 	if player.gui.top["bb_toggle_button"] then return end
 	local button = player.gui.top.add({type = "sprite-button", name = "bb_toggle_button", sprite = "entity/big-biter"})
@@ -55,7 +37,7 @@ local function create_sprite_button(player)
 	button.style.padding = -1
 end
 
-local function create_first_join_gui(player)
+--[[ local function create_first_join_gui(player) -- EVL BBchampions always in tournament mode
 	if not global.game_lobby_timeout then global.game_lobby_timeout = 5999940 end
 	if global.game_lobby_timeout - game.tick < 0 then global.game_lobby_active = false end
 	local frame = player.gui.left.add { type = "frame", name = "bb_main_gui", direction = "vertical" }
@@ -78,7 +60,7 @@ local function create_first_join_gui(player)
 		l.style.single_line = false
 		l.style.maximal_width = 290
 		local l = t.add  { type = "label", caption = "  -  "}
-		local l = t.add  { type = "label", caption = #game.forces[gui_value.force].connected_players .. " Players "}
+		local l = t.add  { type = "label", caption = Functions.get_nb_players(gui_value.force).." Players "}
 		l.style.font_color = { r=0.22, g=0.88, b=0.22}
 
 		local c = gui_value.c2
@@ -102,6 +84,7 @@ local function create_first_join_gui(player)
 		frame.add  { type = "label", caption = "-----------------------------------------------------------"}
 	end
 end
+--]]
 
 local function add_tech_button(elem, gui_value)
 	local tech_button = elem.add {
@@ -114,8 +97,8 @@ local function add_tech_button(elem, gui_value)
 	tech_button.style.left_margin = 3
 end
 
---[[ EVL Not used for now
-local function add_prod_button(elem, gui_value)
+--[[ EVL local function add_prod_button(elem, gui_value) Not used for now
+
 	local prod_button = elem.add {
 		type = "sprite-button",
 		name = gui_value.prod_spy,
@@ -135,13 +118,15 @@ function Public.create_main_gui(player)
 	if player.gui.left["bb_main_gui"] then player.gui.left["bb_main_gui"].destroy() end
 
 	if global.bb_game_won_by_team then return end
-	if not global.chosen_team[player.name] then --  to  be removed --TODO--  ?
+	
+	--[[ EVL BBChampions always in tournament mode
+	if not global.chosen_team[player.name] then 
 		if not global.tournament_mode then
 			create_first_join_gui(player)
 			return
 		end
 	end
-
+	]]--
 	local frame = player.gui.left.add { type = "frame", name = "bb_main_gui", direction = "vertical" }
 	
 	--EVL Add a timer (with pause when frozen)
@@ -153,7 +138,7 @@ function Public.create_main_gui(player)
 	local htime_tooltip = "Game will enter in ARMAGEDDON mode after ".. math.floor(global.evo_boost_tick/3600) .." minutes !"
 	if global.freezed_start == 999999999 then -- we are unfreezed
 		if global.match_running then 
-			 htime_gui = get_human_time(time_played).." "
+			 htime_gui = Functions.get_human_time(time_played).." "
 		--else
 		-- Match is not running -> 	 htime_gui = "Game has not started "
 		end
@@ -161,7 +146,7 @@ function Public.create_main_gui(player)
 		time_paused = game.ticks_played - global.freezed_start
 		local real_time_played = time_played - time_paused
 		if global.match_running then 
-			htime_gui = get_human_time(real_time_played) .. "   (pause ".. math.floor(time_paused/60) .."s) "
+			htime_gui = Functions.get_human_time(real_time_played) .. "   (pause ".. math.floor(time_paused/60) .."s) "
 		--else
 		-- Match is not running -> 	 htime_gui = "Game has not started "
 		end
@@ -202,7 +187,7 @@ function Public.create_main_gui(player)
 		end
 
 		-- Team name & Player count
-		local t = frame.add { type = "table", column_count = 4 }
+		local t = frame.add { type = "table", name="team_info_" .. gui_value.force, column_count = 5 }
 
 		-- Team name
 		local c = gui_value.c1
@@ -213,18 +198,44 @@ function Public.create_main_gui(player)
 				maxim_team="[color=#AAAAAA]"..Tables.maxim_teams[c].."[/color]"
 			end
 		end
-		local _tooltip=maxim_team.."\n[font=default-small][color=#77CC77]   Click to view info & craftings.[/color]\n[color=#CC7777]   Also toggles show/hide inventories.[/color][/font]"
-		local l = t.add  { type = "label", name = "show_inv_"..gui_value.force, caption = c, tooltip=_tooltip}
+		local _tooltip=maxim_team.."\n[font=default-small][color=#77CC77]   Click to view info & craftings.[/color]\n[color=#CC7777]   Click again to close.\n   Click on <<¡>> to show inventories[/color][/font]"
+		local l = t.add  { type = "label", name = "open_close_inv_"..gui_value.force, caption = c, tooltip=_tooltip}
 		l.style.font = "default-bold"
 		l.style.font_color = gui_value.color1
 		l.style.single_line = false
 		l.style.maximal_width = 102
+		
+		if global.viewing_inventories[player.name] and global.viewing_inventories[player.name][gui_value.force] and global.viewing_inventories[player.name][gui_value.force]["active"] then
+			local inventory_mode="[color=#88EE88]¡[/color]"
+			local inventory_tooltip="[color=#88EE88]Show inventories in team screen infos.[/color]"
+			if global.viewing_inventories[player.name][gui_value.force]["inventory"] then 
+				inventory_mode="[color=#CC7777]![/color]"
+				inventory_tooltip="[color=#CC7777]Hide inventories in team screen infos.[/color]"
+			end
+			local toggle_inventory = t.add({type = "sprite-button", name = "team_inventory_toggle_"..gui_value.force, caption=inventory_mode, tooltip=inventory_tooltip})
+			toggle_inventory.style.font = "heading-2"
+			toggle_inventory.style.height = 18
+			--toggle_inventory.style.vertical_align="center"
+			toggle_inventory.style.width = 18
+			toggle_inventory.style.padding = -6
+		else
+			--local toggle_inventory  = t.add{type = "label", name = "team_inventory_toggle_"..gui_value.force, caption = ""}
+			local toggle_inventory = t.add({type = "sprite-button", name = "team_inventory_toggle_"..gui_value.force, caption="", tooltip=""})
+			toggle_inventory.style.font = "heading-2"
+			toggle_inventory.style.height = 1
+			--toggle_inventory.style.vertical_align="center"
+			toggle_inventory.style.width = 1
+			toggle_inventory.style.padding = -6
+		end
+
+
 
 		-- Number of players
 		local l = t.add  { type = "label", caption = " - "}
-		local c = #game.forces[gui_value.force].connected_players .. " Player"
-		if #game.forces[gui_value.force].connected_players ~= 1 then c = c .. "s" end
-		if #game.forces[gui_value.force].connected_players == 0 then c = "No player" end --EVL 
+		local nb_players_force=Functions.get_nb_players(gui_value.force)
+		local c = nb_players_force.." Player"
+		if nb_players_force ~= 1 then c = c .. "s" end
+		if nb_players_force == 0 then c = "No player" end --EVL 
 		
 		local l = t.add  { type = "label", caption = c}
 		l.style.font = "default"
@@ -241,17 +252,24 @@ function Public.create_main_gui(player)
 			local t = frame.add  { type = "table", column_count = 8 }
 			for _, p in pairs(game.forces[gui_value.force].connected_players) do
 				--game.print("index:"..p.index.."  name:"..p.name) --EVL DEBUG
-				local maxim_player="[font=default-small][color=#777777](missing maxim)[/color][/font]"
-				if Tables.maxim_players[p.name] and Tables.maxim_players[p.name]~="" and Tables.maxim_players[p.name]~="tbd" then
-					maxim_player="[color=#AAAAAA]"..Tables.maxim_players[p.name].."[/color]"
+				if (global.viewing_technology_gui_players[p.name])
+					--Skip player (not really in the team, just viewing technology tree gui)
+				or (global.managers_in_team and global.manager_table[gui_value.force] and p.name==global.manager_table[gui_value.force])
+					--Skip player (not really in the team, just manager)
+				then --EVL in this mode manager are set to team
+					--Do nothing
+				else
+					local maxim_player="[font=default-small][color=#777777](missing maxim)[/color][/font]"
+					if Tables.maxim_players[p.name] and Tables.maxim_players[p.name]~="" and Tables.maxim_players[p.name]~="tbd" then
+						maxim_player="[color=#AAAAAA]"..Tables.maxim_players[p.name].."[/color]"
+					end
+					local _tooltip=maxim_player.."\n[font=default-small][color=#77CC77]Click to view inventory and crafts.[/color][/font]"
+					local l_player = t.add  { type = "label", name="plist_"..p.index ,caption = p.name, tooltip=maxim_player} --EVL Add .index for inventory purpose
+					l_player.style.font_color = {r = p.color.r * 0.6 + 0.4, g = p.color.g * 0.6 + 0.4, b = p.color.b * 0.6 + 0.4, a = 1}
+					--local l_camera  = t.add  { type = "sprite", name="pcam_"..p.index ,sprite = "quantity-time", tooltip="click to view player's camera"} --slot-armor-white | select-icon-white | reassign | not-played-yet | expand
+					local l_camera = t.add  { type = "label", name="pcam_"..p.index ,caption = "© ", tooltip="click to view player's camera"} --EVL Add .index for camera purpose
+					l_camera.style.font_color = {r = 150, g = 150, b = 150}
 				end
-				local _tooltip=maxim_player.."\n[font=default-small][color=#77CC77]Click to view inventory and crafts.[/color][/font]"
-				local l_player = t.add  { type = "label", name="plist_"..p.index ,caption = p.name, tooltip=maxim_player} --EVL Add .index for inventory purpose
-				l_player.style.font_color = {r = p.color.r * 0.6 + 0.4, g = p.color.g * 0.6 + 0.4, b = p.color.b * 0.6 + 0.4, a = 1}
-				--local l_camera  = t.add  { type = "sprite", name="pcam_"..p.index ,sprite = "quantity-time", tooltip="click to view player's camera"} --slot-armor-white | select-icon-white | reassign | not-played-yet | expand
-				local l_camera = t.add  { type = "label", name="pcam_"..p.index ,caption = "© ", tooltip="click to view player's camera"} --EVL Add .index for inventory purpose
-				--l_camera.style.font = "heading-2"
-				l_camera.style.font_color = {r = 150, g = 150, b = 150}
 			end
 		end
 
@@ -262,22 +280,25 @@ function Public.create_main_gui(player)
 		local l = t.add  { type = "label", caption = "Evo:"}
 		local biter_force = game.forces[gui_value.biter_force]
 		local evo = math.floor(1000 * global.bb_evolution[gui_value.biter_force]) * 0.1
-		local evo_tooltip = gui_value.t1 .. "\nDamage: " .. (biter_force.get_ammo_damage_modifier("melee") + 1) * 100 .. "%\nRevive: " .. global.reanim_chance[biter_force.index] .. "%"
+		local evo_tooltip = gui_value.t1 .. "\n[color=#FF5555]Damage: " .. (biter_force.get_ammo_damage_modifier("melee") + 1) * 100 
+							.. "%[/color]\n[color=#70FF70]Revive: " .. global.reanim_chance[biter_force.index] .. "%[/color]"
 		local l = t.add  { type = "label", caption = evo.."%", tooltip = evo_tooltip}
 		--l.style.minimal_width = 25
 		l.style.minimal_width = 40
 		l.style.font_color = gui_value.color2
 		l.style.font = "default-bold"
-		l.tooltip = tooltip
 
 		-- Threat
 		local l = t.add  {type = "label", caption = "Threat: "}
 		l.style.minimal_width = 25
-		local l = t.add  {type = "label", name = "threat_" .. gui_value.force, caption = math.floor(global.bb_threat[gui_value.biter_force]), tooltip=gui_value.t2}
+		local l = t.add  {type = "label", name = "threat_" .. gui_value.force, 
+			caption = math.floor(global.bb_threat[gui_value.biter_force]),
+			tooltip="[color=#EE8888]Actual passive threat income =[/color] [color=#FFAAAA]"..(math.floor(global.bb_threat_income[gui_value.biter_force]*100)/100)
+					.."[/color] [color=#EE8888]per second.[/color]\n[color=#888888]"..gui_value.t2.."[/color]"
+		}
 		l.style.font_color = gui_value.color2
 		l.style.font = "default-bold"
 		l.style.width = 50
-		l.tooltip = gui_value.t2
 	end
 	--EVL ADD BUTTONS FOR SPEC_GOD MODE (Larger wiew of the map without revealing other forces)
 	--ONLY if admin AND spectator (real & god modes)
@@ -310,7 +331,9 @@ function Public.create_main_gui(player)
 		b_zoom2.style.padding = -2
 	end
 	-- Difficulty mutagen effectivness update
-	bb_diff.difficulty_gui() --TODO-- Is that correct ? (thats why top gui is not static ?)
+	if not global.match_running then --EVL Dont update difficulty vote button once match has started
+		bb_diff.difficulty_gui() 
+	end
 
 end
 
@@ -323,6 +346,7 @@ function Public.refresh()
 	global.gui_refresh_delay = game.tick + 20 --EVL was 5 (saving UPS)
 end
 
+--Refresh threat when a biter has died (min 31 ticks between refreshes)
 function Public.refresh_threat()
 	if global.gui_refresh_delay > game.tick then return end
 	for _, player in pairs(game.connected_players) do
@@ -333,7 +357,7 @@ function Public.refresh_threat()
 			end
 		end
 	end
-	global.gui_refresh_delay = game.tick + 20 --EVL was 5 (saving UPS)
+	global.gui_refresh_delay = game.tick + 31 --EVL was 5 (saving UPS)
 end
 
 function join_team(player, force_name, forced_join)
@@ -350,7 +374,7 @@ function join_team(player, force_name, forced_join)
 
 	local enemy_team = "south"
 	if force_name == "south" then enemy_team = "north" end
-
+	--[[ Not used in BBChampions
 	if not global.training_mode and global.bb_settings.team_balancing then --EVL not used
 		if not forced_join then
 			if #game.forces[force_name].connected_players > #game.forces[enemy_team].connected_players then
@@ -361,7 +385,8 @@ function join_team(player, force_name, forced_join)
 			end
 		end
 	end
-
+	]]--
+	--[[ Not used in BBChampions
 	if global.chosen_team[player.name] then --EVL not used
 		if not forced_join then
 			if game.tick - global.spectator_rejoin_delay[player.name] < 3600 then
@@ -379,7 +404,6 @@ function join_team(player, force_name, forced_join)
 		end
 		player.teleport(p, surface)
 		player.force = game.forces[force_name]
-		--game.print("debug:1111 "..player.name.."changed to force"..player.force.name)--REMOVE--
 		player.character.destructible = true
 		Public.refresh()
 		game.permissions.get_group("Default").add_player(player)
@@ -390,11 +414,11 @@ function join_team(player, force_name, forced_join)
 		player.spectator = false
 		return
 	end
+	]]
 	local pos = surface.find_non_colliding_position("character", game.forces[force_name].get_spawn_position(surface), 8, 1)
 	if not pos then pos = game.forces[force_name].get_spawn_position(surface) end
 	player.teleport(pos)
 	player.force = game.forces[force_name]
-	--game.print("debug:2222 "..player.name.."changed to force"..player.force.name)--REMOVE--
 	
 	player.character.destructible = true
 	game.permissions.get_group("Default").add_player(player)
@@ -407,7 +431,7 @@ function join_team(player, force_name, forced_join)
 	end
 	local i = player.get_inventory(defines.inventory.character_main)
 	i.clear()
-	--[[ EVL WE GO ON FIELD EMPTY, USE STARTER PACKS
+	--[[ EVL WE GO ON FIELD EMPTY, WITH USE STARTER PACKS
 	player.insert {name = 'pistol', count = 1}
 	player.insert {name = 'raw-fish', count = 3}
 	player.insert {name = 'firearm-magazine', count = 32}
@@ -424,12 +448,12 @@ end
 
 function spectate(player, old_force, forced_join)
 	--if not force_joined then force_joined=false end
-	--game.print("____________________________DEBUG : entering spectate("..player.name..",oldforce="..old_force..", forcejoin="..tostring(forced_join)..").", {r = 0.98, g = 0.66, b = 0.22}) --REMOVE--
+
 	if not player.character then 
 		if global.bb_debug_gui then game.print("Debug : "..player.name.." is not a character (in gui/spectate.lua). That is  probably normal.", {r = 0.98, g = 0.22, b = 0.22}) end
 	end
 	if not(old_force=="north" or old_force=="south") then 
-		if global.tournament_mode then game.print("Debug: in spectate() "..player.name.." is not in a team, can't move to spectators (in gui.lua/spectate).", {r = 0.98, g = 0.66, b = 0.22}) end--REMOVE--
+		if global.tournament_mode then game.print("Debug: in spectate() "..player.name.." is not in a team, can't move to spectators (in gui.lua/spectate).", {r = 0.98, g = 0.66, b = 0.22}) end
 		return 
 	end
 	if not forced_join then
@@ -445,21 +469,19 @@ function spectate(player, old_force, forced_join)
 		if this_player.name==player.name then
 			local this_inventory=corpse.get_inventory(defines.inventory.character_corpse).get_contents()
 			if table_size(this_inventory)==0 then
-				if global.bb_debug_gui then game.print("Debug: in spectate() destroy empty corpse for dead "..player.name..". Saving force ("..old_force..").", {r = 0.98, g = 0.66, b = 0.22}) end--REMOVE--
+				if global.bb_debug_gui then game.print("Debug: in spectate() Destroy empty corpse for dead "..player.name..". Saving force ("..old_force..").", {r = 0.98, g = 0.66, b = 0.22}) end
 				global.corpses_force[player.name]=old_force --DEBUG-- Are we sure ?
 				corpse.destroy()
 			else
-				--game.print("aabbaa")
 				--EVL In case of ... 
 				--(should not happen unless a referee moves a player with inventory not empty)
 				--well... could be for a substitution "from" player connected (but he should have emptied his inventory before)
-				if global.bb_debug_gui then game.print("Debug: in spectate() Saving force:"..old_force.." for dead "..player.name.." (corpse not empty).", {r = 0.98, g = 0.66, b = 0.22}) end--REMOVE--
+				if global.bb_debug_gui then game.print("Debug: in spectate() Saving force:"..old_force.." for dead "..player.name.." (corpse not empty).", {r = 0.98, g = 0.66, b = 0.22}) end
 				global.corpses_force[player.name]=old_force
 			end
 		end
 	end
 	player.force = game.forces.spectator --already done a priori
-	--game.print("debug:3333 "..player.name.."changed to force"..player.force.name)--REMOVE--
 	if player.character then
 		player.character.destructible = false --DEBUG-- when disco player is moved to island, then back to team it will put his corpse on island
 	else
@@ -476,8 +498,7 @@ function spectate(player, old_force, forced_join)
 	player.spectator = true
 
 end
-
-local function join_gui_click(name, player)
+--[[ local function join_gui_click(name, player) --Not
 	local team = {
 		["join_north_button"] = "north",
 		["join_south_button"] = "south"
@@ -497,7 +518,7 @@ local function join_gui_click(name, player)
 	end
 	join_team(player, team[name])
 end
-
+]]
 local spy_forces = {{"north", "south"},{"south", "north"}}
 function Public.spy_fish()
 	for _, f in pairs(spy_forces) do
@@ -513,39 +534,172 @@ function Public.spy_fish()
 	end
 end
 
+--EVL Show opposite side to teams (depends on player positions and radars, triggereg if global.managers_in_team==true in main.lua --EVL in this mode manager are set to team)
+function Public.spy_forces(force,target)
+	local surface = game.surfaces[global.bb_surface_name]
+	local mid_river=bb_config["border_river_width"]/2 --44/2
+	local spawn_vision=62 -- other possible value = 65+32? (ie one more chunk left_x and right_x, vertical stays same)
+	--command to test spawn_chart: /c r=40 game.forces["north"].chart(game.player.surface,{{-r, 24}, {r, r+24}})
+	--Note : the command witrh r=40 is equivalent to r=62or63, but the chart works not the same in the code below... why ?
+	local player_vision=79 -- may be reduced by 32 or 31
+	---command to test player_chart: /c r=96 pos_x=math.floor(game.player.position.x/32)*32+16 pos_y=math.floor(game.player.position.y/32)*32+16 game.forces["north"].chart(game.player.surface,{{pos_x-r,pos_y-r}, {pos_x+r,pos_y+r}})	
+	local radar_vision=111 -- may be reduced by 32 or 31
+	--command to test radar_chart: /c r=111 radar=game.player.surface.find_entities_filtered{force="north",name = "radar"}[1] pos_x=math.floor(radar.position.x/32)*32+16 pos_y=math.floor(radar.position.y/32)*32+16 game.forces["north"].chart(game.player.surface,{{pos_x-r,pos_y-r}, {pos_x+r,pos_y+r}})
+	if not(force and (force=="north" or force=="south")) then 
+		if global.bb_debug or global.bb_debug_gui then game.print(">>>>> Wrong force "..tostring(force).." in Gui.spy_forces.", {r = 0.88, g = 0.22, b = 0.22}) end
+		return 
+	end
+	
+	local chart_force="south"
+	if force=="south" then chart_force="north" end
+	-------------------------------------------
+	--Show <<force>> side to <<chart_force>> --
+	-------------------------------------------
+
+	if target=="spawn" then
+		--Default : spawn free chart even if no players (for both teams)
+		local chart_y_min=-spawn_vision-mid_river
+		local chart_y_max=-mid_river
+		if force=="south" then
+			chart_y_min=mid_river
+			chart_y_max=spawn_vision+mid_river
+		end
+		--Reveal to both sides
+		game.forces[chart_force].chart(surface,{{-spawn_vision, chart_y_min},{spawn_vision, chart_y_max}})
+		game.forces[force].chart(surface,{{-spawn_vision, chart_y_min},{spawn_vision, chart_y_max}})
+
+	elseif target=="players" then
+		--Players
+		for _, player in pairs(game.forces[force].connected_players) do
+			if global.viewing_technology_gui_players[player.name] or (global.manager_table[force] and player.name==global.manager_table[force]) then
+				--Do nothing
+			else
+				local pos_x=math.floor(player.position.x/32)*32+16
+				local pos_y=math.floor(player.position.y/32)*32+16
+				--if force=="south" then --limit chart to mid river--DEBUG--
+				--	if (pos_y+player_vision)>-mid_river then pos_y=-mid_river-player_vision end
+				--else
+				--	if (pos_y-player_vision)<mid_river then pos_y=mid_river+player_vision end
+				--end
+				
+				game.forces[chart_force].chart(surface,{{pos_x-player_vision, pos_y-player_vision}, {pos_x+player_vision, pos_y+player_vision}})
+			end
+		end
+	elseif target=="radars" then
+		--/c r=224 radar=surface.find_entities_filtered{force=force,name = "radar"}[1] pos_x=math.floor(radar.position.x/32)*32+16 pos_y=math.floor(radar.position.y/32)*32+16 game.forces["north"].chart(game.player.surface,{{pos_x-r,pos_y-r}, {pos_x+r,pos_y+r}})
+		
+		--Radars
+		local radars=surface.find_entities_filtered{force=force,name = "radar"}
+		for _,radar in pairs(radars) do
+			if radar.energy>860 then --EVL max energy=5333,with one solar panel nrj=861
+				local radar_x=math.floor(radar.position.x/32)*32+16
+				local radar_y=math.floor(radar.position.y/32)*32+16
+				--if force=="south" then --limit chart to mid river--DEBUG--
+				--	if (radar_y+radar_vision)>-mid_river then radar_y=-mid_river-radar_vision end
+				--else
+				--	if (radar_y-radar_vision)<mid_river then radar_y=mid_river+radar_vision end
+				--end
+				--game.print("Radar north ("..radar_x..","..radar_y..") nrj="..radar.energy)
+				game.forces[chart_force].chart(surface,{{radar_x-radar_vision, radar_y-radar_vision}, {radar_x+radar_vision, radar_y+radar_vision}})
+			end
+		end
+	else
+		if global.bb_debug or global.bb_debug_gui then game.print(">>>>> Wrong target "..tostring(target).." in Gui.spy_forces.", {r = 0.88, g = 0.22, b = 0.22}) end
+	end
+end
+
+--for _,radar in pairs(radars) do game.print("Radar #"..tonumber(_).." ("..radar.posision.x..","..radar.posision.y..") nrj="..radar.energy) end
 local function on_gui_click(event)
 	if not event.element then return end
 	if not event.element.valid then return end
 	local player = game.players[event.player_index]
 	local name = event.element.name
-	--game.print(" gui.lua "..name)--REMOVE--
+	--if global.bb_debug_gui then game.print("DEBUGUI Init ok >>>>> on_gui_click: "..name.." by "..player.name..".",{r = 100, g = 100, b = 100}) end
 	
-	-- Close/Refresh inventory Gui of player
+	-- Close/Refresh inventory WITHIN Gui of player (not working if big latency)
 	if name == "inventory_close" then
+		if global.bb_debug_gui then game.print("DEBUGUI calling close_inventory ("..player.name..",target).") end
 		show_inventory.close_inventory(player,"target")
+		player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 		return
 	end
 	if name == "inventory_refresh" then
 		show_inventory.refresh_inventory(player,"target")
+		player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 		return
 	end
-	-- Close/Refresh inventory Gui of player
+	-- Close/Refresh inventory WITHIN Gui of teams (not working if big latency)
 	if name == "team_inventory_close_north" then
+		if global.bb_debug_gui then game.print("DEBUGUI calling close_inventory ("..player.name..",north).") end
 		show_inventory.close_inventory(player,"north")
+		player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 		return
-	end
-	if name == "team_inventory_close_south" then
+	elseif name == "team_inventory_close_south" then
+		if global.bb_debug_gui then game.print("DEBUGUI calling close_inventory ("..player.name..",south).") end
 		show_inventory.close_inventory(player,"south")
+		player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 		return
 	end
 	if name == "team_inventory_refresh_north" then
+		if global.bb_debug_gui then game.print("DEBUGUI calling refresh_inventory ("..player.name..",north).") end
 		show_inventory.refresh_inventory(player,"north")
+		player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 		return
-	end
-	if name == "team_inventory_refresh_south" then
+	elseif name == "team_inventory_refresh_south" then
+		if global.bb_debug_gui then game.print("DEBUGUI calling refresh_inventory ("..player.name..",south).") end
 		show_inventory.refresh_inventory(player,"south")
+		player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 		return
 	end
+	--Toggle inventories in GUI of teams
+	if name == "team_inventory_toggle_north" then
+		--Update gui with inventory toggle button
+		if global.viewing_inventories[player.name] and global.viewing_inventories[player.name]["north"] and global.viewing_inventories[player.name]["north"]["active"] then
+			local inventory_mode="NIL"
+			local inventory_tooltip="NIL"
+			if global.viewing_inventories[player.name]["north"]["inventory"] then
+				global.viewing_inventories[player.name]["north"]["inventory"]=false
+				inventory_mode="[color=#88EE88]¡[/color]"
+				inventory_tooltip="[color=#88EE88]Show inventories in team screen infos.[/color]"
+			else
+				global.viewing_inventories[player.name]["north"]["inventory"]=true
+				inventory_mode="[color=#CC7777]![/color]"
+				inventory_tooltip="[color=#CC7777]Hide inventories in team screen infos.[/color]"
+			end
+			show_inventory.refresh_inventory(player,"north")
+			if player.gui.left["bb_main_gui"] then
+				local toggle_inventory  = player.gui.left["bb_main_gui"].team_info_north.team_inventory_toggle_north
+				toggle_inventory.caption=inventory_mode
+				toggle_inventory.tooltip=inventory_tooltip
+			end	
+			player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
+		end
+		return
+	elseif name == "team_inventory_toggle_south" then
+		--Update gui with inventory toggle button
+		if global.viewing_inventories[player.name] and global.viewing_inventories[player.name]["south"] and global.viewing_inventories[player.name]["south"]["active"] then
+			local inventory_mode="NIL"
+			local inventory_tooltip="NIL"
+			if global.viewing_inventories[player.name]["south"]["inventory"] then
+				global.viewing_inventories[player.name]["south"]["inventory"]=false
+				inventory_mode="[color=#88EE88]¡[/color]"
+				inventory_tooltip="[color=#88EE88]Show inventories in team screen infos.[/color]"
+			else
+				global.viewing_inventories[player.name]["south"]["inventory"]=true
+				inventory_mode="[color=#CC7777]![/color]"
+				inventory_tooltip="[color=#CC7777]Hide inventories in team screen infos.[/color]"
+			end
+			show_inventory.refresh_inventory(player,"south")
+			if player.gui.left["bb_main_gui"] then
+				local toggle_inventory  = player.gui.left["bb_main_gui"].team_info_south.team_inventory_toggle_south
+				toggle_inventory.caption=inventory_mode
+				toggle_inventory.tooltip=inventory_tooltip
+			end	
+			player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
+		end
+		return
+	end
+
 
 	
 	if name == "bb_toggle_button" then
@@ -581,6 +735,7 @@ local function on_gui_click(event)
 			or (global.manager_table["north"] and player.name==global.manager_table["north"] and game.players[_target_name].force.name=="north") --manager north and target north
 			or (global.manager_table["south"] and player.name==global.manager_table["south"] and game.players[_target_name].force.name=="south")  then --manager south and target south
 		--if player.admin then   --CODING--
+		--if true then   --CODING--
 			show_inventory.open_inventory(player, game.players[_target_name]) --EVL player=source, _target=target
 		else
 			player.print(">>>>> Only admins as spectators (and managers) can view inventory and crafting-queue.", {r = 175, g = 0, b = 0})
@@ -591,23 +746,67 @@ local function on_gui_click(event)
 	--EVL SHOW INVENTORY & CRAFTING LIST of TEAMS
 	--EVL Click on team name from LeftGUI
 	--EVL only available for admins that are spectating	and managers of same side
-	if name=="show_inv_north" then
+	if name=="open_close_inv_north" then
 		--Check if conditions are fulfilled
 		if (player.admin and (player.force.name == "spectator" or player.force.name == "spec_god")) --admin and (spec or god)
 			or (global.manager_table["north"] and player.name==global.manager_table["north"]) then --manager north and target team north
 		--if player.admin then   --CODING--
+		--if true then   --CODING--
 			show_inventory.open_inventory(player, "north") --EVL player=source, _target=team north
+			--Update gui with inventory toggle button
+			if global.viewing_inventories[player.name] and global.viewing_inventories[player.name]["north"] and global.viewing_inventories[player.name]["north"]["active"] then
+				local inventory_mode="NIL"
+				local inventory_tooltip="NIL"
+				if global.viewing_inventories[player.name]["north"]["inventory"] then
+					inventory_mode="[color=#CC7777]![/color]"
+					inventory_tooltip="[color=#CC7777]Hide inventories in team screen infos.[/color]"
+				else
+					inventory_mode="[color=#88EE88]¡[/color]"
+					inventory_tooltip="[color=#88EE88]Show inventories in team screen infos.[/color]"
+				end
+				show_inventory.refresh_inventory(player,"north")
+				if player.gui.left["bb_main_gui"] then
+					local toggle_inventory  = player.gui.left["bb_main_gui"].team_info_north.team_inventory_toggle_north
+					toggle_inventory.caption=inventory_mode
+					toggle_inventory.tooltip=inventory_tooltip
+					toggle_inventory.style.height = 18
+					toggle_inventory.style.width = 18
+				end	
+			end
+			player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 		else
 			player.print(">>>>> Only admins as spectators (and north manager) can view inventory and crafting-queue of north team.", {r = 175, g = 0, b = 0})
 			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		end
 		return
-	elseif name=="show_inv_south" then
+	elseif name=="open_close_inv_south" then
 		--Check if conditions are fulfilled
 		if (player.admin and (player.force.name == "spectator" or player.force.name == "spec_god")) --admin and (spec or god)
 			or (global.manager_table["south"] and player.name==global.manager_table["south"]) then --manager south and target team south
-		--if player.admin then   --CODING--		
-			show_inventory.open_inventory(player, "south") --EVL player=source, _target=team north
+		--if player.admin then   --CODING--	
+		--if true then  --CODING--
+			show_inventory.open_inventory(player, "south") --EVL player=source, _target=team south
+			--Update gui with inventory toggle button
+			if global.viewing_inventories[player.name] and global.viewing_inventories[player.name]["south"] and global.viewing_inventories[player.name]["south"]["active"] then
+				local inventory_mode="NIL"
+				local inventory_tooltip="NIL"
+				if global.viewing_inventories[player.name]["south"]["inventory"] then
+					inventory_mode="[color=#CC7777]![/color]"
+					inventory_tooltip="[color=#CC7777]Hide inventories in team screen infos.[/color]"
+				else
+					inventory_mode="[color=#88EE88]¡[/color]"
+					inventory_tooltip="[color=#88EE88]Show inventories in team screen infos.[/color]"
+				end
+				show_inventory.refresh_inventory(player,"south")
+				if player.gui.left["bb_main_gui"] then
+					local toggle_inventory  = player.gui.left["bb_main_gui"].team_info_south.team_inventory_toggle_south
+					toggle_inventory.caption=inventory_mode
+					toggle_inventory.tooltip=inventory_tooltip
+					toggle_inventory.style.height = 18
+					toggle_inventory.style.width = 18					
+				end	
+			end
+			player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 		else
 			player.print(">>>>> Only admins as spectators (and south manager) can view inventory and crafting-queue of south team.", {r = 175, g = 0, b = 0})
 			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
@@ -666,7 +865,8 @@ local function on_gui_click(event)
 				player.show_on_map=false -- EVL remove red dots on map view for players and spectators (new in 1.1.47)
 				global.god_players[player.name] = true
 				Team_manager.redraw_all_team_manager_guis()
-				game.print(">>>>> Admin: " ..  player.name .. " has gone into Spec/God mode view.", {r = 75, g = 75, b = 75})
+				game.forces["spectator"].print(">>>>> Admin: " ..  player.name .. " has gone into Spec/God mode view.", {r = 75, g = 75, b = 75})
+				game.forces["spec_god"].print(">>>>> Admin: " ..  player.name .. " has gone into Spec/God mode view.", {r = 75, g = 75, b = 75})
 				player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 				if global.bb_debug then game.print("Debug: player: " ..  player.name .." ("..player.force.name..") switches to God mode") end
 			
@@ -679,7 +879,8 @@ local function on_gui_click(event)
 				player.character.destructible = false --EVL give back the property to the spec
 				global.god_players[player.name] = false
 				Team_manager.redraw_all_team_manager_guis()
-				game.print(">>>>> Admin: " ..  player.name .." ("..player.force.name..") switches back to Real mode.", {r = 75, g = 75, b = 75})
+				game.forces["spectator"].print(">>>>> Admin: " ..  player.name .." ("..player.force.name..") switches back to Real mode.", {r = 75, g = 75, b = 75})
+				game.forces["spec_god"].print(">>>>> Admin: " ..  player.name .." ("..player.force.name..") switches back to Real mode.", {r = 75, g = 75, b = 75})
 				player.play_sound{path = global.sound_low_bip, volume_modifier = 1}
 				
 			else
@@ -742,7 +943,6 @@ local function on_player_joined_game(event)
 
 	--EVL Restore that disconnected player has rejoined (team manager)
 	if global.disconnected[player.name] then 
-		--game.print("remove "..player.name.." from disconnected list") --REMOVE--
 		global.disconnected[player.name]=nil 
 	end
 
@@ -765,5 +965,5 @@ end
 
 event.add(defines.events.on_gui_click, on_gui_click)
 event.add(defines.events.on_player_joined_game, on_player_joined_game)
-event.add(defines.events.on_pre_player_left_game, on_pre_player_left_game)  --Moved to show_inventory_bbc.lua
+--event.add(defines.events.on_pre_player_left_game, on_pre_player_left_game)  --Moved to show_inventory_bbc.lua
 return Public

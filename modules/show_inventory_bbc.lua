@@ -1,16 +1,43 @@
 local Global = require 'utils.global'
 local Color = require 'utils.color_presets'
 local Event = require 'utils.event'
+local Functions = require "maps.biter_battles_v2.functions" --EVL (none) used to find real number of players (ie removing manager if global.managers_in_team=true)
 local Public = {}
 
---global.viewing_inventories={ --Cumulatives GUI :  target(player) + north(team) + south(team), (init.lua for initialisation)
-	--["sourcename"]={
-	--					["target"]={ ["name"]="targetname", ["position"]={pos.x,pos.y} }, 
-	--					["north"] ={ ["active"]=true/false, ["inventory"]=true/false, ["position"]={pos.x,pos.y} },
-	--					["south"] ={ ["active"]=true/false, ["inventory"]=true/false, ["position"]={pos.x,pos.y} }
-	--				},
---}
---global.vi=global.viewing_inventories--REMOVE--
+global.sorting_inventory={ --Sorting important/primordial items in inventories (so they dont go in tooltip or too far in the list)
+	--Actually this table reached the max #items (column*2-1=19)
+	["grenade"]=true,
+	["poison-capsule"]=true,
+	["slowdown-capsule"]=true,
+	["raw-fish"]=true,
+	["stone-wall"]=true,
+	["stone-brick"]=true,
+	["radar"]=true,
+	["gun-turret"]=true,
+	["flamethrower-turret"]=true,
+	["coal"]=true,
+	["iron-plate"]=true,
+	["copper-plate"]=true,
+	["steel-plate"]=true,
+	["iron-gear-wheel"]=true,
+	["electronic-circuit"]=true,
+	["automation-science-pack"] = true,
+	["logistic-science-pack"] = true,
+	["military-science-pack"] = true,
+	["chemical-science-pack"] = true--,
+	--["production-science-pack"] = true,
+	--["utility-science-pack"] = true,
+	--["space-science-pack"] = true
+}
+
+--[[global.viewing_inventories={ --Cumulatives GUI :  target(player) + north(team) + south(team), (init.lua for initialisation)
+	["sourcename"]={
+						["target"]={ ["name"]="target_name", ["position"]={pos.x,pos.y} }, 
+						["north"] ={ ["active"]=true/false, ["inventory"]=true/false, ["position"]={pos.x,pos.y} },
+						["south"] ={ ["active"]=true/false, ["inventory"]=true/false, ["position"]={pos.x,pos.y} }
+					},
+}]]--
+
 local function validate_object(obj)
     if not obj then return false end
     if not obj.valid then return false end
@@ -36,7 +63,6 @@ end
 
 --EVL Check if global.viewing_inventories[source][target][mode] exists : target="target/north/south", mode="target/position  or  active/inventory/position"
 local function validate_viewing_inv(source,target,mode)
-	--game.print(" entering validate_viewing_inv("..source..","..target..","..mode..")")
 	if not global.viewing_inventories[source] then
 		--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return FALSE (no source) ["..source.."]["..target.."]["..mode.."]") end
 		return false
@@ -47,42 +73,32 @@ local function validate_viewing_inv(source,target,mode)
 	end
 	if target=="target" and mode=="name" then
 		if not global.viewing_inventories[source][target]["name"] then -- or global.viewing_inventories[source][target]["name"]=="" then 
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return FALSE (no name) ["..source.."]["..target.."]["..mode.."]") end
 			return false
 		else
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return TRUE ["..source.."]["..target.."]["..mode.."]="..global.viewing_inventories[source][target]["name"]) end
 			return true
 		end
 	elseif target=="target" and mode=="position" then
 		if not global.viewing_inventories[source][target]["position"] then 
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return FALSE (no position) ["..source.."]["..target.."]["..mode.."]") end
 			return false
 		else
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return TRUE ["..source.."]["..target.."]["..mode.."]="..global.viewing_inventories[source][target]["position"].x..","..global.viewing_inventories[source][target]["position"].y..")") end
 			return true
 		end
 	elseif (target=="north" or target=="south") and mode=="active" then
 		if not global.viewing_inventories[source][target]["active"] then 
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return FALSE (not active) ["..source.."]["..target.."]["..mode.."]") end
 			return false
 		else
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return TRUE ["..source.."]["..target.."]["..mode.."]="..tostring(global.viewing_inventories[source][target]["active"])) end
 			return true
 		end
 	elseif (target=="north" or target=="south") and mode=="inventory" then
 		if not global.viewing_inventories[source][target]["inventory"] then 
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return FALSE (not active) ["..source.."]["..target.."]["..mode.."]") end
 			return false
 		else
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return TRUE ["..source.."]["..target.."]["..mode.."]="..tostring(global.viewing_inventories[source][target]["inventory"])) end
 			return true
 		end
 	elseif (target=="north" or target=="south") and mode=="position" then
 		if not global.viewing_inventories[source][target]["position"] then 
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return FALSE (not active) ["..source.."]["..target.."]["..mode.."]") end
 			return false
 		else
-			--if global.bb_debug_gui then game.print("DEBUGUI validate_viewing_inv return TRUE ["..source.."]["..target.."]["..mode.."]=("..global.viewing_inventories[source][target]["position"].x..","..global.viewing_inventories[source][target]["position"].y..")") end
 			return true
 		end
 	end
@@ -92,21 +108,16 @@ end
 
 --EVL Check if global.viewing_inventories[source][target][mode] exists and set the _value for target="target/north/south", mode="target/position  or  active/inventory/position"
 local function set_viewing_inv(source,target,mode,_value)
-	--game.print("Entering  set_viewing_inv "..source.."   "..target.."   "..mode.."   "..tostring(_value))
 	if not global.viewing_inventories[source] then 
-		--if global.bb_debug_gui then game.print("DEBUGUI set_viewing_inv : source["..source.."] does not exist... --> creation ") end
 		global.viewing_inventories[source]={} 
 	end
 	if not global.viewing_inventories[source][target] then
-		--if global.bb_debug_gui then game.print("DEBUGUI set_viewing_inv : target["..target.."] does not exist... --> creation ") end
 		global.viewing_inventories[source][target]={} 
 	end
 	if not global.viewing_inventories[source][target][mode] then
 		global.viewing_inventories[source][target][mode]=_value
-		--if global.bb_debug_gui then game.print("DEBUGUI set_viewing_inv : ["..source.."]["..target.."]["..mode.."]="..tostring(_value).." --> created") end
 	else
 		global.viewing_inventories[source][target][mode]=_value
-		--if global.bb_debug_gui then game.print("DEBUGUI set_viewing_inv : ["..source.."]["..target.."]["..mode.."]="..tostring(_value).." --> updated ") end
 	end
 end
 --EVL Check if global.viewing_inventories exists and get a value for player,target="target/north/south",mode="target/position  or  active/inventory/position"
@@ -123,7 +134,6 @@ local function get_viewing_inv(source,target,mode) --global.viewing_inventories[
 		if global.bb_debug_gui then game.print("DEBUGUI get_viewing_inv : ["..source.."]["..target.."]["..mode.."]=nil ... IS THAT OK ?????????") end
 		return false
 	else
-		--if global.bb_debug_gui then game.print("DEBUGUI get_viewing_inv : ["..source.."]["..target.."]["..mode.."]="..tostring(global.viewing_inventories[source][target][mode]).."  SUCCESS !") end
 		return global.viewing_inventories[source][target][mode]
 	end
 	if global.bb_debug_gui then game.print("DEBUGUI get_viewing_inv : ["..source.."]["..target.."]["..mode.."]... FAILED !!!!!") end
@@ -132,7 +142,6 @@ end
 --EVL Clear/Destroy all inventories (on_pre_player_left & on force-map-reset & on starting sequence // but not needed on reroll)
 function Public.destroy_all_inventories()
 	for _source,_ in pairs(global.viewing_inventories) do
-		--game.print("source=".._source)
 		local source=game.players[_source]
 		if not validate_player(source) then
 			if global.bb_debug_gui then game.print("DEBUGUI : <<on_pre_player_left_game>> Source (".._source..") is not valid") end --EVL
@@ -141,8 +150,6 @@ function Public.destroy_all_inventories()
 			if not validate_object(screen) then
 				if global.bb_debug_gui then game.print("DEBUGUI : <<on_pre_player_left_game>> gui.screen is not valid") end --EVL
 			else
-				--Haavy weapon, we dont check what is opened is global.viewing_inventories, we search for GUIs and destroy them
-				
 				--is source viewing a player inventory ?
 				local inventory_gui = screen.inventory_gui
 				if inventory_gui then
@@ -171,12 +178,11 @@ end
 
 --EVL Close the inventory via Close_button
 function Public.close_inventory(source,target)
-	--if global.bb_debug_gui then game.print("DEBUGUI close_inventory called for source="..source.name.." viewing "..target) end	
 	local source_name=source.name
+	if global.bb_debug_gui then game.print("DEBUGUI entering close_inventory") end
 	if target=="target" then --Closing player inventory
 		if validate_viewing_inv(source_name,"target","name") then
 			local screen = source.gui.screen
-			--local screen = player.gui.center
 			if not validate_object(screen) then 
 				if global.bb_debug_gui then game.print("DEBUGUI close_inventory screen is not valid for "..source_name) end
 				return 
@@ -187,13 +193,11 @@ function Public.close_inventory(source,target)
 				return
 			end
 			local target_name=get_viewing_inv(source.name,"target","name")
-			if global.bb_debug_gui then game.print("DEBUGUI : Closing inventory of "..target_name.." asked by "..source_name..".") end
 			set_viewing_inv(source_name,"target","name",nil)
 			inventory_gui.destroy()	 
 		else
 			if global.bb_debug_gui then game.print("DEBUGUI close_inventory : validate_viewing_inv("..source_name..",'target',name) is FALSE...") end
 		end
-		return
 	elseif target=="north" or target=="south" then --Closing team inventory
 		if validate_viewing_inv(source_name,target,"active") then
 			local screen = source.gui.screen
@@ -207,7 +211,6 @@ function Public.close_inventory(source,target)
 				if global.bb_debug_gui then game.print("DEBUGUI close_inventory : "..target.."_inv_gui is not valid for "..source_name) end
 				return
 			end
-			if global.bb_debug_gui then game.print("DEBUGUI : Closing "..target.."_inv_gui of "..target.." force asked by "..source_name..".") end
 			set_viewing_inv(source_name,target,"active",nil)
 			force_inv_gui.destroy()	 
 		else
@@ -215,38 +218,6 @@ function Public.close_inventory(source,target)
 		end
 	else
 		if global.bb_debug_gui then game.print("DEBUGUI close_inventory("..source_name..") has wrong target="..tostring(target)) end
-	end
-end
-
---EVL Close ALL INVENTORIES before player leaves game (do we really need this ? desync ???)
---Also saves force of disconnected player and send back spec-god to spectator (island)
-local function on_pre_player_left_game(event)
-	local player = game.players[event.player_index]
-	local player_name=player.name
-
-	--EVL Store that one player has disconnected (so we can get his inventory back)
-	if player.force.name=="north" or player.force.name=="south" then
-		if global.disconnected[player.name] then
-			if global.bb_debug then game.print("Debug <<on_pre_player_left_game>> "..player.name.."already in disconnected players (force="..player.force.name..")")  end--REMOVE--
-			global.disconnected[player.name]=player.force.name
-		else
-			global.disconnected[player.name]=player.force.name
-			if global.bb_debug then game.print("Debug <<on_pre_player_left_game>> add "..player.name.." in disconnected players (force="..player.force.name..")")  end--REMOVE--
-		end
-	end		
-	--if global.bb_debug_gui then game.print("DEBUGUI : <<on_pre_player_left_game>>  clear all inventory GUIs (debug desyunc).") end --EVL
-	
-	
-
-	--EVL switch back spec/god to spec/real before leaving
-	if global.god_players[player_name] and global.god_players[player_name] == true then
-		player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-		player.create_character()
-		player.force = game.forces["spectator"]
-		player.zoom=0.30
-		player.show_on_map=true  -- EVL restore dots on map view for players and spectators (new in 1.1.47)
-		global.god_players[player_name] = nil
-		if global.bb_debug then game.print("DEBUG: <<on_pre_player_left_game>> " ..player_name .. " is leaving, switches back to real mode.") end
 	end
 end
 
@@ -418,20 +389,24 @@ local function draw_team_inventory(force_inv_gui, force, inventory_mode)
 	local types = game.item_prototypes  --EVL used to show tooltip in buttons
 	
 	--TTTLE CAPTION : Team name + Switch show/hide
-	local _caption = "Team "..force.." [font=default-small][color=#999999] - "
+	local _caption = "Team "..force.." [font=default][color=#999999] - "
 	if global.tm_custom_name[force] then 
-		_caption = global.tm_custom_name[force].." [font=default-small][color=#999999]("..force..") - "
+		_caption = global.tm_custom_name[force].." [font=default][color=#999999]("..force..") - "
 	end	
-	local switch_str="show"
-	if inventory_mode then switch_str="hide" end
-	_caption = _caption.."Click again on team to "..switch_str.." inventories.[/color][/font]"
+	local switch_str="[/color][/font] [font=default-large-bold][color=#88EE88]¡[/color][/font] [font=default][color=#999999]to show"
+	if inventory_mode then switch_str="[/color][/font] [font=default-large-bold][color=#CC7777]![/color][/font] [font=default][color=#999999]to hide" end
+	_caption = _caption.."Click on "..switch_str.." inventories (right to team name).[/color][/font]"
 	force_inv_gui.caption=_caption
 	
 	--LIST OF PLAYERS IN TEAM
 	local target_list={}
 	for _,target in pairs(game.forces[force].connected_players) do
 		if target.character then -- to be sure, probably needed when player died
-			table.insert(target_list,target.name)
+			if global.viewing_technology_gui_players[target.name] or (global.manager_table[force] and target.name==global.manager_table[force]) then
+				--Skip player (not really in the team, just viewing technology tree gui or manager)
+			else
+				table.insert(target_list,target.name)
+			end
 		end
 	end
 	if table_size(target_list)==0 then
@@ -461,16 +436,13 @@ local function draw_team_inventory(force_inv_gui, force, inventory_mode)
 		close_inventory.style.padding = -4	
 		return
 	end
-	--[[
-	if #target_list==1 then
-		table.insert(target_list,target_list[1])
-	end
-	if #target_list==2 then
-		table.insert(target_list,target_list[2])
-	end
-	]]
 	--DRAWING OF CRAFTS/INFOS(name, hp, armor, guns, ammos, cursor, etc.)/INVENTORIES
 	local _columns=10 --maximum 2 lines ie (10*2-1) crafts/inventory
+	if table_size(global.sorting_inventory)>(_columns*2-1) then --#global.sorting_inventory is limited by (_columns*2-1) because of tooltip
+		--We may loose some items in inventory (very unlikely but still can happen)
+		if global.bb_debug_gui then game.print("DEBUGUI draw_team_inventory : global.sorting_inventory has too much items...") end
+	end
+	
 	for _index,target_name in pairs(target_list) do
 		local target=game.players[target_name]
 		
@@ -536,7 +508,7 @@ local function draw_team_inventory(force_inv_gui, force, inventory_mode)
 		if target.character then
 			target_health=math.floor(target.character.health)
 		else
-			game.print("Debug : "..target_name.." is not a character (in draw_team_inventory)")
+			game.print("Debug : "..target_name.." is not a character (in draw_team_inventory).")
 		end
 		if target_health<50 then
 			target_health='[font=default-bold][color=#DD0000]'..target_health..'HP[/color][/font]'
@@ -568,7 +540,8 @@ local function draw_team_inventory(force_inv_gui, force, inventory_mode)
 		--EVL place buttons on first line then label "Craft▲\nInv▼" on other lines
 		if _index==1 then
 			--EVL REFRESH Button
-			local refresh_inventory  = info_line.add({type = "button", name = "team_inventory_refresh_"..force, caption = "®", tooltip = "Refresh inventories."})
+			local refresh_inventory  = info_line.add({type = "button", name = "team_inventory_refresh_"..force, caption = "®",
+				tooltip = "Refresh inventories.\n[color=#888888]May not work manually...[/color]"})
 			refresh_inventory.style.font = "heading-1"
 			refresh_inventory.style.font_color = {50, 250, 50}
 			refresh_inventory.style.height = 24
@@ -576,7 +549,11 @@ local function draw_team_inventory(force_inv_gui, force, inventory_mode)
 			refresh_inventory.style.width = 24
 			refresh_inventory.style.padding = -4
 			--EVL CLOSE Button
-			local close_inventory  = info_line.add({type = "button", name = "team_inventory_close_"..force, caption = "X", tooltip = "Close inventories."})
+			local close_inventory  = info_line.add({type = "button", name = "team_inventory_close_"..force, caption = "X",
+				tooltip = "Supposed to close inventories :/ [color=#888888]Debug in progress...[/color]\n"
+					.."[color=#BB8888]Click again on team name to close.[/color]\n"
+					.."[color=#FF8888]Type command <</close-screens>> in last resort.[/color]"
+			})
 			close_inventory.style.font = "heading-2"
 			close_inventory.style.font_color = {250, 50, 50}
 			close_inventory.style.height = 24
@@ -603,23 +580,10 @@ local function draw_team_inventory(force_inv_gui, force, inventory_mode)
 			if table_size(main_inventory)>0 then
 				local index_inv=0
 				local index_tooltip_inv=0
-				for recipe, count in pairs(main_inventory) do
-					index_inv=index_inv+1
-					if index_inv==_columns*2 then 
-						more_inv=main_inventory_table.add({type = 'label', caption='[color=#99FF99]and\nmore[/color]'})
-						more_inv.style.horizontal_align="center"
-						more_inv.style.single_line = false
-						inventory_tooltip = true
-					end				
-					if inventory_tooltip then
-						--if count>9 then count="  "..count end
-						inventory_tooltip_str=inventory_tooltip_str..count..'x [item='..recipe..']        '
-						index_tooltip_inv=index_tooltip_inv+1
-						if index_tooltip_inv==3 then
-							index_tooltip_inv=0
-							inventory_tooltip_str=inventory_tooltip_str.."\n"
-						end
-					else
+				--First items ordered
+				for recipe,_ in pairs(global.sorting_inventory) do
+					if main_inventory[recipe] then --and main_inventory_table[recipe]>0 then
+						index_inv=index_inv+1 --table_size of global.sorting_inventory is limited by (_columns*2-1)
 						local flow = main_inventory_table.add({type = 'flow'})
 						flow.style.vertical_align = 'bottom'
 						local button =
@@ -627,13 +591,49 @@ local function draw_team_inventory(force_inv_gui, force, inventory_mode)
 							{
 								type = 'sprite-button',
 								sprite = 'item/' .. recipe,
-								number = count,
-								name = recipe,
+								number = main_inventory[recipe],
+								--name = recipe,
 								tooltip = types[recipe].localised_name,
 								style = 'slot_button'
 							}
 						)
 						button.enabled = false
+					end
+				end
+				--Remaining items				
+				for recipe, count in pairs(main_inventory) do
+					if not global.sorting_inventory[recipe] then
+						index_inv=index_inv+1
+						if index_inv==_columns*2 then 
+							more_inv=main_inventory_table.add({type = 'label', caption='[color=#99FF99]and\nmore[/color]'})
+							more_inv.style.horizontal_align="center"
+							more_inv.style.single_line = false
+							inventory_tooltip = true
+						end				
+						if inventory_tooltip then
+							--if count>9 then count="  "..count end
+							inventory_tooltip_str=inventory_tooltip_str..count..'x [item='..recipe..']        '
+							index_tooltip_inv=index_tooltip_inv+1
+							if index_tooltip_inv==3 then
+								index_tooltip_inv=0
+								inventory_tooltip_str=inventory_tooltip_str.."\n"
+							end
+						else
+							local flow = main_inventory_table.add({type = 'flow'})
+							flow.style.vertical_align = 'bottom'
+							local button =
+								flow.add(
+								{
+									type = 'sprite-button',
+									sprite = 'item/' .. recipe,
+									number = count,
+									name = recipe,
+									tooltip = types[recipe].localised_name,
+									style = 'slot_button'
+								}
+							)
+							button.enabled = false
+						end
 					end
 				end
 				if inventory_tooltip then more_inv.tooltip=inventory_tooltip_str end
@@ -711,7 +711,8 @@ local function draw_inventory(inventory_gui, target)
 
 	cursor_stack_table.add({type = 'label', caption='          '})--Separator
 	--EVL REFRESH Button
-	local refresh_inventory  = cursor_stack_table.add({type = "button", name = "inventory_refresh", caption = "®", tooltip = "Refresh inventory."})
+	local refresh_inventory  = cursor_stack_table.add({type = "button", name = "inventory_refresh", caption = "®",
+		tooltip = "Refresh inventory.\n[color=#888888]May not work manually...[/color]"})
 	refresh_inventory.style.font = "heading-1"
 	refresh_inventory.style.font_color = {50, 250, 50}
 	refresh_inventory.style.height = 24
@@ -719,32 +720,58 @@ local function draw_inventory(inventory_gui, target)
 	refresh_inventory.style.padding = -4
 	cursor_stack_table.add({type = 'label', caption=' '})--Separator
 	--EVL CLOSE Button
-	local close_inventory  = cursor_stack_table.add({type = "button", name = "inventory_close", caption = "X", tooltip = "Close inventory."})
+	local close_inventory  = cursor_stack_table.add({type = "button", name = "inventory_close", caption = "X",
+		tooltip = "Supposed to close inventory :/ [color=#888888]Investigation in progress...[/color]\n"
+			.."[color=#BB8888]Try to click again on the player name.[/color]\n"
+			.."[color=#FF8888]Type command <</close-screens>> in last resort.[/color]"
+	})
 	close_inventory.style.font = "heading-2"
 	close_inventory.style.font_color = {250, 50, 50}
 	close_inventory.style.height = 24
 	close_inventory.style.width = 24
 	close_inventory.style.padding = -4
-	
+
 	--EVL Insert Main Inventory
 	local main_inventory = target.get_main_inventory().get_contents()
 	local main_inventory_table = inventory_gui.add({type = 'table', column_count = 10}) 
 	if table_size(main_inventory)>0 then
+		--First items ordered
+		for recipe,_ in pairs(global.sorting_inventory) do
+			if main_inventory[recipe] then
+				local flow = main_inventory_table.add({type = 'flow'})
+				flow.style.vertical_align = 'bottom'
+				local button =
+					flow.add(
+					{
+						type = 'sprite-button',
+						sprite = 'item/' .. recipe,
+						number = main_inventory[recipe],
+						--name = recipe,
+						tooltip = types[recipe].localised_name,
+						style = 'slot_button'
+					}
+				)
+				button.enabled = false
+			end
+		end
+		--Remaining items
 		for recipe, count in pairs(main_inventory) do
-			local flow = main_inventory_table.add({type = 'flow'})
-			flow.style.vertical_align = 'bottom'
-			local button =
-				flow.add(
-				{
-					type = 'sprite-button',
-					sprite = 'item/' .. recipe,
-					number = count,
-					--name = recipe,
-					tooltip = types[recipe].localised_name,
-					style = 'slot_button'
-				}
-			)
-			button.enabled = false
+			if not global.sorting_inventory[recipe] then
+				local flow = main_inventory_table.add({type = 'flow'})
+				flow.style.vertical_align = 'bottom'
+				local button =
+					flow.add(
+					{
+						type = 'sprite-button',
+						sprite = 'item/' .. recipe,
+						number = count,
+						--name = recipe,
+						tooltip = types[recipe].localised_name,
+						style = 'slot_button'
+					}
+				)
+				button.enabled = false
+			end
 		end
 	else
 		local main_inventory_info = main_inventory_table.add({type = 'label', caption='[font=default-small][color=#999999](inventory is empty)[/color][/font]'})
@@ -771,13 +798,17 @@ local function draw_inventory(inventory_gui, target)
 	armor_guns_inventory_table.add({type = 'label', caption='           '})
 	--Draw Ammunition
 	draw_ammo(armor_guns_inventory_table,target)
-	--game.print("END OF draw_inventory",color={r = 1, g = 0.2, b = 0.2}) --REMOVE--
 
 end
 
 --EVL Create/Destroy frame force_inv_gui --force can be "north" or "south"
 local function inventory_force(source, force)
-	--game.print("entering inventory_force for "..source.name.." viewing team "..force)
+	if Functions.get_nb_players(force)==0 then
+		source.print(">>>>> No player found in force "..force..".", {r = 175, g = 0, b = 0})
+		source.play_sound{path = global.sound_error, volume_modifier = 0.8}			
+		return
+	end
+	--searching and testing gui.screen
 	local screen = source.gui.screen
     if not validate_object(screen) then
 		if global.bb_debug_gui then game.print("DEBUGUI : gui.screen is not valid in inventory_force ("..source.name..","..force..")") end --EVL
@@ -786,41 +817,17 @@ local function inventory_force(source, force)
 	local source_name=source.name
 	local gui_name=force.."_inv_gui"
 	local force_inv_gui = screen[gui_name]
-	-- EVL Click again on same team will first active/deactive inventories (then return)
-	if validate_viewing_inv(source_name,force,"active") then 
-		if not validate_object(force_inv_gui) then 
-			if global.bb_debug_gui then game.print("DEBUGUI : Can't find the force_inv_gui of "..source_name.." opened for force="..force..".") end
-			set_viewing_inv(source_name,force,"active",nil)
-			return 
-		end
-		local inventory_mode=false
-		if validate_viewing_inv(source_name,force,"inventory") then
-			set_viewing_inv(source_name,force,"inventory",nil)
-		else
-			set_viewing_inv(source_name,force,"inventory",true)
-			inventory_mode=true
-		end
-		--if global.bb_debug_gui then game.print("DEBUGUI : Switching inventory ON/OFF "..force.."_inv_gui asked by "..source_name) end
-		force_inv_gui.clear()
-		draw_team_inventory(force_inv_gui, force, inventory_mode)
-		source.play_sound{path = global.sound_low_bip, volume_modifier = 1}		
-		return 
-	end	
-	if #game.forces[force].connected_players==0 then
-		if global.bb_debug_gui then game.print("DEBUGUI : No player found in force "..force..".") end
-		source.print(">>>>> No player found in force "..force..".", {r = 175, g = 0, b = 0})
-		source.play_sound{path = global.sound_error, volume_modifier = 0.8}			
-		return
-	end
+	
 	-- EVL Clear force_inv_gui if exists (but should not happen)
 	if validate_object(force_inv_gui) then 
-		if global.bb_debug_gui then game.print("DEBUGUI : Closing "..force.."_inv_gui (should never happen !!!!!) for "..source_name) end
+		if global.bb_debug_gui then game.print("DEBUGUI : Closing <<force_inv_gui>> via open_close_inv_"..force.." for "..source_name) end
 		force_inv_gui.destroy()
 		set_viewing_inv(source_name,force,"active",nil)
+		return
 	end
 	--EVL OK good to create force_inv_gui
 	--force_inv_pane = screen.add({type = "scroll-pane", name = force.."_inv_pane", caption = "Inventories of team "..force, direction = "vertical", horizontal_scroll_policy="always", vertical_scroll_policy="always"})
-	--force_inv_gui = force_inv_pane.add({type = "frame", name = gui_name, caption = "Inventories of team "..force})
+	--force_inv_gui = force_inv_pane.add({type = "frame", name = gui_name, caption = "Inventories of team "..force})--DEBUG-- could change these to scroll-panes
 	force_inv_gui = screen.add({type = "frame", name = gui_name, caption = "Inventories of team "..force, direction = "vertical"})	
 	force_inv_gui.style.minimal_width = 460
 	--force_inv_gui.style.maximal_width = 460
@@ -842,7 +849,6 @@ local function inventory_force(source, force)
 		local display_y=source.display_resolution.height-925
 		if display_y<0 then display_y=0 end
 		--game.print("screen=("..display_x..","..display_y..")")-- gui=("..force_inv_gui.style.natural_width..","..force_inv_gui.style.natural_height..")")
-		--force_inv_gui.location={500,500}
 		if force=="north" then
 			force_inv_gui.location={10,display_y}
 		else
@@ -870,18 +876,16 @@ function Public.open_inventory(source, target)
 		source.play_sound{path = global.sound_error, volume_modifier = 0.8}			
 		return
 	end
+	--Go to team inventory if target==north or south
 	if target=="north" or target=="south" then
 		--Open team inventory
 		inventory_force(source, target)
 		return
 	end
-	
 	if not(validate_player(target)) then
 		if global.bb_debug_gui then game.print("DEBUGUI : Target ("..target.name..") is not valid") end --EVL
 		return
     end
-
-    
 	local screen = source.gui.screen
     if not validate_object(screen) then
 		if global.bb_debug_gui then game.print("DEBUGUI : gui.screen is not valid") end --EVL
@@ -959,7 +963,6 @@ local function update_inventory_gui(event)
 		end
 		--is source viewing force inventory ?
 		if validate_viewing_inv(_source,target_force,"active") then		
-			--if global.bb_debug_gui then game.print("DEBUGUI : Updating force_inventory : ".._source.." viewing "..target_force) end
 			this_source=game.players[_source]
 			if not(validate_player(this_source)) then
 				if global.bb_debug_gui then game.print("DEBUGUI update_inventory : Source (".._source..") is not valid") end
@@ -989,7 +992,6 @@ local function on_gui_location_changed(event)
 	local source=game.players[event.player_index]
 	local source_name=source.name
 	local location=event.element.location
-	--game.print(source_name.." ("..gui_name..") force="..force_name.." changed to ("..event.element.location.x..","..event.element.location.y..")")--REMOVE--
 	if gui_name=="inventory_gui" then
 		set_viewing_inv(source_name,"target","position",location)
 	elseif gui_name=="north_inv_gui" then
@@ -1001,8 +1003,8 @@ end
 
 --EVL Refresh the inventory via Refresh_button
 function Public.refresh_inventory(source,target)
-	--game.print("DEBUGUI : Refresh inventory called for "..source.name.." viewing "..target)
 	local source_name=source.name
+	if global.bb_debug_gui then game.print("DEBUGUI entering refresh_inventory") end
 	local screen = source.gui.screen
 	if not validate_object(screen) then
 		if global.bb_debug_gui then game.print("DEBUGUI : Refresh inventory : can't find gui.screen for "..source_name) end
@@ -1027,6 +1029,7 @@ function Public.refresh_inventory(source,target)
 		--OK we're good
 		inventory_gui.clear()
 		draw_inventory(inventory_gui, this_target)
+
 	elseif target=="north" or target=="south" then
 		local gui_name=target.."_inv_gui"
 		local force_inv_gui = screen[gui_name]
@@ -1034,7 +1037,6 @@ function Public.refresh_inventory(source,target)
 			if global.bb_debug_gui then game.print("DEBUGUI Refreshing inventory : "..target.."_inv_gui is not valid for "..source_name) end
 			return
 		end
-
 		if not validate_viewing_inv(source_name,target,"active") then
 			if global.bb_debug_gui then game.print("DEBUGUI refresh_inventory : cannot find inventory of "..source_name.." viewing "..target..".") end
 			return
@@ -1047,67 +1049,151 @@ function Public.refresh_inventory(source,target)
 		force_inv_gui.clear()
 		draw_team_inventory(force_inv_gui, target, inventory_mode)
 	else
-		if global.bb_debug_gui then game.print("DEBUGUI : Refresh inventory : target  is not valid ("..tostring(target)..").") end
-		return
+		if global.bb_debug_gui then game.print("DEBUGUI : Refresh inventory : target is not valid ("..tostring(target)..").") end
 	end
+	if global.bb_debug_gui then game.print("DEBUGUI end of refresh_inventory()") end
 end
 
-
---EVL Close all guis in player.gui.screen (until bug due to deco/reco is fixed)
-function Public.close_all_screens()
+--EVL Clearing all screen.guiS of LUAplayer
+local function close_player_all_screens(source)
+	if global.bb_debug_gui then 
+			game.print("DEBUGUI: entering close_all_player_screens.", {r=0.98, g=0.66, b=0.22})
+		end
+	if not source.valid then 
+		if global.bb_debug_gui then 
+			game.print("DEBUGUI: in close_all_player_screens >> Source is not valid.", {r=0.98, g=0.66, b=0.22})
+		end
+		return "error     "
+	end
 	local _str_close=""
-	for _, source in pairs(game.players) do
-		local source_name=source.name
-		for _, child in pairs(source.gui.screen.children) do
-			local child_name=child.name
-			if child_name=="inventory_gui" then
-				if validate_viewing_inv(source_name,"target","name") then
-					_str_close=_str_close..source_name.."(T):"..child_name.." killed    "
-					set_viewing_inv(source_name,"target","name",nil)
-					child.destroy()
-				else
-					_str_close=_str_close..source_name.."(T):"..child_name.." killed(not registered)    "
-					child.destroy()
-				end
-			elseif child_name=="north_inv_gui" then
-				if validate_viewing_inv(source_name,"north","active") then
-					_str_close=_str_close..source_name.."(N):"..child_name.." killed    "
-					set_viewing_inv(source_name,"north","active",nil)
-					child.destroy()
-				else
-					_str_close=_str_close..source_name.."(N):"..child_name.." killed(not registered)    "
-					child.destroy()
-				end
-			elseif child_name=="south_inv_gui" then
-				if validate_viewing_inv(source_name,"south","active") then
-					_str_close=_str_close..source_name.."(S):"..child_name.." killed    "
-					set_viewing_inv(source_name,"south","active",nil)
-					child.destroy()
-				else
-					_str_close=_str_close..source_name.."(S):"..child_name.." killed(not registered)    "
-					child.destroy()
-				end
+	local source_name=source.name
+	for _, child in pairs(source.gui.screen.children) do
+		local child_name=child.name
+		if child_name=="inventory_gui" then
+			if validate_viewing_inv(source_name,"target","name") then
+				_str_close=_str_close..source_name.."(T):"..child_name.." killed    | "
+				set_viewing_inv(source_name,"target","name",nil)
+				child.destroy()
 			else
-				_str_close=_str_close..source_name.."(?):"..child_name.."(?)killed    "
+				_str_close=_str_close..source_name.."(T):"..child_name.." killed(not rgst)    | "
 				child.destroy()
 			end
+		elseif child_name=="north_inv_gui" then
+			if validate_viewing_inv(source_name,"north","active") then
+				_str_close=_str_close..source_name.."(N):"..child_name.." killed    | "
+				set_viewing_inv(source_name,"north","active",nil)
+				child.destroy()
+			else
+				_str_close=_str_close..source_name.."(N):"..child_name.." killed(not rgst)    | "
+				child.destroy()
+			end
+		elseif child_name=="south_inv_gui" then
+			if validate_viewing_inv(source_name,"south","active") then
+				_str_close=_str_close..source_name.."(S):"..child_name.." killed    | "
+				set_viewing_inv(source_name,"south","active",nil)
+				child.destroy()
+			else
+				_str_close=_str_close..source_name.."(S):"..child_name.." killed(not rgst)    | "
+				child.destroy()
+			end
+		else
+			_str_close=_str_close..source_name.."(?):"..child_name.."(?)killed    | "
+			child.destroy()
 		end
 	end
 	return _str_close
 end
 
-commands.add_command(
-    'clear-guis',
-    'Clears all screen.guiS (no parameter).',
+--EVL Close all guis in player.gui.screen (until bug is fixed)
+function Public.close_all_screens(target_name)
+	local _str_close=""
+	local _target_name=""
+	if target_name and target_name~="" then _target_name=target_name end
+	
+	if _target_name=="all" then --1/ Clear all screen.guiS for all players
+		for _, source in pairs(game.players) do
+			_str_close=_str_close..close_player_all_screens(source).."\n"
+		end
+		return _str_close
+	elseif game.players[_target_name].valid then --2/ Clear all screen.guiS for this players
+		_str_close=_str_close..close_player_all_screens(game.players[_target_name])
+		return _str_close
+	else
+		if global.bb_debug_gui then 
+			game.play_sound{path = global.sound_error, volume_modifier = 0.8}
+			game.print("DEBUGUI: in close_all_screens >> Player ".._target_name.."/"..target_name.." does not exist.", {r=0.98, g=0.66, b=0.22})
+		end
+		return "error    "
+	end
+	return "wtf !   "
+end
+
+--EVL Close ALL INVENTORIES before player leaves game (do we really need this ? desync ???)
+--Also saves force of disconnected player and send back spec-god to spectator (island)
+local function on_pre_player_left_game(event)
+	if global.bb_debug_gui then game.print("DEBUGUI: entering <<on_pre_player_left_game>>") end
+	local player = game.players[event.player_index]
+	local player_name=player.name
+	
+	--EVL Close all inventories of that source player (up to 3)
+	if global.viewing_inventories[player_name] then
+		if global.bb_debug_gui then game.print("DEBUGUI: Player "..player_name.." is leaving, closing his inventories") end
+		local _msg=close_player_all_screens(player)
+		--global.viewing_inventories[player_name]=nil
+		if global.bb_debug_gui then game.print("DEBUGUI <<on_pre_player_left_game>> closing inventories opened by "..player_name..", result=".._msg..".") end
+	end
+
+	--EVL Store that one player has disconnected (so we can get his inventory back)
+	if player.force.name=="north" or player.force.name=="south" then
+		if global.disconnected[player.name] then
+			if global.bb_debug_gui then game.print("DEBUGUI <<on_pre_player_left_game>> "..player.name.."already in disconnected players (force="..player.force.name..")")  end
+			global.disconnected[player.name]=player.force.name
+		else
+			global.disconnected[player.name]=player.force.name
+			if global.bb_debug_gui then game.print("DEBUGUI <<on_pre_player_left_game>> add "..player.name.." in disconnected players (force="..player.force.name..")")  end
+		end
+	end		
+	
+	--EVL switch back spec/god to spec/real before leaving
+	if global.god_players[player_name] and global.god_players[player_name] == true then
+		player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
+		player.create_character()
+		player.force = game.forces["spectator"]
+		player.zoom=0.30
+		player.show_on_map=true  -- EVL restore dots on map view for players and spectators (new in 1.1.47)
+		global.god_players[player_name] = nil
+		if global.bb_debug_gui then game.print("DEBUGUI: <<on_pre_player_left_game>> " ..player_name .. " is leaving, switches back to real mode.") end
+	end
+end
+
+commands.add_command('close-screens','Closes player or all screen.guiS (parameter = none or <<all>>).',
 	function(cmd) 
-		_msg=Public.close_all_screens()
-		game.print("Cleared all screen.guiS, result : \n".._msg, {r = 250, g = 250, b = 50})
+		local _player_index = cmd.player_index
+		local _player = game.players[_player_index] --EVL enough of testing player, it must be ok all the time :)
+		local _param
+		if cmd.parameter then _param=cmd.parameter end
+		if not(_param) or _param=="" then --Clear player screen GUIs
+			_msg=Public.close_all_screens(_player.name)
+			_player.print(">>>>> Cleared only your screen.guiS.", {r = 250, g = 250, b = 50})
+			_player.play_sound{path = global.sound_success, volume_modifier = 0.8}
+		elseif string.lower(cmd.parameter)=="all" then --Clear all screen GUIs(ifadmin, if not clear only player guis)
+			if _player.admin then 
+				_msg=Public.close_all_screens("all")
+				--game.print(">>>>> Cleared all screen.guiS, result : \n".._msg, {r = 250, g = 250, b = 50})
+				game.print(">>>>> Cleared all screen.guiS.", {r = 250, g = 250, b = 50})
+			else
+				_msg=Public.close_all_screens(_player.name)
+				_player.print(">>>>> Only admins can clear all screen.guiS. Clearing only yours.", {r = 250, g = 50, b = 50})
+			end
+		else --Clear player GUIs
+			_msg=Public.close_all_screens(_player.name)
+			_player.print(">>>> Parameter is not accurate, assuming you wanted to clear only your screen.guiS !", {r = 250, g = 50, b = 50})
+			_player.play_sound{path = global.sound_error, volume_modifier = 0.8}
+		end
 	end
 )
 
-commands.add_command(
-    'inventory',
-    'Opens a players inventory (deprecated).',
+commands.add_command('inventory','Opens a players inventory (deprecated).',
 	function(cmd)
 		local player = game.player
 		player.print(">>>>> Sorry, this command has been deprecated, click on a player or team name to open crafts & inventory.", Color.warning) 

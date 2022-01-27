@@ -7,6 +7,7 @@ local feed_the_biters = require "maps.biter_battles_v2.feeding" --EVL to use wit
 local bb_config = require "maps.biter_battles_v2.config" --EVL need  bb_config.spawn_manager_pos to switch managers to their spot
 local Score = require "comfy_panel.score" --EVL (none) used to init scores (so ne need to call init each time scores are used)
 --local show_inventory = require 'modules.show_inventory_bbc' --EVL(none) used to close inventories opened when transfering inv from player disco --TODO--????
+local Functions = require "maps.biter_battles_v2.functions" --EVL (none) used to find real number of players (ie removing manager if global.managers_in_team=true)
 
 local forces = {
 	{name = "north", color = {r = 0, g = 0, b = 200}},
@@ -35,7 +36,7 @@ local function get_player_array(force_name)
 		else --player not connected
 			if (force_name=="north" or force_name=="south") and (_force==force_name) then
 				--Player is in a team but deconnected
-				--game.print("debug:found disconnected player : ".._name.. "(force=".._force..")") --REMOVE--
+				--game.print("debug:found disconnected player : ".._name.. "(force=".._force..")")
 				a[#a + 1] = _name..":D"
 			end	
 		end
@@ -105,6 +106,15 @@ function Public.unfreeze_players()
 			p.set_allows_action(defines.input_action[action_name], true)
 		end
 	end
+	if global.difficulty_vote_index==1 then --EVL Set BluePrint authorisations
+		--Biter league
+		p.set_allows_action(defines.input_action.open_blueprint_library_gui, true)
+		p.set_allows_action(defines.input_action.import_blueprint_string, true)
+	else
+		--Behemoth league
+		p.set_allows_action(defines.input_action.open_blueprint_library_gui, false)
+		p.set_allows_action(defines.input_action.import_blueprint_string, false)
+	end	
 	--EVL Use saved time from when players were freezed to get real_played_time
 	if global.freezed_start == 999999999 then game.print("BUG : global.freezed_start = 999999999 in unfreeze players") end --useless??
 	global.freezed_time=global.freezed_time + game.ticks_played-global.freezed_start
@@ -134,7 +144,6 @@ local function get_all_inventories(player)
 	for _item,_qty in pairs (inventory) do
 		if not(_item=="modular-armor" or _item=="power-armor" or _item=="power-armor-mk2") then
 			local tmp=this_inventory.remove({name=_item, count=_qty})
-			--game.print(_item.."= ".._qty.." (removed "..tmp..")") --REMOVE--
 		end
 	end
 
@@ -145,7 +154,7 @@ local function get_all_inventories(player)
 			while this_armor_qtity>0 do
 				local this_armor=this_inventory.find_item_stack(this_armor_name)
 				if this_armor and this_armor.valid and this_armor.grid then
-					game.print("armor grid valid "..this_armor_name.." (loop="..this_armor_qtity..")")
+					if global.bb_debug_gui then game.print("DEBUGUI: armor grid valid "..this_armor_name.." (loop="..this_armor_qtity..")") end
 					local components_inv=this_armor.grid.get_contents()
 					if components_inv and table_size(components_inv)>0 then
 						for _item,_qty in pairs(components_inv) do
@@ -161,18 +170,17 @@ local function get_all_inventories(player)
 			end --while this_armor_qtity>0
 		end --for this_armor_name
 	else 
-		game.print("inventory not valid")
+		if global.bb_debug_gui then game.print("DEBUGUI: inventory not valid for "..player.name.." in get_all_inventories.") end
 	end
 
 	--Main inventory is empty, cancel craftings and hope there is no more than one inventory in ingredients of crafting list
 	
 	--Cancel crafting list (then need to count again ingredients that are back in inventory)
-	--Bug if chest-plosion, items that can go back into inventory will be spilled on ground
+	--Bug if chest-plosion, items that cannot go back into inventory will be spilled on ground
 	if player.crafting_queue_size>0 then
 		while player.crafting_queue do
 			--EVL Cancel crafting from right-to-left
 			local this = player.crafting_queue[#player.crafting_queue]
-			--game.print("debug: index="..this.index.." item="..this.recipe.." qtity="..this.count)--REMOVE--
 			player.cancel_crafting({index=this.index, count=this.count})
 		end
 		--Store ingredients from main inventory
@@ -236,7 +244,7 @@ local function get_all_inventories(player)
 	end
 	--[[EVL NOT WORKING --DEBUG--
 	--Vehicule slots
-	game.print("get_all_inventories:vehicule") --REMOVE--
+	game.print("get_all_inventories:vehicule")
 	local in_vehicle = player.get_inventory(defines.inventory.character_vehicle)
 	if in_vehicle then 
 		local vehicle_inventory = player.get_inventory(defines.inventory.character_vehicle).get_contents()
@@ -252,14 +260,14 @@ local function get_all_inventories(player)
 	end
 	]]--
 	--Anything else ???
+	if global.bb_debug_gui then game.print("DEBUGUI: get_all_inventories("..player.name..") done: "..table_size(inventory).." items found.") end
 	return inventory
 end
 
 
 local function leave_corpse(player)
-	--game.print("debug:leave_corpse(player) player="..player.name) --REMOVE--
 	if not player.character then 
-		--game.print("Debug: no character ! skip :-( (in leave corpse)") --REMOVE--
+		--game.print("Debug: no character ! skip :-( (in leave corpse)")
 		return 
 	end
 	
@@ -271,7 +279,6 @@ local function leave_corpse(player)
 		player.get_inventory(defines.inventory.character_vehicle),
 		player.get_inventory(defines.inventory.character_trash),
 	}
-	--local value=0 --REMOVE--
 	local corpse = false
 	for _, i in pairs(inventories) do
 		for index = 1, #i, 1 do
@@ -280,8 +287,6 @@ local function leave_corpse(player)
 			break
 		end
 		if corpse then
-			--game.print("debug:player.character.die() player="..player.name.." "..value) --REMOVE--
-			--value=value+1 --REMOVE--
 			player.character.die()
 			break
 		end
@@ -291,185 +296,101 @@ local function leave_corpse(player)
 	player.character = nil
 	player.set_controller({type=defines.controllers.god})
 	player.create_character()
-	--game.print("debug:END OF leave_corpse(player)") --REMOVE--	
 end
 
 local function switch_force(player_name, force_name)
-	--game.print("debug:STARTING switch_force") --REMOVE--
 	local _player_name=player_name
 	local surface = game.surfaces[global.bb_surface_name]
 	--EVL Is player disconnected ? -> going for substitution with manager ?
 	-- will put his inventory in chest(s)
-	--game.print("player in switch force: "..player_name)  --REMOVE--
 	local is_disconnected=false
 	if string.sub(_player_name,-2)==":D" then
 		is_disconnected=true
 		_player_name=string.sub(_player_name,1,string.len(_player_name)-2)
-		--game.print("debug:Switch_force >> Player " .. _player_name .. " is disconnected.", {r=0.98, g=0.66, b=0.22})	 --REMOVE--
 	end
-		--game.print("player in switch force2: "..player_name)
 	--EVL We remove tag Admin before switching force (see get_player_array above)
 	if string.sub(_player_name,1,15) == "[color="..colorAdmin.."]" then
 		_player_name=string.sub(_player_name,16,#_player_name-10)
-		--game.print("debug:switch_force >> Player " .. _player_name .. " is admin.", {r=0.98, g=0.66, b=0.22})	 --REMOVE--
 	end
-
 	if not game.players[_player_name] then 
 		if global.bb_debug_gui then 
 			game.play_sound{path = global.sound_error, volume_modifier = 0.8}
-			game.print("Debug : in switch_force >> Player " .. _player_name .. " does not exist.", {r=0.98, g=0.66, b=0.22})
+			game.print("DEBUGUI: in switch_force >> Player " .. _player_name .. " does not exist.", {r=0.98, g=0.66, b=0.22})
 		end
 		return 
 	end
 	if not game.forces[force_name] then 
 		if global.bb_debug_gui then 
 			game.play_sound{path = global.sound_error, volume_modifier = 0.8}
-			game.print("Debug : in switch_force >> Force " .. force_name .. " does not exist.", {r=0.98, g=0.66, b=0.22})
+			game.print("DEBUGUI: in switch_force >> Force " .. force_name .. " does not exist.", {r=0.98, g=0.66, b=0.22})
 		end
 		return 
 	end
 	
 	local player = game.players[_player_name]
-
 	local old_force=player.force.name
-	
-	--remove NOT when tested --CODING--
-	if is_disconnected and (old_force=="north" or old_force=="south") then --testing old_force is unnecessary --CODING--
+	--If player is disconnected, relocate inventory to chest at spawn
+	if is_disconnected and (old_force=="north" or old_force=="south") then --testing old_force is unnecessary
 		local inventory = get_all_inventories(player) --Main, cursor, crafting, ammo, gun, armor(s)(& components), trash, [vehicle not working]--TODO--
 		if table_size(inventory)>0 then
-			if global.bb_debug_gui then 
-				game.print("Debug : in switch_force disconnected player "..player.name.." will be switched to spectators and his inventory will be put in chests.", {r=0.98, g=0.66, b=0.22})
+			if global.bb_debug_gui then
+				game.print("DEBUGUI: in switch_force disconnected player "..player.name.." will be switched to spectators, translocating his inventory to chests at spawn.", {r=0.98, g=0.66, b=0.22})
 			end
 			--Remove all items from this player (should be almost done : main inventory is almost cleared, only armor/guns/ammos/trash remaining plus craftings ingredients if any)
 			player.clear_items_inside()
 			--Transfer all inventories to chests
-			Terrain.fill_disconnected_chests(surface, old_force, inventory, "inventory of disconnected player:"..player.name.." ("..old_force..").")
+			Terrain.fill_disconnected_chests(surface, old_force, inventory, "inventory of disconnected player:"..player.name.." ("..old_force..") ")
 		else
-			if global.bb_debug_gui then
-				game.print("Debug : in switch_force disconnected player "..player.name.." will be switched to spectators (inventory is empty -> skip tranlocating inventory.", {r=0.98, g=0.66, b=0.22})
-			end
+			game.print("Disconnected player: "..player.name.." will be switched (inventory is empty).", {r = 197, g = 197, b = 17})
 		end
 	end
 	player.force = game.forces[force_name]
-	
-	--game.print("debug:5555 "..player.name.."changed to force"..player.force.name)--REMOVE--
 	--EVL SET UP Score table so we dont have to test it everytime in score.lua (save ups)
 	if player.force.name=="north" or player.force.name=="south" then Score.init_player_table(player) end
-					
-	game.print(">>>>> ".._player_name .. " has been switched into team " .. force_name .. ".", {r=0.98, g=0.66, b=0.22})
-	Server.to_discord_bold(_player_name .. " has joined team " .. force_name .. "!")
+	game.print(">>>>> ".._player_name.." has been switched into team "..force_name..".", {r=0.98, g=0.66, b=0.22})
+	Server.to_discord_bold(_player_name.." has joined team "..force_name.. "!")
 	
-	if is_disconnected then
+	if is_disconnected then --DEBUG-- look closer to this (will put a corpse is disco player is moved again to side)
 		if player.character then 
-			if global.bb_debug_gui then game.print("Debug : in switch_force: ".._player_name.." IS character. Is that OK ???", {r=0.98, g=0.66, b=0.22}) end
+			if global.bb_debug_gui then game.print("DEBUGUI: in switch_force: ".._player_name.." IS character. Is that OK ???", {r=0.98, g=0.66, b=0.22}) end
 			--player.character.destroy()
 			--player.character = nil
 			--player.set_controller({type=defines.controllers.god})
 			--player.create_character()
 		else
-			if global.bb_debug_gui then game.print("Debug : in switch_force: ".._player_name.." is NOT character. Is that OK ???", {r=0.98, g=0.66, b=0.22}) end
+			if global.bb_debug_gui then game.print("DEBUGUI: in switch_force: ".._player_name.." is NOT character. Is that OK ???", {r=0.98, g=0.66, b=0.22}) end
 			--player.set_controller({type=defines.controllers.god})
 			--player.create_character()
 		end	
 		--if player.character then player.character.destroy() end	
 	else
-		leave_corpse(player) --CODING-- does this work with is_disconnected?
+		leave_corpse(player)
 	end
 	
 	global.chosen_team[_player_name] = nil	
 	if force_name == "spectator" then	
 		spectate(player, old_force, true) -- Standard spectate
+		Score.undo_init_player_table(player) -- clear score if game has not started
 		game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 	else
 		if player.admin then 
-			game.print(">>>>> Alert : Player " .. _player_name .. " is Admin and should not be switched into a team (unless training or scrim mode).", {r=0.98, g=0.77, b=0.77})
+			game.print(">>>>> Alert : Player ".._player_name.." is Admin and should not be switched into a team (unless training or scrim mode).", {r=0.98, g=0.77, b=0.77})
 		end
 		join_team(player, force_name, true)
-		if #game.forces[force_name].connected_players > global.max_players then
-			game.print(">>>>> Alert : Team " .. force_name .. " should NOT have more than "..global.max_players.." players !!!", {r=0.98, g=0.77, b=0.77})
+		if Functions.get_nb_players(force_name) > global.max_players then
+			game.print(">>>>> Alert : Team "..force_name.." should NOT have more than "..global.max_players.." players !", {r=0.98, g=0.77, b=0.77})
 		end
 		game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 	end
-	if global.bb_debug then 
-		game.print("Debug: "..#game.forces["north"].connected_players.." player.s at north and "..#game.forces["south"].connected_players.." player.s at south")
-	end
-	--[[ 
-			spectate(player, old_force)
-			player.teleport(player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-			player.force = game.forces.spectator
-			player.character.destructible = false
-			game.permissions.get_group("spectator").add_player(player)
-			global.spectator_rejoin_delay[player.name] = game.tick
-			Public.create_main_gui(player)
-			player.spectator = true
-	
-		local inventories = {
-		player.get_inventory(defines.inventory.character_main),
-		player.get_inventory(defines.inventory.character_guns),
-		player.get_inventory(defines.inventory.character_ammo),
-		player.get_inventory(defines.inventory.character_armor),
-		player.get_inventory(defines.inventory.character_vehicle),
-		player.get_inventory(defines.inventory.character_trash),
-	}
-	local value=0 --REMOVE--
-	local corpse = false
-	for _, i in pairs(inventories) do
-		for index = 1, #i, 1 do
-			if not i[index].valid then break end
-			corpse = true
-			break
-		end
-		if corpse then
-			game.print("player.character.die() player="..player.name.." "..value) --REMOVE--
-			value=value+1 --REMOVE--
-			player.character.die()
-			break
-		end
+	if global.bb_debug_gui then 
+		game.print("DEBUGUI: "..Functions.get_nb_players("north").." player.s at north and "..Functions.get_nb_players("south").." player.s at south (in switch_force).")
 	end
 
-	global.packchest2N = surface.create_entity({name = "steel-chest", position = {x=_posX, y=-_posY}, force = "north"})
-	global.packchest2S = surface.create_entity({name = "steel-chest", position = {x=_posX, y=_posY-1}, force = "south"})
-	for _item,_qty in pairs(tables.packs_contents[global.pack_choosen]["center"]) do
-		global.packchest2N.insert({name=_item, count=_qty})
-		global.packchest2S.insert({name=_item, count=_qty})
-	end	
-	
-	local i = player.get_main_inventory() -- not working if stack of science is in hand ;) and we don't care
-		flask_amount = i.get_item_count(food)
-		i.remove({name = food, count = flask_amount})
-	
-	
-	--EVL Insert Main Inventory
-	local main_inventory = target.get_main_inventory().get_contents()
-	local main_inventory_table = inventory_gui.add({type = 'table', column_count = 10}) 
-	if main_inventory ~= {} then
-		for name, opts in pairs(main_inventory) do
-			local flow = main_inventory_table.add({type = 'flow'})
-			flow.style.vertical_align = 'bottom'
-			local button =
-				flow.add(
-				{
-					type = 'sprite-button',
-					sprite = 'item/' .. name,
-					number = opts,
-					name = name,
-					tooltip = types[name].localised_name,
-					style = 'slot_button'
-				}
-			)
-			button.enabled = false
-		end
-	else
-		local main_inventory_info = main_inventory_table.add({type = 'label', caption='(inventory is empty)'})
-	end
-	]]--
-	--game.print("debug:ENDING switch_force") --REMOVE--
-	
 end
-
+--EVL Draw team_manager button
 function Public.draw_top_toggle_button(player)
 	if player.gui.top["team_manager_toggle_button"] then player.gui.top["team_manager_toggle_button"].destroy() end	
-	local button = player.gui.top.add({type = "sprite-button", name = "team_manager_toggle_button", caption = "Team Manager", tooltip = "Reload frame to see new joined players" })
+	local button = player.gui.top.add({type = "sprite-button", name = "team_manager_toggle_button", caption = "Team Manager", tooltip = "Open team manager and set up official/scrim/training mode." })
 	button.style.font = "heading-2"
 	button.style.font_color = {r = 0.88, g = 0.55, b = 0.11}
 	button.style.minimal_height = 38
@@ -480,31 +401,71 @@ function Public.draw_top_toggle_button(player)
 	button.style.bottom_padding = 2
 end
 
-function Public.draw_pause_toggle_button(player)
-	if player.gui.top["team_manager_pause_button"] then player.gui.top["team_manager_pause_button"].destroy() end	
+--EVL Draw game_type button (Official/training/Scrim)
+local function create_game_type_button(player)
+	if player.gui.top["bbc_game_type_button"] then player.gui.top["bbc_game_type_button"].destroy() end
+	local game_type
+	if global.game_id=="training" then game_type="Training"
+	elseif global.game_id=="scrim" then game_type="Scrim"
+	elseif global.game_id%123==0 then game_type="Official"
+	else
+		if global.bb_debug then game.print("Debug: Game_Id is inappropriate...  skipping") end
+		return
+	end
+	local b = player.gui.top.add({type = "sprite-button", caption = game_type, name = "bbc_game_type_button"})
+	b.style.font = "heading-1"
+	b.style.horizontal_align = "center"
+	b.style.font_color = {r=0.59, g=0.99, b=0.99}
+	b.style.minimal_width = 80
+	b.style.minimal_height = 38
+	b.style.top_padding = 1
+	b.style.left_padding = 1
+	b.style.right_padding = 1
+	b.style.bottom_padding = 1
+end
+
+--EVL Add a pause button with countdown in TOP gui
+local function draw_pause_toggle_button(player)
+	if player.gui.top["team_manager_pause_button"] then player.gui.top["team_manager_pause_button"].destroy() end
 	local _caption="Pause"
 	local _tooltip="Spam [font=default-bold]pp[/font] in chat so admin will pause the game\n  [font=default-small][color=#999999](while chat still active, use it wisely).[/color][/font]"
+	local _color={r = 0.11, g = 0.55, b = 0.88}
 	if game.tick_paused==true then
-		_caption="UnPause"
-		_tooltip="UnPause the game after a 3s countdown (referee/admin)"
+		if global.cant_unpause then  --EVL Avoid double pause click (second one would engage unpause)
+			_caption="Ready?"
+			_tooltip="Click when you're ready to engage unpausing process."
+			_color={r = 0.88, g = 0.55, b = 0.55}
+		else
+			_caption="UnPause"
+			_tooltip="UnPause the game after a 3s countdown (referee/admin)"
+			_color={r = 0.11, g = 0.88, b = 0.55}
+		end
 	end
 	local button = player.gui.top.add({type = "sprite-button", name = "team_manager_pause_button", caption = _caption, tooltip = _tooltip })
-	button.style.font = "heading-2"
-	button.style.font_color = {r = 0.11, g = 0.55, b = 0.88}
+	button.style.font = "heading-1"
+	button.style.horizontal_align = "center"
+	button.style.font_color = _color
 	button.style.minimal_height = 38
-	button.style.minimal_width = 60
+	button.style.width = 80
 	button.style.top_padding = 2
 	button.style.left_padding = 0
 	button.style.right_padding = 0
 	button.style.bottom_padding = 2
 end
---EVL Add a pause button with countdown in TOP gui
-function switch_pause_toggle_button(admin)
-	local _caption="Pause"
-	local _tooltip="Spam [font=default-bold]pp[/font] in chat so admin will pause the game\n  [font=default-small][color=#999999](while chat still active, use it wisely).[/color][/font]"
-	local _color={r = 0.11, g = 0.55, b = 0.88}
-	
+
+--EVL Toggle pause/unpause with countdown
+local function switch_pause_toggle_button(admin)
 	if game.tick_paused==true then
+		if global.cant_unpause then  --EVL Avoid double pause click (second one would engage unpause)
+			global.cant_unpause=false
+			game.play_sound{path = global.sound_low_bip, volume_modifier = 1}
+			game.print(">>>>> Game is set to ready for unpause (by "..admin.name..").", {r = 111, g = 111, b = 255})
+			--Redraw button for all players
+			for _, player in pairs(game.connected_players) do	
+				draw_pause_toggle_button(player)
+			end
+			return
+		end
 		if global.freeze_players==false then game.print(">>>>> Unexpected value (false) for global.freeze_players", {r = 11, g = 255, b = 11}) return end		
 		game.tick_paused=false
 		game.print(">>>>> Game unpaused by "..admin.name..". Match will resume very shortly !", {r = 11, g = 255, b = 11})
@@ -525,7 +486,6 @@ function switch_pause_toggle_button(admin)
 			return
 		end
 		if global.match_countdown >= 0 then
-			--admin.print(">>>>> Game has not yet (re)started ! You can't pause ;)", {r = 175, g = 11, b = 11}) 
 			admin.print(">>>>> Please wait "..(global.match_countdown+1).."s (game is currently in ~unfreezing~ process) ...", {r = 175, g = 11, b = 11})
 			admin.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			return
@@ -539,23 +499,13 @@ function switch_pause_toggle_button(admin)
 		Public.freeze_players()
 		game.print(">>>>> Game paused by "..admin.name..". Players & Biters have been frozen !", {r = 111, g = 111, b = 255}) --EVL
 		game.play_sound{path = global.sound_success, volume_modifier = 0.8}
-		_caption="UnPause"
-		_tooltip="UnPause the game after a 3s countdown (referee/admin)"
 		game.tick_paused=true
-		_color={r = 0.11, g = 0.88, b = 0.55}
+		global.cant_unpause=true --EVL Avoid double pause click (second one would engage unpause)
+		
 	end
-	--Redraw buttons for all players
+	--Redraw button for all players
 	for _, player in pairs(game.connected_players) do	
-		if player.gui.top["team_manager_pause_button"] then player.gui.top["team_manager_pause_button"].destroy() end	
-		local button = player.gui.top.add({type = "sprite-button", name = "team_manager_pause_button", caption = _caption, tooltip = _tooltip })
-		button.style.font = "heading-2"
-		button.style.font_color = _color
-		button.style.minimal_height = 38
-		button.style.minimal_width = 80
-		button.style.top_padding = 2
-		button.style.left_padding = 0
-		button.style.right_padding = 0
-		button.style.bottom_padding = 2
+		draw_pause_toggle_button(player)
 	end
 end
 
@@ -614,7 +564,7 @@ local function draw_manager_gui(player)
 	local manager_north_button="tm_north_manager_box_add"
 	local manager_north_tooltip="Select a spectator then click to add as north manager."
 	
-	if global.manager_table["north"] then 
+	if global.manager_table["north"] then --TODO-- =nil in init
 		manager_north_arrow="→" 
 		manager_north="[color=#AAFFAA]"..global.manager_table["north"].."[/color]"
 		local _player = game.players[global.manager_table["north"]]
@@ -1624,9 +1574,9 @@ local function training_single_sending(player, food_index, qtity_index, force)
 	end
 	local _qtity=Tables.qtity_config_training[qtity_index] -- no offset
 	
-	feed_the_biters(player, _food, _qtity, force.."_biters")	
 	game.print("Single sending : [font=default-bold][color=#FFFFFF]".._qtity.."[/color][/font] flasks of [color="..Tables.food_values[_food].color.."]" .. Tables.food_values[_food].name .. "[/color]"
 				.."[img=item/".. _food.. "] sent to [font=default-bold][color=#FFFFFF]"..force.."-biters[/color][/font] by [color=#AAAAAA]"..player.name.."[/color]", {r = 77, g = 192, b = 192})
+	feed_the_biters(player, _food, _qtity, force.."_biters")	
 	player.play_sound{path = global.sound_success, volume_modifier = 0.8}
 	return
 end
@@ -1903,9 +1853,10 @@ local function team_manager_gui_click(event)
 			return 
 		end
 		local _player = game.players[_player_this]
-
+		
 		if 	not(_player.admin) or ((_player.admin) and (global.training_mode or global.game_id=="scrim")) then -- in training or scrim mode, admins can be switched into teams
 			_player.teleport(_player.surface.find_non_colliding_position("character", {0,-bb_config.spawn_manager_pos}, 4, 1)) -- north spot
+			if global.managers_in_team then _player.force=game.forces["north"] end --EVL in this mode manager are set to team
 			global.manager_table["north"]=_player_this
 			local _team_name="Team North"  --Name to be shown above Manager Speaker
 			if global.tm_custom_name["north"] then _team_name = global.tm_custom_name["north"] end
@@ -1923,10 +1874,11 @@ local function team_manager_gui_click(event)
 						alignment = "center",
 						scale_with_zoom = false
 				}	
-			game.print(_player_this .. " has been appointed as manager for team north.", {r=0.66, g=0.98, b=0.66})
+			game.print(_player_this.." (".._player.force.name..") has been appointed as manager for team north.", {r=0.66, g=0.98, b=0.66})
+			
 			game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 		elseif _player.admin then -- not training or scrim mode, but admin, we cannot switch
-			player.print(">>>>> Player " .. player_name .. " is Admin and cannot be switched into manager slot (north).", {r=0.98, g=0.77, b=0.77})
+			player.print(">>>>> Player "..player_name.." is Admin and cannot be switched into manager slot (north).", {r=0.98, g=0.77, b=0.77})
 			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		end
 		Public.redraw_all_team_manager_guis()--draw_manager_gui(player)
@@ -1955,6 +1907,7 @@ local function team_manager_gui_click(event)
 		
 		if 	not(_player.admin) or ((_player.admin) and (global.training_mode or global.game_id=="scrim")) then -- in training or scrim mode, admins can be switched into teams
 			_player.teleport(_player.surface.find_non_colliding_position("character", {0,bb_config.spawn_manager_pos}, 4, 1))--south spot
+			if global.managers_in_team then _player.force=game.forces["south"] end --EVL in this mode manager are set to team
 			global.manager_table["south"]=_player_this
 			local _team_name="Team South" --Name to be shown above Manager Speaker
 			if global.tm_custom_name["south"] then _team_name = global.tm_custom_name["south"] 	end
@@ -1972,10 +1925,10 @@ local function team_manager_gui_click(event)
 						alignment = "center",
 						scale_with_zoom = false
 				}		
-			game.print(_player_this .. " has been appointed as manager for team south.", {r=0.66, g=0.98, b=0.66})
+			game.print(_player_this.." (".._player.force.name..") has been appointed as manager for team south.", {r=0.66, g=0.98, b=0.66})
 			game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 		elseif _player.admin then -- not training or scrim mode, but admin, we cannot switch
-			player.print(">>>>> Player " .. player_name .. " is Admin and cannot be switched into manager slot (south).", {r=0.98, g=0.77, b=0.77})
+			player.print(">>>>> Player "..player_name.." is Admin and cannot be switched into manager slot (south).", {r=0.98, g=0.77, b=0.77})
 			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		end
 		Public.redraw_all_team_manager_guis()--draw_manager_gui(player)
@@ -1989,7 +1942,6 @@ local function team_manager_gui_click(event)
 		end
 		local listbox = player.gui.center["team_manager_gui"]["team_manager_root_table"]["tm_north_manager_box"]
 		local selected_index = 1
-		--if selected_index == 0 then player.print("No player selected.", {r = 175, g = 11, b = 11}) return end
 		local player_name = listbox.items[selected_index]
 		local _player_this=player_name
 		if string.sub(_player_this,-2) == ":A" then
@@ -2000,18 +1952,15 @@ local function team_manager_gui_click(event)
 			--game.print("Regular manager : ".._player_this)
 		end
 		local _player = game.players[_player_this] --be careful with user and target
-		--game.print("test manager : ".._player.name)
 		if _player.name ~= global.manager_table["north"] then 
 			player.print(">>>>> Local Manager does not match global Manager (north) .", {r = 175, g =11, b = 11})
 			player.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			return
 		end
-		--game.print("test2 manager : ".._player.name)
 		global.manager_table["north"]=nil
-		--game.print("test3 manager")
 		_player.teleport(_player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-		--game.print("test4 manager")
-		game.print(_player_this .. " has been removed from manager for team north.", {r=0.66, g=0.98, b=0.66})
+		if global.managers_in_team then _player.force=game.forces["spectator"] end --EVL in this mode manager are set to team
+		game.print(_player_this.." (".._player.force.name..")  has been removed from manager of team north.", {r=0.66, g=0.98, b=0.66})
 		game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 		Public.redraw_all_team_manager_guis()--draw_manager_gui(player)
 		return
@@ -2039,7 +1988,8 @@ local function team_manager_gui_click(event)
 		end
 		global.manager_table["south"]=nil
 		_player.teleport(_player.surface.find_non_colliding_position("character", {0,0}, 4, 1))
-		game.print(_player_this .. " has been removed from manager for team south.", {r=0.66, g=0.98, b=0.66})
+		if global.managers_in_team then _player.force=game.forces["spectator"] end --EVL in this mode manager are set to team
+		game.print(_player_this.." (".._player.force.name..") has been removed from manager of team south.", {r=0.66, g=0.98, b=0.66})
 		game.play_sound{path = global.sound_success, volume_modifier = 0.8}
 		Public.redraw_all_team_manager_guis()--draw_manager_gui(player)
 		return
@@ -2078,27 +2028,29 @@ local function team_manager_gui_click(event)
 			end
 			--EVL TESTING PRESENCE OF PLAYERS
 			local starting_msg=">>>>>"
-			--No player on one side and tournament mode --> game cannot starrt
-			if (#game.forces.north.connected_players<global.min_players or #game.forces.south.connected_players<global.min_players) and not global.training_mode then
+			--No player on one side and tournament mode --> game cannot start 
+			local nb_players_north=Functions.get_nb_players("north")
+			local nb_players_south=Functions.get_nb_players("south")
+			if (nb_players_north<global.min_players or nb_players_south<global.min_players) and not global.training_mode then
 				starting_msg=starting_msg.." Alert : Not enough players on  "
-				if #game.forces.north.connected_players<global.min_players then 
-					starting_msg=starting_msg.." NORTH "
+				if nb_players_north<global.min_players then 
+					starting_msg=starting_msg.." NORTH ("..nb_players_north.."<"..global.min_players..") "
 				end
-				if #game.forces.south.connected_players<global.min_players then 
-					starting_msg=starting_msg.." SOUTH "
+				if nb_players_south<global.min_players then 
+					starting_msg=starting_msg.." SOUTH ("..nb_players_south.."<"..global.min_players..") "
 				end
 				game.print(starting_msg.." side(s). Match cannot start...", {r = 175, g = 11, b = 11})
 				game.play_sound{path = global.sound_error, volume_modifier = 0.8}
 				return
 			end
 			--Too much player on one side --> not blocking, just an alert
-			if #game.forces.north.connected_players>global.max_players or #game.forces.south.connected_players>global.max_players then
+			if nb_players_north>global.max_players or nb_players_south>global.max_players then
 				starting_msg=starting_msg.." Info : too many players on  "
-				if #game.forces.north.connected_players>global.max_players then 
-					starting_msg=starting_msg.." NORTH ("..#game.forces.north.connected_players.." players) "
+				if nb_players_north>global.max_players then 
+					starting_msg=starting_msg.." NORTH ("..nb_players_north.." players) "
 				end
-				if #game.forces.south.connected_players>global.max_players then 
-					starting_msg=starting_msg.." SOUTH ("..#game.forces.south.connected_players.." players) "
+				if nb_players_south>global.max_players then 
+					starting_msg=starting_msg.." SOUTH ("..nb_players_south.." players) "
 				end
 				game.print(starting_msg.." side(s). Match will still start...", {r = 11, g = 175, b = 11})
 				
@@ -2109,20 +2061,24 @@ local function team_manager_gui_click(event)
 			
 			--EVL Everything went fine, we can start
 			if not global.match_running then --First unfreeze meaning match is starting
-				
-				
+				--Add the game_type button, the pause button and close team_manager for everybody
+				for _, player in pairs(game.connected_players) do
+					create_game_type_button(player)
+					draw_pause_toggle_button(player)
+					--indiquer "scrim" mode (or training) (top gui button ?)
+					if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
+				end
 				global.match_running=true 
-				 
 				global.bb_threat["north_biters"] = 9 --EVL we start at threat=9 to avoid weird sendings at the beginning
 				global.bb_threat["south_biters"] = 9 
 				game.surfaces[global.bb_surface_name].daytime = 0.6 -- we set time to dawn
 				game.print(">>>>> Match is starting shortly. Good luck ! Have Fun !", {r = 11, g = 255, b = 11})
 				game.play_sound{path = global.sound_success, volume_modifier = 0.8}
-				if player.gui.center["team_manager_gui"] then player.gui.center["team_manager_gui"].destroy() end
+				
 			end  	
-			--global.reroll_left=0		-- Match has started, no more reroll -> changed via match_running (so wee save #rerolls for export stats)
-			--section below is deactivated, should not happen (see draw_manager_gui)
+			
 			global.freeze_players = false
+			
 			if global.match_countdown < 0 then -- First unfreeze depends on init, then we use 3 seconds timer (after pause)
 				global.match_countdown = 3
 				game.print(">>>>> Match will resume very shortly !", {r = 11, g = 255, b = 11})
@@ -2131,10 +2087,6 @@ local function team_manager_gui_click(event)
 			
 			return
 		end
-		--ELSE  global.freeze_players==false
-		--section below is deactivated, should not happen (see draw_manager_gui)
-		--CODING-- remove all this could interact with new pause button
-		--EVL We're PAUSING the game, no change in global.match_running nor in global.pack_choosen (the game was initiated with global.freeze_players=true)
 		
 		if global.match_countdown >= 0 then --WAIT FOR UNFREEZE BEFORE FREEZE AGAIN
 			player.print(">>>>> Please wait "..(global.match_countdown+1).."s (game is currently in ~unfreezing~ process) ...", {r = 175, g = 11, b = 11})
@@ -2145,8 +2097,6 @@ local function team_manager_gui_click(event)
 		Public.freeze_players()
 		Public.redraw_all_team_manager_guis()--draw_manager_gui(player)
 		game.print(">>>>> Players & Biters have been frozen !", {r = 111, g = 111, b = 255}) --EVL
-		--game.tick_paused=true --EVL New way to freeze game (way better : craft, factory, research, everything is frozen but chat stay active) not accurate now
-		--But need to type command /c game.tick_paused=false in chat to resume... not accurate now
 		return
 	end
 	
@@ -2157,7 +2107,7 @@ local function team_manager_gui_click(event)
 			return 
 		end
 		if global.match_running then player.print(">>>>> Cannot modify Game Mode [training] after match has started.", {r = 175, g = 11, b = 11}) return end
-		if global.training_mode then
+		if global.training_mode then --Testing players in forces
 			for _,force_name in pairs({"north","south"}) do
 				for _, p in pairs(game.forces[force_name].connected_players) do
 					if p.admin then 
@@ -2166,7 +2116,18 @@ local function team_manager_gui_click(event)
 						return
 					end
 				end
-			end			
+			end	
+			if global.manager_table["north"] and game.players[global.manager_table["north"]].admin then --Testing manager north
+				game.print(">>>>> Alert: Admin detected in north manager slot, Training Mode can't be disabled.", {r = 175, g = 11, b = 11})
+				game.play_sound{path = global.sound_error, volume_modifier = 0.8}
+				return
+			end
+			if global.manager_table["south"] and game.players[global.manager_table["south"]].admin then --Testing manager south
+				game.print(">>>>> Alert: Admin detected in south manager slot, Training Mode can't be disabled.", {r = 175, g = 11, b = 11})
+				game.play_sound{path = global.sound_error, volume_modifier = 0.8}
+				return
+			end
+			--Everything is OK we can switch
 			global.training_mode = false
 			global.game_lobby_active = true
 			global.game_id=nil --EVL Remove GAME_ID if not training mode
@@ -2208,7 +2169,6 @@ local function team_manager_gui_click(event)
 	if event.element.caption == "→" then m = 1 end
 	local force_name = forces[tonumber(name) + m].name
 	
-	
 	--EVL exception for spec/god mode players
 	if string.sub(player_name,-2)==":G" then
 		local _player_name=string.sub(player_name,1,string.len(player_name)-2)
@@ -2226,37 +2186,29 @@ local function team_manager_gui_click(event)
 	if string.sub(player_name,-2)==":D" then
 		local _disco_name=string.sub(player_name,1,string.len(player_name)-2)
 		if not game.players[_disco_name] then 
-			game.print("Team Manager >> Player ".._player_this.."/".._disco_name.." doesn't exist.", {r=0.98, g=0.66, b=0.22}) 
+			game.print("Debug: Team Manager >> Player ".._player_this.."/".._disco_name.." doesn't exist.", {r=0.98, g=0.66, b=0.22}) 
 			game.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			return
+		else
+			_player_this=_disco_name
 		end
 	elseif not game.players[_player_this] then 
-		game.print("Team Manager >> Player " .. _player_this .. " doesn't exist.", {r=0.98, g=0.66, b=0.22}) 
+		game.print("Debug: Team Manager >> Player " .. _player_this .. " doesn't exist.", {r=0.98, g=0.66, b=0.22}) 
 		game.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		return 
 	end
 	local _player = game.players[_player_this]
-	
+
 	--TEST BELOW --TODO--(can be done in 2 tests)
 	if 	global.training_mode or global.game_id=="scrim" then -- in training or scrim mode, admins can be switched into teams
-		--game.print("debug:switch_force training/scrim player="..player_name.." force="..force_name, {r=0.98, g=0.98, b=0.22})--REMOVE--
 		switch_force(player_name, force_name)
-		--game.print("debug:switched training/scrim", {r=0.98, g=0.98, b=0.22})--REMOVE--
 	elseif _player.admin then -- not training or scrim mode, but admin, we cannot switch
 		game.print(">>>>> Alert : Player " .. player_name .. " is Admin and cannot be switched into a team (unless training or scrim mode).", {r=0.98, g=0.77, b=0.77})
 		game.play_sound{path = global.sound_error, volume_modifier = 0.8}
 		return
 	else -- not training or scrim mode, not admin, we can switch
-		--game.print("debug:switch_force tournament player="..player_name.." force="..force_name, {r=0.98, g=0.98, b=0.22})--REMOVE--
 		switch_force(player_name, force_name)
-		--game.print("debug:switched tournament", {r=0.98, g=0.98, b=0.22})--REMOVE--
 	end
-	-- if not global.training_mode and player_name.admin==true then
-	--game.print("debug:END of team_manager_gui_click", {r=0.98, g=0.22, b=0.22})--REMOVE--
-	--else
-		
-	--end
-	
 	Public.redraw_all_team_manager_guis()--draw_manager_gui(player)
 end
 
@@ -2459,7 +2411,7 @@ function Public.gui_click(event)
 		local _gameId=tonumber(string.sub(name,14))
 		--game.print("gameId="..serpent.block(_gameId))
 		if not(_gameId) or _gameId<=0 or not(Sendings_Patterns.detail_game_id[_gameId]) then
-			game.print(">>>>> Bug: can't find gameId for full listing...")
+			game.print(">>>>> Bug: can't find gameId for full listing...", {r = 175, g = 11, b = 11})
 			game.play_sound{path = global.sound_error, volume_modifier = 0.8}
 			return
 		else

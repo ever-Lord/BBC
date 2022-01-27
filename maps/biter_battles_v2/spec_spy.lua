@@ -30,6 +30,9 @@ local function spy_tech_tree(player, force)
 	end
 	switch_force(player, force)
 	player.open_technology_gui()
+	global.viewing_technology_gui[force]=global.viewing_technology_gui[force]+1
+	global.viewing_technology_gui_players[player.name]=true
+	--game.print("Debug: add one tech spy, total = "..global.viewing_technology_gui)
 end
 
 local function restore_force(player)
@@ -93,6 +96,9 @@ local function close_tech_handler(event)
 	local player = game.players[event.player_index]
 	-- If the player was spying
 	if is_spying(player) then
+		local force=player.force.name
+		global.viewing_technology_gui[force]=global.viewing_technology_gui[force]-1
+		global.viewing_technology_gui_players[player.name]=nil
 		restore_force(player)
 	end
 end

@@ -24,19 +24,19 @@ local function shuffle(tbl)
 end
 
 function Public.reveal_map()
-    for _, f in pairs({"north", "south", "player", "spectator"}) do
-        local r = 768
-        game.forces[f].chart(game.surfaces[global.bb_surface_name],
-                             {{r * -1, r * -1}, {r, r}})
-    end
+	local surface=game.surfaces[global.bb_surface_name]
+	local r = 768
+	for _, f in pairs({"north", "south", "player", "spectator"}) do
+		game.forces[f].chart(surface,{{r * -1, r * -1}, {r, r}})
+	end
 end
 
-function Public.reveal_init_map(radius) --EVL We show a bit more for rerolling purpose
-    for _, f in pairs({"north", "south", "player", "spectator"}) do
-        local r = radius
-        game.forces[f].chart(game.surfaces[global.bb_surface_name],
-                             {{r * -1, r * -1}, {r, r}})
-    end
+function Public.reveal_init_map(radius) --EVL We show a bit more (127*127) for rerolling purpose
+	local surface=game.surfaces[global.bb_surface_name]
+	local r = radius
+	for _, f in pairs({"north", "south", "player", "spectator"}) do
+		game.forces[f].chart(surface,{{r * -1, r * -1}, {r, r}})
+	end
 end
 
 
@@ -427,8 +427,14 @@ function Public.server_restart()
 		local _seed_forcing=global.seed_forcing
 		local _difficulty_vote_value=global.difficulty_vote_value
 		local _difficulty_vote_index=global.difficulty_vote_index
+		--Save debug status (to be more flexible with debug)
+		local bb_debug=global.bb_debug
+		local bb_biters_debug=global.bb_biters_debug
+		local bb_biters_debug2=global.bb_biters_debug2
+		local bb_debug_gui=global.bb_debug_gui
 		--EVL REWORK INIT PROCEDURE
 		Init.tables()
+		global.dbg=global.dbg.."GOtables | "
 		--EVL RESTORE DATAS AFTER REROLL
 		global.freeze_players = _freeze_players
 		global.reroll_left = _reroll_left
@@ -441,17 +447,26 @@ function Public.server_restart()
 
 		
 		Init.initial_setup() -- EVL (none)
+		global.dbg=global.dbg.."GOsetup | "
+		global.bb_debug=bb_debug --Restore debug status (to be more flexible with debug)
+		global.bb_biters_debug=bb_biters_debug
+		global.bb_biters_debug2=bb_biters_debug2
+		global.bb_debug_gui=bb_debug_gui
+		
 		Init.playground_surface()
+		global.dbg=global.dbg.."GOplayground | "
 		Init.forces()
+		global.dbg=global.dbg.."GOforces | "
 		Init.draw_structures()
-       Init.load_spawn()
-		Init.init_waypoints()	   
-		--EVL Looking why always south gets attacked first
+		global.dbg=global.dbg.."GOstructures | "
+		Init.load_spawn()
+		global.dbg=global.dbg.."GOspawn | "
+		Init.init_waypoints()
+		global.dbg=global.dbg.."GOwaypoints | "
 		local whoisattackedfirst=math.random(1,2)
-		if whoisattackedfirst == 1 then global.next_attack = "south" end
+		if whoisattackedfirst == 2 then global.next_attack = "south" end
+		global.dbg=global.dbg.."GOattack | "
 		if global.bb_debug then game.print("DEBUG: first wave will attack "..global.next_attack.." (after reroll)") end -- EVL or reset but no need to talk about that unusual command
-	
-
 
 		for _, player in pairs(game.players) do
             Functions.init_player(player)

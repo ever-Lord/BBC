@@ -128,6 +128,7 @@ Public.destroy_inactive_biters = function()
 		end
 	end
 	if global.bb_biters_debug and msg~="" then game.print("DEBUGS : Destroyed inactive biters > "..msg, {r = 77, g = 77, b = 177}) end --EVL find biter position, make a flytext
+	if global.bb_debug_gui and msg~="" then game.print("DEBUGUI : Destroyed inactive biters...", {r = 77, g = 77, b = 177}) end --EVL find biter position, make a flytext
 end
 
 Public.send_near_biters_to_silo = function()
@@ -607,7 +608,8 @@ Public.pre_main_attack = function()
 	if force_name=="north" then opponent_force_name="south" end
 	
 	local real_threat_ratio=0
-	if not global.training_mode or (global.training_mode and #game.forces[force_name].connected_players > 0) or (global.training_mode and global.pattern_training[opponent_force_name]["active"]) then --if tournament mode OR regular training mode with players OR simulation training mode
+	local force_nb_players=Functions.get_nb_players(force_name)
+	if not global.training_mode or (global.training_mode and force_nb_players>0) or (global.training_mode and global.pattern_training[opponent_force_name]["active"]) then --if tournament mode OR regular training mode with players OR simulation training mode
 		real_threat_ratio=get_threat_ratio(force_name .. "_biters") * 7
 		global.main_attack_wave_amount = math.ceil(real_threat_ratio)
 		if global.main_attack_wave_amount < 2 then global.main_attack_wave_amount=2 end --EVL even if one team is far ahead, we want at least 2 waves : so waves are 0 (if threat<0) or in 2..7 range
@@ -635,7 +637,7 @@ Public.pre_main_attack = function()
 		if global.bb_debug then game.print(">>>>> Training Mode, no player found at "..force_name.." (no group created).",{r = 77, g = 192, b = 192}) end
 	end
 	-- VERBOSE
-	if global.bb_debug then game.print(">>>>> Up to "..global.main_attack_wave_amount.." [font=default-small](real value:"..(math.floor(real_threat_ratio*100)/100)..")[/font] groups"
+	if global.bb_debug or global.bb_debug_gui then game.print(">>>>> Up to "..global.main_attack_wave_amount.." [font=default-small](real value:"..(math.floor(real_threat_ratio*100)/100)..")[/font] groups"
 		.." designated for " .. force_name .. " biters. [threats N="..math.floor(global.bb_threat["north_biters"]).." S="..math.floor(global.bb_threat["south_biters"]).."]", {r = 77, g = 192, b = 192}) end --EVL
 
 
@@ -700,6 +702,7 @@ Public.wake_up_sleepy_groups = function()
 end
 
 --By Maksiu1000 skip the last two tech
+--EVL Activating silo when reserarch is done (so silos dont blink all the time)
 Public.unlock_satellite = function(event)
 	--game.print("research done : "..event.research.name)
 	-- Skip unrelated events
@@ -708,12 +711,18 @@ Public.unlock_satellite = function(event)
 	local force = event.research.force
 	--EVL Patch to reactivate silo when research is done
 	global.rocket_silo[force.name].active=true
+	local _msg=">>>>> Activating "..force.name.." silo (rocket silo & space-science has been granted)."
+	
 	if not force.technologies['rocket-silo'].researched then
 		force.technologies['rocket-silo'].researched=true
 		force.technologies['space-science-pack'].researched=true
 	end
-	game.print(">>>>> Activating "..force.name.." silo (rocket silo & space-science has been granted).", {r = 197, g = 197, b = 17})
-	--sound in other function on_researched_finished(main.lua)
+	game.forces[force.name].print(_msg, {r = 197, g = 197, b = 17})
+	game.forces.spectator.print(_msg, {r = 197, g = 197, b = 17})
+	if game.forces["spec_god"] then
+		game.forces.spec_god.print(_msg, {r = 197, g = 197, b = 17})
+	end
+	--sound is in function on_researched_finished(main.lua)
 end
 
 Public.raise_evo = function()
@@ -723,7 +732,7 @@ Public.raise_evo = function()
 	end
 
 	--EVL Tournament mode, no natural evo until both team have players (and game has started ie global.match_running)
-	if not global.training_mode and (#game.forces.north.connected_players == 0 or #game.forces.south.connected_players == 0) then return end
+	if not global.training_mode and (Functions.get_nb_players("north")==0 or Functions.get_nb_players("south")==0) then return end
 
 
 	--[[ EVL we are not babies, no more pity timer
@@ -746,7 +755,7 @@ Public.raise_evo = function()
 		local simul_pf="north"
 		if pf=="north" then simul_pf="south" end
 		
-		if #game.forces[pf].connected_players > 0 or global.pattern_training[simul_pf]["active"] then --EVL we may have no players but simulation active
+		if Functions.get_nb_players(pf) > 0 or global.pattern_training[simul_pf]["active"] then --EVL we may have no players but simulation active
 			set_evo_and_threat(amount, "automation-science-pack", bf)
 			a_team_has_players = true
 			global.bb_evolution[bf] = global.bb_evolution[bf] + global.evo_boost_values[bf] --EVL ARMAGEDDON we boost EVO (but not threat)
@@ -754,7 +763,8 @@ Public.raise_evo = function()
 		end 
 	end
 	if not a_team_has_players then return end
-	global.evo_raise_counter = global.evo_raise_counter + (1 * 0.50)
+	--global.evo_raise_counter = global.evo_raise_counter + (1 * 0.50)
+	global.evo_raise_counter = global.evo_raise_counter + 0.50  --EVL
 end
 
 Public.reset_evo = function()

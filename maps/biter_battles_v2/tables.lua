@@ -226,21 +226,28 @@ Public.spawn_ore = {
 Public.forces_list = { "all teams", "north", "south" }
 Public.science_list = { "all science", "very high tier (space, utility, production)", "high tier (space, utility, production, chemical)", "mid+ tier (space, utility, production, chemical, military)","space","utility","production","chemical","military", "logistic", "automation" }
 Public.evofilter_list = { "all evo jump", "no 0 evo jump", "10+ only","5+ only","4+ only","3+ only","2+ only","1+ only" }
-Public.food_value_table_version = { Public.food_values["automation-science-pack"].value, Public.food_values["logistic-science-pack"].value, Public.food_values["military-science-pack"].value, Public.food_values["chemical-science-pack"].value, Public.food_values["production-science-pack"].value, Public.food_values["utility-science-pack"].value, Public.food_values["space-science-pack"].value}
+Public.food_value_table_version = { 
+	Public.food_values["automation-science-pack"].value,
+	Public.food_values["logistic-science-pack"].value,
+	Public.food_values["military-science-pack"].value,
+	Public.food_values["chemical-science-pack"].value,
+	Public.food_values["production-science-pack"].value,
+	Public.food_values["utility-science-pack"].value,
+	Public.food_values["space-science-pack"].value
+}
 
 --EVL Trees
-Public.trees={"tree-02","tree-03","tree-04","tree-06","tree-06-brown","tree-07","tree-08","tree-08-brown","tree-08-red","tree-09","tree-09-brown","tree-09-red"}
---too big : "tree-01","tree-02-red","tree-05",
--- EVL PACKS LIST
+Public.trees={"tree-01","tree-02","tree-02-red","tree-03","tree-04","tree-05","tree-06","tree-06-brown","tree-07","tree-08","tree-08-brown","tree-08-red","tree-09","tree-09-brown","tree-09-red"}
 
-	Public.packs_list = {
-		["pack_01"] = {name = "pack_01", title = "Regular", button="[img=item.iron-gear-wheel]", caption = "[img=item.iron-gear-wheel] Regular", tooltip = "Raw materials, free for crafting", item_list=nil },
-		["pack_02"] = {name = "pack_02", title = "Science", button="[img=item.lab]", caption = "[img=item.lab] Science", tooltip = "Labs, red potions & power", item_list=nil },
-		["pack_03"] = {name = "pack_03", title = "Robots", button="[img=item.construction-robot]", caption = "[img=item.construction-robot] Robots", tooltip = "One personal robotport", item_list=nil }, -- THIS PACK HAS BONUS (bot speed x2) -see terrain.lua-
-		["pack_04"] = {name = "pack_04", title = "Combat", button="[img=item.grenade]", caption = "[img=item.grenade] Combat", tooltip = "One heavy armor, fishes, grenades...", item_list=nil } --,
-		--["pack_05"] = {name = "pack_05", title = "Advanced", caption = "[img=item.assembling-machine-2] Advanced", tooltip = "Electric miners & machines MK2", item_list=nil }
-	}
-	Public.packs_total_nb = table_size(Public.packs_list)
+-- EVL PACKS LIST
+Public.packs_list = {
+	["pack_01"] = {name = "pack_01", title = "Regular", button="[img=item.iron-gear-wheel]", caption = "[img=item.iron-gear-wheel] Regular", tooltip = "Raw materials, free for crafting", item_list=nil },
+	["pack_02"] = {name = "pack_02", title = "Science", button="[img=item.lab]", caption = "[img=item.lab] Science", tooltip = "Labs, red potions & power", item_list=nil },
+	["pack_03"] = {name = "pack_03", title = "Robots", button="[img=item.construction-robot]", caption = "[img=item.construction-robot] Robots", tooltip = "One personal robotport", item_list=nil }, -- THIS PACK HAS BONUS (bot speed x2) -see terrain.lua-
+	["pack_04"] = {name = "pack_04", title = "Combat", button="[img=item.grenade]", caption = "[img=item.grenade] Combat", tooltip = "One heavy armor, fishes, grenades...", item_list=nil } --,
+	--["pack_05"] = {name = "pack_05", title = "Advanced", caption = "[img=item.assembling-machine-2] Advanced", tooltip = "Electric miners & machines MK2", item_list=nil }
+}
+Public.packs_total_nb = table_size(Public.packs_list)
 	
 Public.packs_contents= {
 	["pack_01"] =  --REGULAR
@@ -580,8 +587,10 @@ Public.packs_item_value = {
 Public.compi={
 	["names"]={"Charlie the compi","Larry the compi","Larry the compi","Leon the compilatron","Gaston the compilatron"},
 	["welcome"]={"Welcome guys!","Hey you ! Welcome on my island !","Welcome visitors !","I bet one silo will vanish !","Trees are my friend, I can't let you harm them !",
-				"Clever people don't go around in circles !", "Smart people don't go around in circles !", "Streamers that are not playing BBChampions are feeble !", "Streamers that are not playing BBC are feeble !"},
-	["revenges"]={"Stop bullying me!","Stop bugging me!","Stop bothering me!","You pissed me off","Bunch of idiots"}
+				"Clever people don't go around in circles !", "Smart people don't go around in circles !", "Streamers that are not playing BBChampions are weak !", "Streamers that are not playing BBChampions are fragile !"},--feeble
+	["revenges"]={"Stop bullying me!","Stop bugging me!","Stop bothering me!","You pissed me off","Bunch of idiots"},
+	["taunts"]={"Ha Ha !","My sincere condolences to your family.","My deepest sympathy and prayers are being sent your way.","Praying for peace that passes understanding to settle in your hearts.","Your soul will live on in my heart.","With love and friendship, i am sharing in your sorrow.","It doesn’t matter who you were; it matters who I remember you were.","The pain passes, but the beauty remains.","Please tell me what I can do for you.","I know that you went through a lot and fought so hard. Your journey here has ended.","I will  light a candle.","Did you underestimate me ?","Maybe you tried to give me a hug ?"}
+	
 }
 
 --EVL MAXIMS--
