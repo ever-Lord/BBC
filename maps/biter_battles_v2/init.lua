@@ -14,7 +14,7 @@ function Public.initial_setup() --EVL init freeze and tournament mode
 	game.map_settings.pollution.enabled = false
 	game.map_settings.enemy_expansion.enabled = false
 
-	global.version="v0.97" --CODING--
+	global.version="v0.971" --CODING--
 	global.bb_debug = false --EVL BE CAREFUL, OTHER SETTINGS ARE SET TO DEBUG MODE (search for --CODING--)
 	global.bb_biters_debug = false --EVL ADD MUCH VERBOSE TO BITERS AI
 	global.bb_biters_debug2 = false --EVL ADD EVEN MUCH VERBOSE TO BITERS AI
@@ -116,7 +116,7 @@ function Public.playground_surface()
 			global.history_seed={}
 			table.insert(global.history_seed, map_gen_settings.seed.."  (initialisation)")
 		end
-		--map_gen_settings.seed = your_value -- 2044398054--1607717091 --996357343 --CODING--
+		--map_gen_settings.seed = 1565033196--your_value -- 2044398054--1607717091 --996357343 --CODING--
 	end
 	map_gen_settings.water = math.random(15, 60) * 0.01 --EVL was 15,65
 	map_gen_settings.starting_area = 2.5

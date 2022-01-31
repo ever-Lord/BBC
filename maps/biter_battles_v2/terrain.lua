@@ -1283,7 +1283,7 @@ function Public.clear_ore_in_island(surface)
 end
 
 --EVL Regenerate ore in spawn (after clear_ore_in_main), not used in BBChampions (used in freeBB)
-function Public.generate_spawn_ore(surface)
+--[[function Public.generate_spawn_ore(surface)
 	-- This array holds indicies of chunks onto which we desire to
 	-- generate ore patches. It is visually representing north spawn
 	-- area. One element was removed on purpose - we don't want to
@@ -1309,11 +1309,12 @@ function Public.generate_spawn_ore(surface)
 				    props.size / 2, props.density)
 	end
 end
+]]
 
 function Public.generate_additional_rocks(surface)
 	local r = 130
 	if surface.count_entities_filtered({type = "simple-entity", area = {{r * -1, r * -1}, {r, 0}}}) >= 12 then return end		
-	local position = {x = -96 + math_random(0, 192), y = -40 - math_random(0, 96)}
+	local position = {x = -96 + math_random(0, 192), y = -spawn_circle_size - 1 - math_random(0, 96)}--EVL was [-40-m.r(0,96)], note: spawn_circle_size=39
 	for _ = 1, math_random(6, 10) do
 		local name = rocks[math_random(1, 5)]
 		local p = surface.find_non_colliding_position(name, {position.x + (-10 + math_random(0, 20)), position.y + (-10 + math_random(0, 20))}, 16, 1)
@@ -1397,15 +1398,20 @@ function Public.generate_silo(surface)
 	--game.print("Note : Check silos and speakers please. Had a bug once (but impossible to reproduce).",{r=99, g=99, b=99}) --DEBUG--
 	local pos = {x = -32 + math_random(0, 64), y = -72}
 	local mirror_position = {x = pos.x * -1, y = pos.y * -1}
-	global.dbg=global.dbg.."\nsilostart | "
+	local nb_changes
+	
+	nb_changes=0
 	for _, t in pairs(surface.find_tiles_filtered({area = {{pos.x - 6, pos.y - 6},{pos.x + 6, pos.y + 6}}, name = {"water", "deepwater"}})) do
 		surface.set_tiles({{name = get_replacement_tile(surface, t.position), position = t.position}})
+		nb_changes=nb_changes+1
 	end
-	global.dbg=global.dbg.."siloslandfillednorth | "
+	global.dbg=global.dbg.."\nsilo:landfillN("..nb_changes..") | "
+	nb_changes=0
 	for _, t in pairs(surface.find_tiles_filtered({area = {{mirror_position.x - 6, mirror_position.y - 6},{mirror_position.x + 6, mirror_position.y + 6}}, name = {"water", "deepwater"}})) do
 		surface.set_tiles({{name = get_replacement_tile(surface, t.position), position = t.position}})
+		nb_changes=nb_changes+1
 	end
-	global.dbg=global.dbg.."siloslandfilledsouth | "
+	global.dbg=global.dbg.."landfillS("..nb_changes..") | "
 
 	local silo = surface.create_entity({
 		name = "rocket-silo",
@@ -1416,21 +1422,21 @@ function Public.generate_silo(surface)
 	silo.active = false
 	global.rocket_silo[silo.force.name] = silo
 	Functions.add_target_entity(global.rocket_silo[silo.force.name])
-	global.dbg=global.dbg.."silocreatednorth | "
+	global.dbg=global.dbg.."silocreatedN | "
 	for _ = 1, 32, 1 do
 		create_mirrored_tile_chain(surface, {name = "stone-path", position = silo.position}, 32, 10)
 	end
-	global.dbg=global.dbg.."silobrickpath | "
+	global.dbg=global.dbg.."brickpath | "
 	--Clear entities under silo 
 	local p = silo.position
-	local total=0
+	nb_changes=0
 	for _, entity in pairs(surface.find_entities({{p.x - 4, p.y - 4}, {p.x + 4, p.y + 4}})) do
 		if entity.type == "simple-entity" or entity.type == "tree" or entity.type == "resource" then
 			entity.destroy()
-			total=total+1
+			nb_changes=nb_changes+1
 		end
 	end
-	global.dbg=global.dbg.."silocleared("..total..") | "
+	global.dbg=global.dbg.."silocleared("..nb_changes..") | "
 
 	--EVL add speaker in manager spot, force is not friendly so speaker doesnt blink electric alert
 	_pos = {x = 0, y = -spawn_manager_pos-2}
@@ -1438,18 +1444,8 @@ function Public.generate_silo(surface)
 	speaker.minable = false
 	speaker.active = false
 	global.manager_speaker[speaker.force.name] = speaker
-	global.dbg=global.dbg.."silospeaker | "
+	global.dbg=global.dbg.."speaker | "
 	
-	--EVL remove trees and rocks under/near turrets
-	--[[total=0 --DEBUG--
-	for _, entity in pairs(surface.find_entities({{pos.x-4, pos.y-6}, {x=pos.x+5, pos.y-4}})) do
-		if entity.type == "simple-entity" or entity.type == "tree" then --or entity.type == "resource" then --EVL keep resources
-			entity.destroy()
-			total=total+1
-		end
-	end
-	if total>0 then game.print("Note for debug: Found and cleared "..total.." rocks/trees under silo-turrets.",{r=159, g=159, b=99}) end
-	]]--
 	--EVL add 3 turrets next to silo with 12 yellow magazines in each
 	local _count=12 -- 12 magazines in each 3 bonus turrets	
 	local turret1 = surface.create_entity({name = "gun-turret", position = {x=pos.x-3, y=pos.y-5}, force = "north"})
@@ -1458,10 +1454,39 @@ function Public.generate_silo(surface)
 	turret2.insert({name = "firearm-magazine", count = _count})
 	local turret3 = surface.create_entity({name = "gun-turret", position = {x=pos.x+4, y=pos.y-5}, force = "north"})
 	turret3.insert({name = "firearm-magazine", count = _count})
-	--global.dbg=global.dbg.."siloturrets("..total..") \n"--DEBUG--
-	global.dbg=global.dbg.."siloturrets | \n"
+	
+	--[[EVL Some rocks for debug: silo turrets and starter chests--REMOVE--
+	surface.create_entity({name = "rock-huge", position = {x=p.x-3, y=p.y-5}})
+	surface.create_entity({name = "rock-big", position = {x=p.x, y=p.y-5}})
+	surface.create_entity({name = "sand-rock-big", position = {x=p.x+4, y=p.y-5}})
+	surface.create_entity({name = "rock-huge", position = {x=-2, y=-spawn_circle_size-1}})
+	surface.create_entity({name = "rock-big", position = {x=0, y=-spawn_circle_size-1}})
+	surface.create_entity({name = "sand-rock-big", position = {x=2, y=-spawn_circle_size-1}})
+	]]
+	
+	--EVL remove trees and rocks under/near turrets (apparently no need to do that for south)
+	nb_changes=0 --DEBUG--
+	for _, entity in pairs(surface.find_entities({{p.x-4, p.y-6}, {p.x+5, p.y-4}})) do
+		if entity.type == "simple-entity" or entity.type == "tree" then --or entity.type == "resource" then --EVL keep resources
+			entity.destroy()
+			nb_changes=nb_changes+1
+		end
+	end
+	global.dbg=global.dbg.."siloturrets("..nb_changes..") | "--DEBUG--
+
+	--EVL remove trees and rocks under/near starter pack chests (apparently no need to do that for south)
+	nb_changes=0 --DEBUG--
+	for _, entity in pairs(surface.find_entities({{-3, -spawn_circle_size-2}, {3, -spawn_circle_size+1}})) do
+		if entity.type == "simple-entity" or entity.type == "tree" then --or entity.type == "resource" then --EVL keep resources
+			entity.destroy()
+			nb_changes=nb_changes+1
+		end
+	end
+	global.dbg=global.dbg.."starterchests("..nb_changes..") \n"--DEBUG--
+	
+	--EVL SOME MORE TURRETS FOR TESTING IN SOLO
 	local add_turrets=false --CODING--
-	if add_turrets then --EVL SOME MORE TURRETS FOR TESTING IN SOLO
+	if add_turrets then 
 		--local bullet="firearm-magazine"
 		local bullet="uranium-rounds-magazine"
 		local count=200
@@ -1681,7 +1706,7 @@ function Public.fill_starter_chests(surface)
 
 	--EVL CHESTS--
 	local _posX = 00
-	local _posY = 40
+	local _posY = spawn_circle_size+1 --EVL was [40], note: spawn_circle_size=39
 	-- LEFT
 	if global.packchest1N then global.packchest1N.destroy() end
 	if global.packchest1S then global.packchest1S.destroy() end
@@ -1729,7 +1754,7 @@ function Public.fill_starter_chests(surface)
 	global.starter_chests_are_filled = true
 end
 
---EVL REATE AND FILL CHESTS WITH INVENTORY OF DISCONNECTED PLAYER (see team_manager)
+--EVL CREATE AND FILL CHESTS WITH INVENTORY OF DISCONNECTED PLAYER (see team_manager)
 local disco_chests_positionx={0,-1,1,-2,2,-3,3,-4,4}
 function Public.fill_disconnected_chests(surface, force_name, inventory, info)
 	if table_size(inventory)==0 then

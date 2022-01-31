@@ -13,8 +13,8 @@ local string_find = string.find
 --EVL Publicity for hosts --CODING--
 --local MDiscord="the French Discord Community https://discord.gg/kwZCMfa"
 --local MDiscord="the FreeBB Discord Community https://discord.gg/yBGYCg5J"
-local MDiscord="the Red Circuit Community https://discord.red-circuit.org/"
---local MDiscord="YOURSELF :-)"
+--local MDiscord="the Red Circuit Community https://discord.red-circuit.org/"
+local MDiscord="YOURSELF :-)"
 
 -- Only add upgrade research balancing logic in this section
 -- All values should be in tables.lua
@@ -310,14 +310,12 @@ end
 function Public.share_chat(event)
 	if not event.message then return end
 	if not event.player_index then return end
-
-
 	local player = game.players[event.player_index]
 	if not(player.tag) then tag = "" else tag = player.tag end
 	local color = player.chat_color
+	
 	local msg = player.name .. tag .. " (" .. player.force.name .. "): ".. event.message
 	--Note : BBChampions is always on tournamment mode
-	-- So EVL rewrote the function
 	--EVL Who are we sending message to ?
 	local msg_spec=false
 	local msg_god=false
@@ -327,32 +325,41 @@ function Public.share_chat(event)
 	local _print=""
 	if player.force.name == "north" then 
 		_print="NORTH"
+		--msg_north=true -- done by game
 		msg_spec=true
 		msg_god=true
-		--msg_north=true -- done by game
+		if global.managers_in_team and global.manager_table["north"] and player.name==global.manager_table["north"] then --north manager to team north
+			msg = player.name .. tag .. " (north manager): ".. event.message
+		end
 	elseif player.force.name == "south" then 
 		_print="SOUTH"
+		--msg_south=true -- done by game
 		msg_spec=true
 		msg_god=true
-		--msg_south=true -- done by game
+		if global.managers_in_team and global.manager_table["south"] and player.name==global.manager_table["south"] then --north manager to team north
+			msg = player.name .. tag .. " (south manager): ".. event.message
+		end
 	elseif player.force.name == "spectator" then
 		--msg_spec=true  -- done by game
+		_print="SPEC"
 		msg_god=true
-		if player.name==global.manager_table["north"] then --north manager to team north
-			msg_north=true
-			msg = player.name .. tag .. " (north manager): ".. event.message
-			_print="MANAGER NORTH"
-		elseif player.name==global.manager_table["south"] then --south manager to team south
-			msg_south=true
-			msg = player.name .. tag .. " (south manager): ".. event.message
-			_print="MANAGER SOUTH"
-		else 
-			_print="SPEC"
+		if not global.managers_in_team then
+			if player.name==global.manager_table["north"] then --north manager to team north
+				msg_north=true
+				msg = player.name .. tag .. " (north manager): ".. event.message
+				_print="MANAGER NORTH"
+			elseif player.name==global.manager_table["south"] then --south manager to team south
+				msg_south=true
+				msg = player.name .. tag .. " (south manager): ".. event.message
+				_print="MANAGER SOUTH"
+			else 
+				_print="SPEC"
+			end	
 		end
 	elseif game.forces["spec_god"] and player.force.name == "spec_god" then
+		--msg_god=true -- done by game
 		_print="GOD"
 		msg_spec=true
-		--msg_god=true -- done by game
 	elseif player.force.name == "player" then
 		_print=">>>> SPAWN? (Bug: force.name=<<player>> in Public.share_chat(event)."
 		msg_spec=true
