@@ -2056,6 +2056,24 @@ commands.add_command('cp', 'Parameter : on/off',
 		end
     end
 )
+
+--Command "/show-stats" forces the scores and statistics window
+commands.add_command('show-stats', 'Force the scores and statistics window. No parameter',
+	function(cmd)
+		local player = game.players[cmd.player_index]
+		if not player.admin then
+			player.print(">>>>> [ERROR] <</show-stats>> is admin-only. Please ask a referee.",{r = 225, g = 100, b = 100})
+			return
+		end
+		if not global.bb_game_won_by_team then
+			player.print(">>>>> [ERROR] <</show-stats>> Match has not finished.",{r = 225, g = 100, b = 100})
+			return
+		end		
+		game.tick_paused=false
+		export_results(true)
+	end
+)
+
 --Command "/compilatron_revenge on/off"
 commands.add_command('compilatron-revenge', 'Compilatron can be angry. Parameter : on/off',
 	function(cmd)

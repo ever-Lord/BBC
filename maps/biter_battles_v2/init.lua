@@ -357,6 +357,11 @@ function Public.tables()
 	
 	global.min_players=2 --(2) EVL Game will not start if less than this player on one side (unless training mode)
 	global.max_players=3 --(3) EVL Send alerts if too many players
+	
+	global.inventory_timeout=29 --EVL dont update inventories more than every 29/60 second
+	global.inventory_last_tick=0 --EVL store last tick that inventories were drawn
+	--global.inventory_select="player" -- or "north" or "south" --Draw only one of 3 kind of inventories at a time
+	
 	global.viewing_inventories = {} --EVL Store who's viewing who and where (show_inventory_bbc.lua)
 	global.viewing_technology_gui = { -- Number of spectators spying technology_gui (to remove from total players in get_instant_threat_player_count_modifier (feeding.lua)
 		["north"]=0,

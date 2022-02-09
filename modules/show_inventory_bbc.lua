@@ -934,56 +934,73 @@ end
 --EVL Update inventory on cursor/inv/craft change
 local function update_inventory_gui(event)
 	-- This is UPS consumming... tried to limit impact
+	--global.inventory_timeout=29 --EVL dont update inventories more than every 29/60
+	--global.inventory_last_tick=0 --EVL store last tick that inventories were drawn
+	--global.inventory_select="player" -- or "north" or "south" --Draw only one of 3 kind of inventories at a time
+	
+	if game.tick-global.inventory_last_tick<=0 then return end --dont update too often
+	global.inventory_last_tick=game.tick+global.inventory_timeout
+	
 	if table_size(global.viewing_inventories)==0 then return end
 	local target = game.players[event.player_index]
 	local target_name=target.name
 	local target_force=target.force.name
 	for _source,_ in pairs(global.viewing_inventories) do
-		--is source viewing target inventory ?
-		if validate_viewing_inv(_source,"target","name") then
-			local this_target_name=get_viewing_inv(_source,"target","name")
-			if this_target_name==target_name then
+		--if global.inventory_select=="player" then
+			--is source viewing target inventory ?
+			if validate_viewing_inv(_source,"target","name") then
+				local this_target_name=get_viewing_inv(_source,"target","name")
+				if this_target_name==target_name then
+					this_source=game.players[_source]
+					if not(validate_player(this_source)) then
+						if global.bb_debug_gui then game.print("DEBUGUI update_inventory : Source (".._source..") is not valid") end
+						return
+					end				
+					local screen = this_source.gui.screen
+					if not validate_object(screen) then return end
+					local inventory_gui = screen.inventory_gui
+					if not validate_object(inventory_gui) then 
+						if global.bb_debug_gui then game.print("DEBUGUI : update_inv : Cannot find player_inventory for ".._source.." viewing "..target_name) end
+						set_viewing_inv(_source,"target","name",nil)
+						return
+					end
+					
+					inventory_gui.clear() 
+					draw_inventory(inventory_gui,target)
+				end
+			end
+		--end
+
+		--if global.inventory_select==target_force then
+			--is source viewing force inventory ?
+			if validate_viewing_inv(_source,target_force,"active") then		
 				this_source=game.players[_source]
 				if not(validate_player(this_source)) then
 					if global.bb_debug_gui then game.print("DEBUGUI update_inventory : Source (".._source..") is not valid") end
 					return
-				end				
+				end	
 				local screen = this_source.gui.screen
 				if not validate_object(screen) then return end
-				local inventory_gui = screen.inventory_gui
-				if not validate_object(inventory_gui) then 
-					if global.bb_debug_gui then game.print("DEBUGUI : update_inv : Cannot find player_inventory for ".._source.." viewing "..target_name) end
-					set_viewing_inv(_source,"target","name",nil)
+				local force_inventory_gui = screen[target_force.."_inv_gui"]
+				if not validate_object(force_inventory_gui) then 
+					if global.bb_debug_gui then game.print("DEBUGUI : Cannot find force_inventory for ".._source.." viewing force "..target_force) end
+					set_viewing_inv(_source,target_force,"active",nil)
 					return
 				end
-				
-				inventory_gui.clear() 
-				draw_inventory(inventory_gui,target)
+				local inventory_mode=false
+				if validate_viewing_inv(_source,target_force,"inventory") then
+					inventory_mode=true
+				end
+				force_inventory_gui.clear()
+				draw_team_inventory(force_inventory_gui, target_force, inventory_mode)
 			end
-		end
-		--is source viewing force inventory ?
-		if validate_viewing_inv(_source,target_force,"active") then		
-			this_source=game.players[_source]
-			if not(validate_player(this_source)) then
-				if global.bb_debug_gui then game.print("DEBUGUI update_inventory : Source (".._source..") is not valid") end
-				return
-			end	
-			local screen = this_source.gui.screen
-			if not validate_object(screen) then return end
-			local force_inventory_gui = screen[target_force.."_inv_gui"]
-			if not validate_object(force_inventory_gui) then 
-				if global.bb_debug_gui then game.print("DEBUGUI : Cannot find force_inventory for ".._source.." viewing force "..target_force) end
-				set_viewing_inv(_source,target_force,"active",nil)
-				return
-			end
-			local inventory_mode=false
-			if validate_viewing_inv(_source,target_force,"inventory") then
-				inventory_mode=true
-			end
-			force_inventory_gui.clear()
-			draw_team_inventory(force_inventory_gui, target_force, inventory_mode)
-		end
+		--end
 	end
+	--Next time, change kind of inventory
+	--if global.inventory_select=="player" then global.inventory_select="north"
+	--elseif global.inventory_select=="north" then global.inventory_select="south"
+	--else global.inventory_select="player"
+	--end
 end
 
 --EVL Store last inventory_gui/north_inv_gui/south_inv_gui locations
@@ -1202,7 +1219,7 @@ commands.add_command('inventory','Opens a players inventory (deprecated).',
 )
 
 Event.add(defines.events.on_player_main_inventory_changed, update_inventory_gui)
-Event.add(defines.events.on_player_crafted_item, update_inventory_gui)
+--Event.add(defines.events.on_player_crafted_item, update_inventory_gui) --EVL mostly useless since a craft will change inventory
 Event.add(defines.events.on_player_cursor_stack_changed, update_inventory_gui)
 --Event.add(defines.events.on_gui_closed, on_gui_closed) --DEBUG-- using gui.screen gives weird auto closing inv_gui
 Event.add(defines.events.on_pre_player_left_game, on_pre_player_left_game) --EVL switch back spec/god to spec/real before leaving, close all inventories, store force of disco player
